@@ -1,0 +1,288 @@
+// Generado por Antigravity
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EstadoPlan {
+  BORRADOR
+  ACTIVO
+  CERRADO
+}
+
+enum Prioridad {
+  ALTA
+  MEDIA
+  BAJA
+}
+
+enum EstadoActividad {
+  PENDIENTE
+  EN_PROGRESO
+  COMPLETADA
+  CON_ALERTA
+  VENCIDA
+}
+
+enum RolUsuario {
+  ADMIN
+  GESTOR
+  OBSERVADOR
+}
+
+enum EstadoLocalidad {
+  NO_INICIADA
+  EN_CURSO_SIN_VALIDAR
+  COMPLETA_SIN_VALIDAR
+}
+
+enum EstadoValidacion {
+  PENDIENTE_REVISION
+  VALIDADA_COMPLETADA
+  VALIDADA_EN_CURSO
+  VALIDADA_SIN_AVANCE
+}
+
+enum NivelAlerta {
+  CRITICA
+  MODERADA
+  INFORMATIVA
+}
+
+enum TipoAlerta {
+  VENCIMIENTO
+  SIN_EVIDENCIA
+  BAJO_AVANCE
+  RIESGO_EXTERNO
+}
+
+model Usuario {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  nombre    String
+  rol       RolUsuario @default(OBSERVADOR)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  asignaciones     AsignacionLocalidad[]
+  comentarios      Comentario[]
+  evidencias       Evidencia[]
+  localidades      Localidad[] // si es responsable principal
+  alertasResueltas Alerta[]              @relation("ResueltaPor")
+  fichasAlertas    FichaAlerta[]
+}
+
+model Plan {
+  id            String     @id @default(uuid())
+  nombre        String
+  ano           Int
+  descripcion   String?
+  estado        EstadoPlan @default(BORRADOR)
+  fechaCreacion DateTime   @default(now())
+  creadoPor     String
+
+  objetivos ObjetivoEstrategico[]
+}
+
+model ObjetivoEstrategico {
+  id          String  @id @default(uuid())
+  planId      String
+  codigo      String // ej: "O1"
+  nombre      String
+  descripcion String?
+  orden       Int
+
+  plan                 Plan                 @relation(fields: [planId], references: [id])
+  programas            Programa[]
+  reportesCualitativos ReporteCualitativo[]
+  fichasAlertas        FichaAlerta[]
+}
+
+model Programa {
+  id          String  @id @default(uuid())
+  objetivoId  String
+  codigo      String // ej: "P03"
+  nombre      String
+  descripcion String?
+
+  objetivo ObjetivoEstrategico @relation(fields: [objetivoId], references: [id])
+  hitos    Hito[]
+}
+
+model Hito {
+  id          String   @id @default(uuid())
+  programaId  String
+  codigo      String // ej: "H2"
+  nombre      String
+  descripcion String?
+  fechaLimite DateTime
+
+  programa    Programa    @relation(fields: [programaId], references: [id])
+  actividades Actividad[]
+}
+
+model Actividad {
+  id                       String          @id @default(uuid())
+  hitoId                   String
+  codigoCompleto           String          @unique // ej: "P03.H2.A1"
+  nombre                   String
+  descripcion              String?
+  fechaInicio              DateTime?
+  fechaLimite              DateTime?
+  prioridad                Prioridad       @default(MEDIA)
+  tiposEvidenciaRequeridos String[] // Array de strings o JSON
+  indicadorMeta            Float
+  indicadorUnidad          String
+  estado                   EstadoActividad @default(PENDIENTE)
+  creadoPor                String
+  fechaCreacion            DateTime        @default(now())
+  ultimaModificacion       DateTime        @updatedAt
+
+  hito         Hito                  @relation(fields: [hitoId], references: [id])
+  asignaciones AsignacionLocalidad[]
+  subTareas    SubTarea[]
+  evidencias   Evidencia[]
+  comentarios  Comentario[]
+  alertas      Alerta[]
+  FichaAlerta  FichaAlerta[]
+}
+
+model Localidad {
+  id                     String  @id @default(uuid())
+  nombre                 String
+  codigoDANE             String?
+  responsablePrincipalId String?
+  colorHex               String?
+
+  responsablePrincipal Usuario?              @relation(fields: [responsablePrincipalId], references: [id])
+  asignaciones         AsignacionLocalidad[]
+  evidencias           Evidencia[]
+  comentarios          Comentario[]
+  alertas              Alerta[]
+  FichaAlerta          FichaAlerta[]
+}
+
+model AsignacionLocalidad {
+  id               String           @id @default(uuid())
+  actividadId      String
+  localidadId      String
+  responsableId    String?
+  fechaAsignacion  DateTime         @default(now())
+  observaciones    String?
+  estadoLocal      EstadoLocalidad  @default(NO_INICIADA)
+  estadoValidacion EstadoValidacion @default(PENDIENTE_REVISION)
+  porcentajeAvance Float            @default(0)
+
+  actividad   Actividad @relation(fields: [actividadId], references: [id])
+  localidad   Localidad @relation(fields: [localidadId], references: [id])
+  responsable Usuario?  @relation(fields: [responsableId], references: [id])
+
+  @@unique([actividadId, localidadId])
+}
+
+model SubTarea {
+  id                 String  @id @default(uuid())
+  actividadId        String
+  descripcion        String
+  completada         Boolean @default(false)
+  ordenVisualizacion Int     @default(0)
+
+  actividad Actividad @relation(fields: [actividadId], references: [id])
+}
+
+model Evidencia {
+  id                 String    @id @default(uuid())
+  actividadId        String
+  localidadId        String
+  subidoPorId        String
+  tipoEvidencia      String // documento/foto/video/enlace/reporte
+  nombreArchivo      String
+  urlArchivo         String // Ruta local o S3
+  descripcion        String?
+  fechaSubida        DateTime  @default(now())
+  comentarioAdjunto  String?
+  verificadaPorAdmin Boolean   @default(false)
+  fechaVerificacion  DateTime?
+
+  actividad Actividad @relation(fields: [actividadId], references: [id])
+  localidad Localidad @relation(fields: [localidadId], references: [id])
+  subidoPor Usuario   @relation(fields: [subidoPorId], references: [id])
+}
+
+model Comentario {
+  id            String   @id @default(uuid())
+  actividadId   String
+  localidadId   String
+  autorId       String
+  texto         String
+  fechaCreacion DateTime @default(now())
+  esAlerta      Boolean  @default(false)
+  tipoAlerta    String?
+
+  actividad Actividad @relation(fields: [actividadId], references: [id])
+  localidad Localidad @relation(fields: [localidadId], references: [id])
+  autor     Usuario   @relation(fields: [autorId], references: [id])
+}
+
+model Alerta {
+  id              String      @id @default(uuid())
+  actividadId     String
+  localidadId     String
+  tipo            TipoAlerta
+  descripcion     String
+  nivel           NivelAlerta
+  activa          Boolean     @default(true)
+  fechaCreacion   DateTime    @default(now())
+  resueltaPorId   String?
+  fechaResolucion DateTime?
+
+  actividad   Actividad @relation(fields: [actividadId], references: [id])
+  localidad   Localidad @relation(fields: [localidadId], references: [id])
+  resueltaPor Usuario?  @relation("ResueltaPor", fields: [resueltaPorId], references: [id])
+}
+
+model CorteMensual {
+  id          String               @id @default(uuid())
+  nombre      String
+  fechaLimite DateTime
+  esActivo    Boolean              @default(false)
+  reportes    ReporteCualitativo[]
+}
+
+model ReporteCualitativo {
+  id                     String  @id @default(uuid())
+  objetivoId             String
+  corteId                String
+  principalesAvances     String? @db.Text
+  alertasRecomendaciones String? @db.Text
+
+  objetivo ObjetivoEstrategico @relation(fields: [objetivoId], references: [id])
+  corte    CorteMensual        @relation(fields: [corteId], references: [id])
+
+  @@unique([objetivoId, corteId])
+}
+
+model FichaAlerta {
+  id              String    @id @default(uuid())
+  objetivoId      String?
+  actividadId     String?
+  localidadId     String
+  tipo            String // BLOQUEO_GESTION, BLOQUEO_GABINETE, BLOQUEO_ALTO_NIVEL, ESTRUCTURAL
+  descripcion     String
+  responsable     String
+  fechaCompromiso DateTime?
+  estado          String    @default("ABIERTA") // ABIERTA, RESUELTA
+  ultimaAccion    String?   @db.Text
+  creadoPorId     String
+  fechaCreacion   DateTime  @default(now())
+
+  objetivo  ObjetivoEstrategico? @relation(fields: [objetivoId], references: [id])
+  actividad Actividad?           @relation(fields: [actividadId], references: [id])
+  localidad Localidad            @relation(fields: [localidadId], references: [id])
+  creador   Usuario              @relation(fields: [creadoPorId], references: [id])
+}
