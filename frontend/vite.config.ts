@@ -5,9 +5,9 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
-    minify: 'terser',
+    minify: 'esbuild',
   },
   css: {
-    postcss: null,
+    postcss: false,
   },
 })

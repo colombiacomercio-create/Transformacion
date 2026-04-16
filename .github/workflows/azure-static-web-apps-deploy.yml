@@ -15,15 +15,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit
+        run: npm ci --no-audit
 
       - name: Build Frontend
         working-directory: ./frontend
-        run: npm run build
+        run: npx vite build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api-transformacion-sdg.azurewebsites.net' }}
+          VITE_TENANT_ID: ${{ vars.VITE_TENANT_ID }}
+          VITE_CLIENT_ID: ${{ vars.VITE_CLIENT_ID }}
+          VITE_BYPASS_AUTH: 'false'
 
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
@@ -33,4 +38,4 @@ jobs:
           action: "upload"
           app_location: "frontend"
           output_location: "dist"
-          skip_app_build: false
+          skip_app_build: true
