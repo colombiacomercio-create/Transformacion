@@ -36,7 +36,7 @@ export default function Dashboard() {
   const isAdmin = (localStorage.getItem('mockRole') || 'ADMIN') === 'ADMIN';
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/actividades', { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
       .then(res => res.json())
       .then(data => {
          const hoy = new Date();
@@ -150,20 +150,34 @@ export default function Dashboard() {
                tableList.push({ id: a.id, codigo: a.codigoCompleto, nombre: a.nombre, estado: st });
             });
 
-            // Mock Product Bar (En producción agruparías por a.hito.programa)
-            const prodBars = [
-               { name: 'P01', avance: Math.floor(Math.random()*40+60) },
-               { name: 'P03', avance: Math.floor(Math.random()*40+60) },
-               { name: 'P04', avance: 100 },
-               { name: 'P05', avance: 100 }
-            ];
+            const prodStats = new Map();
+            const objStats = new Map();
 
-            const objBars = [
-               { name: 'O1. Ejecución', avance: Math.floor(Math.random()*40+60) },
-               { name: 'O2. Obras Loc.', avance: Math.floor(Math.random()*40+60) },
-               { name: 'O3. Espacio P.', avance: 90 },
-               { name: 'O4. Seguridad', avance: 75 }
-            ];
+            actsLoc.forEach((a:any) => {
+               const st = a.asignaciones.find((asig:any) => asig.localidadId === localidadFiltro)?.estadoLocal || 'NO_INICIADA';
+               let av = 0;
+               if(st.includes('COMPLETA')) av = 100;
+               else if(st.includes('CURSO')) av = 50;
+
+               // Dynamic Programa / Producto calculation
+               const p = a.hito?.programa;
+               if (p) {
+                  const pName = p.codigo;
+                  if (!prodStats.has(pName)) prodStats.set(pName, { name: pName, sum: 0, count: 0 });
+                  const e = prodStats.get(pName); e.sum += av; e.count++;
+               }
+
+               // Dynamic Objetivo calculation
+               const obj = a.hito?.programa?.objetivo;
+               if (obj) {
+                  const oName = obj.codigo;
+                  if (!objStats.has(oName)) objStats.set(oName, { name: oName, sum: 0, count: 0 });
+                  const e = objStats.get(oName); e.sum += av; e.count++;
+               }
+            });
+
+            const prodBars = Array.from(prodStats.values()).map(x => ({ name: x.name, avance: Math.round(x.sum/x.count) }));
+            const objBars = Array.from(objStats.values()).map(x => ({ name: x.name, avance: Math.round(x.sum/x.count) }));
 
             setLocData({
                indice: currentIndice,
@@ -179,14 +193,14 @@ export default function Dashboard() {
          }
       }).catch(err => console.error(err));
 
-    fetch('http://localhost:4000/api/cortes', { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
       .then(res => res.json())
       .then(data => {
          setCortes(data);
          if(data.length > 0) setCorteActivo(data[0]);
       }).catch(err => console.error(err));
 
-    fetch('http://localhost:4000/api/planes', { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
       .then(res => res.json())
       .then(data => {
          if (data.length > 0) setObjetivosAPI(data[0].objetivos || []);
@@ -208,7 +222,7 @@ export default function Dashboard() {
 
   const handleSave = async (objId: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/cortes/${corteActivo.id}/objetivo/${objId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes/${corteActivo.id}/objetivo/${objId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' },
         body: JSON.stringify(formCualitativo)

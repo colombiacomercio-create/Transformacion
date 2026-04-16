@@ -23,7 +23,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
   });
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/planes', {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`, {
       headers: { 'Authorization': 'Bearer local_dev_token' }
     })
       .then(res => res.json())
@@ -41,7 +41,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:4000/api/actividades', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,9 +62,9 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
     planes.forEach(p => {
        p.objetivos?.forEach((o: any) => {
           o.programas?.forEach((prog: any) => {
-             prog.hitos?.forEach((h: any) => {
-                hitos.push({ id: h.id, nombre: `[${prog.codigo}] ${h.nombre}` });
-             });
+             if (prog.hitos && prog.hitos.length > 0) {
+                hitos.push({ id: prog.hitos[0].id, nombre: `[${prog.codigo}] ${prog.nombre}` });
+             }
           });
        });
     });
@@ -138,7 +138,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
           </div>
 
           <div>
-             <label className="block text-sm font-medium text-gray-700 mb-1">Vincular a Hito (Plan Estratégico)</label>
+             <label className="block text-sm font-medium text-gray-700 mb-1">Vincular a Producto</label>
              <select required className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-bogota-primary/30"
                value={formData.hitoId} onChange={e => setFormData({...formData, hitoId: e.target.value})}>
                {getHitosPlano().map(h => (

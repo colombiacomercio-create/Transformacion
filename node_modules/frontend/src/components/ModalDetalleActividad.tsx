@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, MessageSquare, Paperclip, CheckCircle2, Clock, Calendar, FileText, Send } from 'lucide-react';
+import { AlertCircle, X, MessageSquare, Paperclip, CheckCircle2, Clock, Calendar, FileText, Send } from 'lucide-react';
 
 interface Props {
   actividad: any;
@@ -47,7 +47,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
     if (!nuevoComentario.trim()) return;
     setPostingComment(true);
     try {
-      await fetch(`http://localhost:4000/api/actividades/${actividad.id}/comentarios`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/${actividad.id}/comentarios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
     setUploading(true);
     try {
       const mockRole = localStorage.getItem('mockRole') || 'ADMIN';
-      const res = await fetch(`http://localhost:4000/api/evidencias/upload/${actividad.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/evidencias/upload/${actividad.id}`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer local_dev_token',
@@ -104,7 +104,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
   const handleAdminSaveEdits = async () => {
     try {
       const mockRole = localStorage.getItem('mockRole') || 'ADMIN';
-      await fetch(`http://localhost:4000/api/actividades/${actividad.id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/${actividad.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': mockRole },
         body: JSON.stringify(editData)
@@ -138,14 +138,14 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
        formData.append('localidadId', asigActual.localidadId);
        formData.append('descripcion', comentarioEstado);
 
-       await fetch(`http://localhost:4000/api/evidencias/actividad/${actividad.id}`, {
+       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/evidencias/actividad/${actividad.id}`, {
          method: 'POST',
          headers: { 'Authorization': 'Bearer local_dev_token', 'x-mock-role': mockRole },
          body: formData
        });
 
        // 2. Subir Comentario
-       await fetch(`http://localhost:4000/api/comentarios/actividad/${actividad.id}`, {
+       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/comentarios/actividad/${actividad.id}`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': mockRole },
          body: JSON.stringify({
@@ -156,7 +156,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
        });
 
        // 3. Cambiar estado local
-       await fetch(`http://localhost:4000/api/actividades/asignacion/${asigActual.id}/estadoLocal`, {
+       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/asignacion/${asigActual.id}/estadoLocal`, {
          method: 'PATCH',
          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': mockRole },
          body: JSON.stringify({ estadoLocal: estadoPendiente })
@@ -175,7 +175,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
     if (!asigActual) return;
     try {
       const mockRole = localStorage.getItem('mockRole') || 'ADMIN';
-      await fetch(`http://localhost:4000/api/actividades/asignacion/${asigActual.id}/estadoValidacion`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/asignacion/${asigActual.id}/estadoValidacion`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': mockRole },
         body: JSON.stringify({ estadoValidacion })
@@ -451,7 +451,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
                          <p className="text-xs text-gray-400">Subido el {new Date(ev.fechaSubida).toLocaleDateString()}</p>
                        </div>
                      </div>
-                     <a href={`http://localhost:4000${ev.urlArchivo}`} target="_blank" rel="noreferrer" className="text-bogota-primary text-sm font-bold hover:underline">Ver</a>
+                     <a href={`${(import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace('/api', '')}${ev.urlArchivo}`} target="_blank" rel="noreferrer" className="text-bogota-primary text-sm font-bold hover:underline">Ver</a>
                    </div>
                  ))}
               </div>

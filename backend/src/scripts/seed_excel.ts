@@ -5,7 +5,7 @@ import path from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
-  const filePath = "C:\\Users\\Roberto Carlos\\Downloads\\11. Transformación 2026 Suba.xlsx";
+  const filePath = "/app/data.xlsx";
   console.log('Leyendo archivo:', filePath);
 
   const workbook = xlsx.readFile(filePath);
@@ -39,8 +39,32 @@ async function main() {
 
   // Objetivos Map
   const objetivosCreados = new Map<string, string>();
-  // Code parsing regex for PXX
-  // ej: P04.H2.A2.Intervención...
+  
+  const NOMBRES_PRODUCTOS: Record<string, string> = {
+     'P01': 'Ejecución Presupuestal',
+     'P02': 'Obras locales',
+     'P03': 'Espacio Público',
+     'P04': 'Seguridad y Convivencia',
+     'P05': 'Inspección, Vigilancia y Control',
+     'P06': 'Gestión del Riesgo',
+     'P07': 'Participación Ciudadana',
+     'P08': 'Memoria Histórica',
+     'P09': 'Fortalecimiento Institucional',
+     'P10': 'Diálogo Social'
+  };
+
+  // Creación incondicional de los 10 productos base para que la Interfaz siempre los relacione
+  const objGen = await prisma.objetivoEstrategico.create({
+      data: { codigo: 'O_BASE', nombre: 'Objetivos Estructurales', descripcion: 'Base Distrital', planId: plan.id, orden: 1 }
+  });
+  
+  const programasCreados = new Map<string, string>();
+  for (const [cod, nom] of Object.entries(NOMBRES_PRODUCTOS)) {
+      const p = await prisma.programa.create({
+          data: { codigo: cod, nombre: nom, objetivoId: objGen.id }
+      });
+      programasCreados.set(cod, p.id);
+  }
   
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
@@ -87,32 +111,40 @@ async function main() {
         objetivosCreados.set(objCode, o.id);
     }
 
-    // Asegurar Programa ficticio basado en el código P04
-    const prodCode = actNameData.split('.')[0] || 'P_GEN'; // P04
-    // Para simplificar, crearemos un programa generico para ese objetivo por que no tenemos la data exacta
-    // Pero lo crearemos on-the-fly si no existe
-    let prog = await prisma.programa.findFirst({ where: { codigo: prodCode, objetivoId: objetivoId } });
-    if (!prog) {
-       prog = await prisma.programa.create({
-          data: {
-             codigo: prodCode,
-             nombre: `Producto ${prodCode}`,
-             objetivoId: objetivoId!
-          }
-       });
+    const prodCodeRaw = actNameData.split('.')[0] || 'P_GEN'; // P01
+    let prodCode = prodCodeRaw;
+    if (prodCode === 'P1') prodCode = 'P01';
+    if (prodCode === 'P2') prodCode = 'P02';
+    if (prodCode === 'P3') prodCode = 'P03';
+    if (prodCode === 'P4') prodCode = 'P04';
+    if (prodCode === 'P5') prodCode = 'P05';
+    if (prodCode === 'P6') prodCode = 'P06';
+    if (prodCode === 'P7') prodCode = 'P07';
+    if (prodCode === 'P8') prodCode = 'P08';
+    if (prodCode === 'P9') prodCode = 'P09';
+
+    let progId = programasCreados.get(prodCode);
+    if (!progId) {
+        // Fallback by creating it
+        const fallbackObj = await prisma.objetivoEstrategico.findFirst({ where: { codigo: 'O_BASE' } });
+        const fallbackP = await prisma.programa.create({
+            data: { codigo: prodCode, nombre: `Producto Extra ${prodCode}`, objetivoId: fallbackObj!.id }
+        });
+        progId = fallbackP.id;
+        programasCreados.set(prodCode, progId);
     }
 
     // Asegurar Hito
     const hitoStr = actNameData.split('.')[1] || 'H1';
     let hitoId = '';
-    const h = await prisma.hito.findFirst({ where: { programaId: prog.id, nombre: hitoStr }});
+    const h = await prisma.hito.findFirst({ where: { programaId: progId, nombre: hitoStr }});
     if (!h) {
        const nh = await prisma.hito.create({
           data: { 
              codigo: hitoStr,
              nombre: hitoStr, 
              descripcion: hitoStr, 
-             programaId: prog.id,
+             programaId: progId,
              fechaLimite: finalDate
           }
        });
@@ -120,19 +152,13 @@ async function main() {
     } else hitoId = h.id;
 
     // Insertar Actividad
-    const partsName = actNameData.split('.');
-    let cleanedName = actNameData;
-    if (partsName.length >= 4) {
-       cleanedName = partsName.slice(3).join('.').trim();
-    }
-    
-    const actCodigo = partsName.slice(0, 3).join('.') + '_' + i; 
+    const actCodigo = actNameData.substring(0, 50); // Just use a shortened code for DB
 
     const newAct = await prisma.actividad.create({
        data: {
-          codigoCompleto: actCodigo,
-          nombre: cleanedName || actNameData,
-          descripcion: `Responsables: ${respStr}`,
+          codigoCompleto: actCodigo + "_" + Date.now() + "_" + i, // Solo para que prisma no falle unicidad interna
+          nombre: actNameData, // Guardar TODO el nombre exacto como aparece en Excel
+          descripcion: `Responsables: ${respStr}\n\n${row[17] || ''}`, // Adds column R text
           hitoId: hitoId,
           fechaInicio: new Date(),
           fechaLimite: finalDate,

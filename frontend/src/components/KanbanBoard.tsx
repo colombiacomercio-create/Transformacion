@@ -62,7 +62,7 @@ export default function KanbanBoard() {
 
   const fetchActividades = () => {
     const mockRole = localStorage.getItem('mockRole') || 'ADMIN';
-    fetch('http://localhost:4000/api/actividades', {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, {
       headers: {
         'Authorization': 'Bearer local_dev_token',
         'x-mock-role': mockRole
@@ -121,7 +121,7 @@ export default function KanbanBoard() {
     }
     
     const objNombre = a.hito?.programa?.objetivo?.nombre || 'General';
-    const prodCodigo = a.hito?.programa?.codigo || 'General';
+    const prodCodigo = a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General';
 
     if (filtroObjetivo !== 'TODOS' && objNombre !== filtroObjetivo) return false;
     if (filtroProducto !== 'TODOS' && prodCodigo !== filtroProducto) return false;
@@ -133,7 +133,7 @@ export default function KanbanBoard() {
     let csvData = '\uFEFFCodigo Actividad,Nombre Actividad,Objetivo,Programa,Localidad,Estado Local,Estado Validacion\n';
     lista.forEach(act => {
        const obs = act.hito?.programa?.objetivo?.nombre || 'General';
-       const progs = act.hito?.programa?.codigo || 'General';
+       const progs = act.hito?.programa ? `${act.hito.programa.codigo} ${act.hito.programa.nombre}` : 'General';
        if (!act.asignaciones || act.asignaciones.length === 0) {
            csvData += `"${act.codigoCompleto || ''}","${act.nombre}","${obs}","${progs}","Sin Asignacion","",""\n`;
        } else {
@@ -150,9 +150,9 @@ export default function KanbanBoard() {
   };
 
   const objetivosList = Array.from(new Set(actividades.map(a => a.hito?.programa?.objetivo?.nombre || 'General'))).sort();
-  const productosList = Array.from(new Set(actividades.map(a => a.hito?.programa?.codigo || 'General'))).sort();
+  const productosList = Array.from(new Set(actividades.map(a => a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General'))).sort();
 
-  const columnasSet = new Set(actividadesFiltradas.map(a => a.hito?.programa?.objetivo?.nombre || 'General'));
+  const columnasSet = new Set(actividadesFiltradas.map(a => a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General'));
   const columnasDinamicas = Array.from(columnasSet).map((obj, i) => ({
      id: obj, titulo: obj, color: columnColors[i % columnColors.length]
   })).sort((a,b) => a.id.localeCompare(b.id)); // Alfabetico O1, O2...
@@ -265,12 +265,12 @@ export default function KanbanBoard() {
             <div className="p-4 border-b border-gray-200/50 flex justify-between items-center bg-white/70 rounded-t-xl">
               <h3 className="font-bold text-gray-800 text-sm">{col.titulo}</h3>
               <span className="bg-white px-2 py-0.5 rounded-full text-xs font-bold text-bogota-primary shadow-sm border border-gray-100">
-                {actividadesFiltradas.filter(a => (a.hito?.programa?.objetivo?.nombre || 'General') === col.id).length}
+                {actividadesFiltradas.filter(a => (a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General') === col.id).length}
               </span>
             </div>
             
             <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-3">
-              {actividadesFiltradas.filter(a => (a.hito?.programa?.objetivo?.nombre || 'General') === col.id).map(actividad => (
+              {actividadesFiltradas.filter(a => (a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General') === col.id).map(actividad => (
                 <div key={actividad.id} onClick={() => setActividadSeleccionada(actividad)} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer relative group">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold text-bogota-primary bg-bogota-primary/10 px-2 py-1 rounded">

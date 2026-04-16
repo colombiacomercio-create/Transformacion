@@ -271,7 +271,7 @@ model FichaAlerta {
   id              String    @id @default(uuid())
   objetivoId      String?
   actividadId     String?
-  localidadId     String
+  localidadId     String?
   tipo            String // BLOQUEO_GESTION, BLOQUEO_GABINETE, BLOQUEO_ALTO_NIVEL, ESTRUCTURAL
   descripcion     String
   responsable     String
@@ -283,6 +283,6 @@ model FichaAlerta {
 
   objetivo  ObjetivoEstrategico? @relation(fields: [objetivoId], references: [id])
   actividad Actividad?           @relation(fields: [actividadId], references: [id])
-  localidad Localidad            @relation(fields: [localidadId], references: [id])
+  localidad Localidad?           @relation(fields: [localidadId], references: [id])
   creador   Usuario              @relation(fields: [creadoPorId], references: [id])
 }

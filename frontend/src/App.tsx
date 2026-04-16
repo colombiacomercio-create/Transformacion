@@ -64,14 +64,14 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-[80px] items-center">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-white rounded flex items-center justify-center text-black font-bold text-lg">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 12H4V22H20V12H23L12 2Z"/></svg>
+              <div className="bg-white rounded flex items-center justify-center px-2 py-1">
+                <img src="/Logo_sede_electronica_SDG.png" alt="Escudo de Bogotá" className="h-8" />
               </div>
               <div className="flex flex-col border-l-2 pl-4 border-gray-700">
+                <span className="text-xs text-[#FFCD00] font-bold uppercase tracking-wider">Secretaría Distrital de Gobierno</span>
                 <h1 className="text-xl font-bold text-white leading-tight">
                    Unidad de Transformación
                 </h1>
-                <span className="text-xs text-[#FFCD00] font-bold uppercase tracking-wider">Secretaría Distrital de Gobierno</span>
               </div>
             </div>
             

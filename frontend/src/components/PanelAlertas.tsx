@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, Plus, X, Search, CheckCircle2, ShieldAlert, Edit, Save } from 'lucide-react';
+import { AlertCircle, Plus, X, Search, ShieldAlert, Edit, Save } from 'lucide-react';
 
 export default function PanelAlertas() {
   const [alertas, setAlertas] = useState<any[]>([]);
@@ -16,7 +16,7 @@ export default function PanelAlertas() {
   const [formGestion, setFormGestion] = useState({ estado: 'ABIERTA', ultimaAccion: '' });
 
   const fetchAlertas = () => {
-    fetch('http://localhost:4000/api/fichas-alertas', { headers: { 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' }})
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, { headers: { 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' }})
       .then(res => res.json())
       .then(data => setAlertas(data))
       .catch();
@@ -24,7 +24,7 @@ export default function PanelAlertas() {
 
   useEffect(() => {
     fetchAlertas();
-    fetch('http://localhost:4000/api/actividades', { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
       .then(res => res.json())
       .then(data => {
          const locs = new Map();
@@ -39,21 +39,27 @@ export default function PanelAlertas() {
          setLocalidades(locsRaw);
       });
       
-    fetch('http://localhost:4000/api/planes', { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
       .then(res => res.json())
       .then(data => {
-         if (data.length > 0) setObjetivos(data[0].objetivos || []);
+         if (data.length > 0) {
+            let progs: any[] = [];
+            data[0].objetivos?.forEach((o: any) => {
+               o.programas?.forEach((p: any) => progs.push({ id: o.id, uniqueId: p.codigo, nombre: `[${p.codigo}] ${p.nombre}` }));
+            });
+            setObjetivos(progs);
+         }
       });
   }, []);
 
   const handleCrear = async (e: React.FormEvent) => {
      e.preventDefault();
      try {
-       await fetch('http://localhost:4000/api/fichas-alertas', {
+       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' },
          body: JSON.stringify({
-            localidadId: form.localidadId,
+            localidadId: form.localidadId === 'GLOBAL' ? undefined : form.localidadId,
             objetivoId: form.objetivoId || null,
             tipo: form.tipo,
             descripcion: form.desc,
@@ -70,7 +76,7 @@ export default function PanelAlertas() {
     e.preventDefault();
     if(!mostrandoGestion) return;
     try {
-      await fetch(`http://localhost:4000/api/fichas-alertas/${mostrandoGestion}/estado`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas/${mostrandoGestion}/estado`, {
          method: 'PATCH',
          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' },
          body: JSON.stringify(formGestion)
@@ -197,18 +203,19 @@ export default function PanelAlertas() {
                
                <div className="grid grid-cols-2 gap-4">
                  <div>
-                   <label className="block text-sm font-bold text-gray-700 mb-1">Localidad Afectada</label>
-                   <select required className="w-full p-2 border rounded" value={form.localidadId} onChange={e => setForm({...form, localidadId: e.target.value})}>
-                      <option value="">Seleccione...</option>
-                      {localidades.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-                   </select>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Localidad Afectada</label>
+                    <select required className="w-full p-2 border rounded" value={form.localidadId} onChange={e => setForm({...form, localidadId: e.target.value})}>
+                       <option value="">Seleccione...</option>
+                       <option value="GLOBAL">Alerta General (Todas las localidades)</option>
+                       {localidades.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                    </select>
                  </div>
-                 <div>
-                   <label className="block text-sm font-bold text-gray-700 mb-1">Objetivo Estratégico</label>
-                   <select className="w-full p-2 border rounded text-sm" value={form.objetivoId} onChange={e => setForm({...form, objetivoId: e.target.value})}>
-                      <option value="">(Ninguno / Global)</option>
-                      {objetivos.map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}
-                   </select>
+                 <div className="col-span-1">
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Producto</label>
+                    <select className="w-full p-2 border rounded text-sm" value={form.objetivoId} onChange={e => setForm({...form, objetivoId: e.target.value})}>
+                       <option value="">(Ninguno / Global)</option>
+                       {objetivos.map(o => <option key={o.uniqueId} value={o.id}>{o.nombre}</option>)}
+                    </select>
                  </div>
                </div>
 
