@@ -7,22 +7,16 @@ const express_1 = require("express");
 const client_1 = require("@prisma/client");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
 const router = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
-// Configuración básica de Multer para uso local en /uploads
-const storage = multer_1.default.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './uploads/');
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path_1.default.extname(file.originalname));
-    }
-});
+// Importando la integración con Supabase Storage (1GB Gratuito)
+const supabase_service_1 = require("../services/supabase.service");
+// Pasamos de disco local a Memoria (RAM) para enviar directo a la nube sin tocar disco
+const storage = multer_1.default.memoryStorage();
 const upload = (0, multer_1.default)({
     storage: storage,
-    limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+    // LÍMITE ESTRICTO APLICADO: 20 Megabytes máximo por archivo permitido
+    limits: { fileSize: 20 * 1024 * 1024 }
 });
 router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, (0, auth_middleware_1.requireRole)(['ADMIN', 'GESTOR']), upload.single('archivo'), async (req, res) => {
     try {
@@ -34,8 +28,10 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, (0, auth_midd
         if (!comentarioAdjunto || comentarioAdjunto.trim() === '') {
             return res.status(400).json({ error: 'Debe agregar un comentario obligatorio describiendo la ejecución' });
         }
-        const fileUrl = `/uploads/${req.file.filename}`;
         const locFinalId = localidadId || (await prisma.localidad.findFirst())?.id;
+        console.log(`Subiendo archivo de ${Math.round(req.file.size / 1024 / 1024)} MB a Supabase Storage...`);
+        // Aquí ocurre la magia: Mandamos el buffer en memoria directo al Bucket de Supabase
+        const cloudUrlStr = await (0, supabase_service_1.uploadFileToSupabase)(req.file.originalname, req.file.buffer, req.file.mimetype);
         const evidencia = await prisma.evidencia.create({
             data: {
                 actividadId,
@@ -43,7 +39,7 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, (0, auth_midd
                 subidoPorId: req.user.id,
                 tipoEvidencia: tipoEvidencia || 'documento',
                 nombreArchivo: req.file.originalname,
-                urlArchivo: fileUrl,
+                urlArchivo: cloudUrlStr, // Guardamos la URL pública nativa de Supabase Storage
                 descripcion,
                 comentarioAdjunto
             }
@@ -54,7 +50,7 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, (0, auth_midd
                 actividadId,
                 localidadId: locFinalId,
                 autorId: req.user.id,
-                texto: `[Adjuntó evidencia: ${req.file.originalname}] ${comentarioAdjunto}`
+                texto: `[Adjuntó evidencia en la Nube Corporativa: ${req.file.originalname}] ${comentarioAdjunto}`
             }
         });
         res.status(201).json(evidencia);

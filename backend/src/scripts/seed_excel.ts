@@ -5,7 +5,7 @@ import path from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
-  const filePath = "/app/data.xlsx";
+  const filePath = "C:\\Users\\Roberto Carlos\\Downloads\\10. Transformación 2026 Engativa.xlsx";
   console.log('Leyendo archivo:', filePath);
 
   const workbook = xlsx.readFile(filePath);
@@ -14,16 +14,7 @@ async function main() {
 
   // 1. Limpiar datos de Actividades, Asignaciones, Objetivos y Programas
   console.log('Limpiando base de datos...');
-  await prisma.fichaAlerta.deleteMany({});
-  await prisma.reporteCualitativo.deleteMany({});
-  await prisma.asignacionLocalidad.deleteMany({});
-  await prisma.evidencia.deleteMany({});
-  await prisma.comentario.deleteMany({});
-  await prisma.subTarea.deleteMany({});
-  await prisma.actividad.deleteMany({});
-  await prisma.hito.deleteMany({});
-  await prisma.programa.deleteMany({});
-  await prisma.objetivoEstrategico.deleteMany({});
+  // Borrado delegado al script seed.ts para evitar timeoutes de PostgreSQL
 
   const plan = await prisma.plan.findFirst();
   if (!plan) throw new Error('No hay Plan Estrategico. Por favor corre el seed inicial primero.');

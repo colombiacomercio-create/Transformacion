@@ -7,20 +7,16 @@ import path from 'path';
 const router = Router();
 const prisma = new PrismaClient();
 
-// Configuración básica de Multer para uso local en /uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, './uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Importando la integración con Supabase Storage (1GB Gratuito)
+import { uploadFileToSupabase } from '../services/supabase.service';
+
+// Pasamos de disco local a Memoria (RAM) para enviar directo a la nube sin tocar disco
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+  // LÍMITE ESTRICTO APLICADO: 20 Megabytes máximo por archivo permitido
+  limits: { fileSize: 20 * 1024 * 1024 } 
 });
 
 router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']), upload.single('archivo'), async (req: AuthRequest, res) => {
@@ -36,8 +32,16 @@ router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']
       return res.status(400).json({ error: 'Debe agregar un comentario obligatorio describiendo la ejecución' });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
     const locFinalId = localidadId || (await prisma.localidad.findFirst())?.id;
+
+    console.log(`Subiendo archivo de ${Math.round(req.file.size / 1024 / 1024)} MB a Supabase Storage...`);
+    
+    // Aquí ocurre la magia: Mandamos el buffer en memoria directo al Bucket de Supabase
+    const cloudUrlStr = await uploadFileToSupabase(
+        req.file.originalname, 
+        req.file.buffer, 
+        req.file.mimetype
+    );
 
     const evidencia = await prisma.evidencia.create({
       data: {
@@ -46,7 +50,7 @@ router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']
         subidoPorId: req.user.id,
         tipoEvidencia: tipoEvidencia || 'documento',
         nombreArchivo: req.file.originalname,
-        urlArchivo: fileUrl,
+        urlArchivo: cloudUrlStr, // Guardamos la URL pública nativa de Supabase Storage
         descripcion,
         comentarioAdjunto
       }
@@ -58,7 +62,7 @@ router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']
         actividadId,
         localidadId: locFinalId,
         autorId: req.user.id,
-        texto: `[Adjuntó evidencia: ${req.file.originalname}] ${comentarioAdjunto}`
+        texto: `[Adjuntó evidencia en la Nube Corporativa: ${req.file.originalname}] ${comentarioAdjunto}`
       }
     });
 
