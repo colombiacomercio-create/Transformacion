@@ -6,8 +6,5 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     minify: 'esbuild',
-  },
-  css: {
-    postcss: false,
-  },
+  }
 })
