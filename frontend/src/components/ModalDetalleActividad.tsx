@@ -451,7 +451,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
                          <p className="text-xs text-gray-400">Subido el {new Date(ev.fechaSubida).toLocaleDateString()}</p>
                        </div>
                      </div>
-                     <a href={`${(import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace('/api', '')}${ev.urlArchivo}`} target="_blank" rel="noreferrer" className="text-bogota-primary text-sm font-bold hover:underline">Ver</a>
+                     <a href={ev.urlArchivo?.startsWith('http') ? ev.urlArchivo : `${(import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace('/api', '')}${ev.urlArchivo}`} target="_blank" rel="noreferrer" className="text-bogota-primary text-sm font-bold hover:underline">Ver</a>
                    </div>
                  ))}
               </div>
