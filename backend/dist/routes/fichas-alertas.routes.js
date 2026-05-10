@@ -14,7 +14,7 @@ router.get('/', auth_middleware_1.azureADAuth, async (req, res) => {
             const asignaciones = await prisma.asignacionLocalidad.findMany({ where: { responsableId: user.id } });
             const checkUserGestor = (asignaciones.length === 0 && user.id === 'gestor-local-123') ? await prisma.localidad.findFirst() : null;
             const localIds = checkUserGestor ? [checkUserGestor.id] : asignaciones.map(a => a.localidadId);
-            filtro = { localidadId: { in: localIds } };
+            filtro = { OR: [{ localidadId: { in: localIds } }, { localidadId: null }] };
         }
         const fichas = await prisma.fichaAlerta.findMany({
             where: filtro,

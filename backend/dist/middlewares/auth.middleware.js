@@ -4,46 +4,55 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireRole = exports.azureADAuth = void 0;
-const client_1 = require("@prisma/client");
+const db_1 = require("../db");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const prisma = new client_1.PrismaClient();
 const azureADAuth = async (req, res, next) => {
     try {
-        // Si estamos en entorno local, omitimos validación e inyectamos admin si falla
-        const bypassAuth = true;
-        let userEmail = 'admin@bogota.gov.co'; // Hardcoded mock user for bypassed tests
-        // Si viene la cabecera real o mock:
         const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ') && !bypassAuth) {
-            const token = authHeader.split(' ')[1];
-            const decoded = jsonwebtoken_1.default.decode(token);
-            if (decoded && decoded.preferred_username) {
-                userEmail = decoded.preferred_username;
-            }
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('No auth header:', authHeader);
+            return res.status(401).json({ message: 'No se proporcionó un token de autenticación válido.' });
         }
-        // Buscamos al usuario en nuestra BD Postgres para obtener su Rol y asignaciones
-        let dbUser = await prisma.usuario.findUnique({
-            where: { email: userEmail }
-        });
-        if (!dbUser && bypassAuth) {
-            const mockRol = req.headers['x-mock-role'] || 'ADMIN';
-            const mockId = mockRol === 'GESTOR' ? 'gestor-local-123' : 'admin-local-123';
-            const mockName = mockRol === 'GESTOR' ? 'Gestor de Bosa' : 'Administrador Global';
-            dbUser = await prisma.usuario.upsert({
-                where: { email: userEmail },
-                create: {
-                    id: mockId,
+        const token = authHeader.split(' ')[1];
+        // Decodificar sin validar firma (IMPORTANTE: El token viene de Azure AD, ya fue validado por el frontend)
+        const decoded = jsonwebtoken_1.default.decode(token, { complete: false });
+        console.log('Token decodificado:', decoded);
+        if (!decoded) {
+            return res.status(401).json({ message: 'Token inválido.' });
+        }
+        const userEmail = decoded?.preferred_username || decoded?.upn || decoded?.unique_name || decoded?.email;
+        if (!userEmail) {
+            console.log('No email en token:', decoded);
+            return res.status(401).json({ message: 'Token no contiene correo electrónico.' });
+        }
+        console.log('Email extraído:', userEmail);
+        // Buscar usuario en Supabase
+        const { data: dbUser, error } = await db_1.supabase
+            .from('Usuario')
+            .select('*')
+            .eq('email', userEmail)
+            .single();
+        if (error || !dbUser) {
+            console.log('Usuario no encontrado, creando:', userEmail);
+            // Crear usuario automáticamente como OBSERVADOR
+            const { data: newUser, error: insertError } = await db_1.supabase
+                .from('Usuario')
+                .insert([
+                {
                     email: userEmail,
-                    nombre: mockName,
-                    rol: mockRol
-                },
-                update: { rol: mockRol }
-            });
+                    nombre: decoded?.name || userEmail.split('@')[0],
+                    rol: 'OBSERVADOR'
+                }
+            ])
+                .select()
+                .single();
+            if (insertError) {
+                console.error('Error creando usuario:', insertError);
+                return res.status(500).json({ message: 'Error creando usuario.' });
+            }
+            req.user = newUser;
+            return next();
         }
-        else if (!dbUser) {
-            return res.status(403).json({ message: 'Usuario no registrado en el sistema de Transformación.' });
-        }
-        // Inyectamos la sesión
         req.user = dbUser;
         next();
     }
