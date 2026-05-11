@@ -80,26 +80,6 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
   }
 });
 
-// Actualizar Descripción (y otras propiedades) de Actividad
-router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { descripcion, fechaInicio, fechaLimite } = req.body;
-    const actividad = await prisma.actividad.update({
-      where: { id },
-      data: { 
-        descripcion,
-        fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined,
-        fechaLimite: fechaLimite ? new Date(fechaLimite) : undefined
-      }
-    });
-    res.json(actividad);
-  } catch (error) {
-    console.error('Error actualizando actividad:', error);
-    res.status(500).json({ error: 'Error actualizando actividad' });
-  }
-});
-
 // Agregar Comentario
 router.post('/:id/comentarios', azureADAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -165,6 +145,26 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
   } catch (error) {
     console.error('Error actualizando estado validacion:', error);
     res.status(500).json({ error: 'Error actualizando estado de validación' });
+  }
+});
+
+// Actualizar Descripción (y otras propiedades) de Actividad
+router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { descripcion, fechaInicio, fechaLimite } = req.body;
+    const actividad = await prisma.actividad.update({
+      where: { id },
+      data: { 
+        descripcion,
+        fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined,
+        fechaLimite: fechaLimite ? new Date(fechaLimite) : undefined
+      }
+    });
+    res.json(actividad);
+  } catch (error) {
+    console.error('Error actualizando actividad:', error);
+    res.status(500).json({ error: 'Error actualizando actividad' });
   }
 });
 
