@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, Clock, CheckCircle2, MoreVertical, FileText, Plus, X, Download } from 'lucide-react';
 import ModalNuevaActividad from './ModalNuevaActividad';
 import ModalDetalleActividad from './ModalDetalleActividad';
+import { fetchApi } from '../utils/api';
 
 // Colors for dynamic columns
 const columnColors = ['bg-gray-100', 'bg-blue-50', 'bg-green-50', 'bg-orange-50', 'bg-bogota-primary/10', 'bg-teal-50', 'bg-purple-50'];
@@ -50,6 +51,8 @@ export default function KanbanBoard() {
   const [filtroObjetivo, setFiltroObjetivo] = useState('TODOS');
   const [filtroProducto, setFiltroProducto] = useState('TODOS');
   
+  const [userRole, setUserRole] = useState<string>('');
+  
   const [mostrandoBandejaValidacion, setMostrandoBandejaValidacion] = useState(false);
 
   // Computar validaciones pendientes (Solo para ADMIN, que trae múltiples asignaciones)
@@ -58,16 +61,10 @@ export default function KanbanBoard() {
        .map((asig: any) => ({ ...asig, actividadUrl: a.codigoCompleto, actividadNombre: a.nombre })) || []
   );
   
-  const esAdminStr = actividades[0]?.asignaciones?.length > 1;
+  const esAdminStr = userRole === 'ADMIN';
 
   const fetchActividades = () => {
-    const mockRole = localStorage.getItem('mockRole') || 'ADMIN';
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, {
-      headers: {
-        'Authorization': 'Bearer local_dev_token',
-        'x-mock-role': mockRole
-      }
-    })
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)
       .then(res => res.json())
       .then(data => {
          setActividades(data || []);
@@ -86,7 +83,21 @@ export default function KanbanBoard() {
       });
   };
 
+  const fetchUser = () => {
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/me`)
+      .then(res => res.json())
+      .then(data => {
+         if (data && data.rol) {
+             setUserRole(data.rol);
+         }
+      })
+      .catch(err => {
+         console.error('Error fetching user profile:', err);
+      });
+  };
+
   useEffect(() => {
+    fetchUser();
     fetchActividades();
   }, []);
 
@@ -312,7 +323,7 @@ export default function KanbanBoard() {
                 </div>
               ))}
               
-              {actividadesFiltradas.filter(a => (a.hito?.programa?.objetivo?.nombre || 'General') === col.id).length === 0 && (
+              {actividadesFiltradas.filter(a => (a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General') === col.id).length === 0 && (
                 <div className="h-24 border-2 border-dashed border-gray-300 bg-white/50 rounded-lg flex items-center justify-center text-gray-400 text-sm">
                   Sin resultados
                 </div>

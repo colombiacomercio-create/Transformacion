@@ -8,16 +8,9 @@ import PanelAlertas from "./components/PanelAlertas";
 
 function App() {
   const { instance, accounts } = useMsal();
-  const isAuthenticated = useIsAuthenticated() || import.meta.env.VITE_BYPASS_AUTH === 'true';
+  const isAuthenticated = useIsAuthenticated();
   const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas'>('kanban');
-  const [mockRole, setMockRole] = useState(localStorage.getItem('mockRole') || 'ADMIN');
   const [showHelp, setShowHelp] = useState(false);
-
-  const switchRole = (role: string) => {
-     localStorage.setItem('mockRole', role);
-     setMockRole(role);
-     window.location.reload();
-  };
 
   const handleLogin = () => {
     instance.loginPopup(loginRequest).catch(e => {
@@ -26,14 +19,12 @@ function App() {
   }
 
   const handleLogout = () => {
-    if (import.meta.env.VITE_BYPASS_AUTH !== 'true') {
-      instance.logoutPopup().catch(e => {
-        console.error(e);
-      });
-    }
+    instance.logoutPopup().catch(e => {
+      console.error(e);
+    });
   }
 
-  const userName = accounts[0]?.name || (import.meta.env.VITE_BYPASS_AUTH === 'true' ? 'Administrador Local' : '');
+  const userName = accounts[0]?.name || '';
 
   if (!isAuthenticated) {
     return (
@@ -104,12 +95,6 @@ function App() {
             </nav>
 
             <div className="flex items-center gap-4">
-              {import.meta.env.VITE_BYPASS_AUTH === 'true' && (
-                <div className="flex bg-[#2a2a2a] rounded-full p-1 border border-gray-700">
-                  <button onClick={() => switchRole('ADMIN')} className={`text-xs font-bold px-3 py-1 rounded-full ${mockRole === 'ADMIN' ? 'bg-bogota-primary text-white shadow' : 'text-gray-400'}`}>Admin</button>
-                  <button onClick={() => switchRole('GESTOR')} className={`text-xs font-bold px-3 py-1 rounded-full ${mockRole === 'GESTOR' ? 'bg-bogota-secondary text-black shadow' : 'text-gray-400'}`}>Gestor</button>
-                </div>
-              )}
               <span className="text-sm font-bold text-gray-200">{userName}</span>
               <button 
                 onClick={handleLogout}

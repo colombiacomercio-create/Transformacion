@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { fetchApi } from '../utils/api';
 
 interface Props {
   onClose: () => void;
@@ -23,9 +24,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
   });
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`, {
-      headers: { 'Authorization': 'Bearer local_dev_token' }
-    })
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
       .then(res => res.json())
       .then(data => {
         setPlanes(data);
@@ -41,11 +40,10 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer local_dev_token'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       });

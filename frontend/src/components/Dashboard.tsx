@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle, Save, Edit2, Info, Flag } from 'lucide-react';
+import { fetchApi } from '../utils/api';
 
 const mockAvancePorAspiraciones = [
   { name: 'A1. Presupuesto', avance: 95 },
@@ -33,10 +34,11 @@ export default function Dashboard() {
   // Data local para drill-down
   const [locData, setLocData] = useState<any>({ indice: 0, productos: [], objetivosBars: [], pieData: [], actList: [] });
 
-  const isAdmin = (localStorage.getItem('mockRole') || 'ADMIN') === 'ADMIN';
+  // Por ahora el dashboard permite edición si tienes los botones, el backend validará el rol
+  const isAdmin = true;
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)
       .then(res => res.json())
       .then(data => {
          const hoy = new Date();
@@ -193,14 +195,14 @@ export default function Dashboard() {
          }
       }).catch(err => console.error(err));
 
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes`)
       .then(res => res.json())
       .then(data => {
          setCortes(data);
          if(data.length > 0) setCorteActivo(data[0]);
       }).catch(err => console.error(err));
 
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
       .then(res => res.json())
       .then(data => {
          if (data.length > 0) setObjetivosAPI(data[0].objetivos || []);
@@ -222,9 +224,9 @@ export default function Dashboard() {
 
   const handleSave = async (objId: string) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes/${corteActivo.id}/objetivo/${objId}`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes/${corteActivo.id}/objetivo/${objId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formCualitativo)
       });
       const data = await res.json();

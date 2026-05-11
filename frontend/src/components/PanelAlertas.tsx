@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, Plus, X, Search, ShieldAlert, Edit, Save } from 'lucide-react';
+import { fetchApi } from '../utils/api';
 
 export default function PanelAlertas() {
   const [alertas, setAlertas] = useState<any[]>([]);
@@ -16,7 +17,7 @@ export default function PanelAlertas() {
   const [formGestion, setFormGestion] = useState({ estado: 'ABIERTA', ultimaAccion: '' });
 
   const fetchAlertas = () => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, { headers: { 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' }})
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`)
       .then(res => res.json())
       .then(data => setAlertas(data))
       .catch();
@@ -24,7 +25,7 @@ export default function PanelAlertas() {
 
   useEffect(() => {
     fetchAlertas();
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)
       .then(res => res.json())
       .then(data => {
          const locs = new Map();
@@ -39,7 +40,7 @@ export default function PanelAlertas() {
          setLocalidades(locsRaw);
       });
       
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`, { headers: { 'Authorization': 'Bearer local_dev_token' }})
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
       .then(res => res.json())
       .then(data => {
          if (data.length > 0) {
@@ -54,10 +55,10 @@ export default function PanelAlertas() {
 
   const handleCrear = async (e: React.FormEvent) => {
      e.preventDefault();
-     try {
-       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, {
+      try {
+       await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' },
+         headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({
             localidadId: form.localidadId === 'GLOBAL' ? undefined : form.localidadId,
             objetivoId: form.objetivoId || null,
@@ -76,9 +77,9 @@ export default function PanelAlertas() {
     e.preventDefault();
     if(!mostrandoGestion) return;
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas/${mostrandoGestion}/estado`, {
+      await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas/${mostrandoGestion}/estado`, {
          method: 'PATCH',
-         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer local_dev_token', 'x-mock-role': localStorage.getItem('mockRole') || 'ADMIN' },
+         headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify(formGestion)
       });
       setMostrandoGestion(null);
