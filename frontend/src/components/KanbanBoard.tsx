@@ -50,9 +50,6 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
   const [filtroEstado, setFiltroEstado] = useState('TODOS'); // 'PENDIENTES', 'EN_REVISION', 'COMPLETADAS'
   const [filtroObjetivo, setFiltroObjetivo] = useState('TODOS');
   const [filtroProducto, setFiltroProducto] = useState('TODOS');
-  
-  const [filtroProducto, setFiltroProducto] = useState('TODOS');
-  
   const [mostrandoBandejaValidacion, setMostrandoBandejaValidacion] = useState(false);
 
   // Computar validaciones pendientes (Solo para ADMIN, que trae múltiples asignaciones)
