@@ -65,7 +65,7 @@ router.patch('/:id/estado', azureADAuth, async (req: AuthRequest, res) => {
      const fichaAnterior = await prisma.fichaAlerta.findUnique({ where: { id: req.params.id } });
      if (!fichaAnterior) return res.status(404).json({ error: 'No encontrada' });
 
-     let historial = [];
+     let historial: any[] = [];
      try {
        historial = JSON.parse(fichaAnterior.ultimaAccion || '[]');
        if (!Array.isArray(historial)) historial = [];
