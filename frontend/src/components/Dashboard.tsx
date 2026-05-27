@@ -21,7 +21,7 @@ const mockDataRadar = [
   { subject: 'Cercanía Ciudadana', B: 45, fullMark: 100 },
 ];
 
-export default function Dashboard() {
+export default function Dashboard({ userData }: { userData?: any }) {
   const [stats, setStats] = useState({ avance: 0, evaluadas: 0, alertaTotal: 0, ejecutadasVsProgramadas: 0, ejecutadasLiteral: 0, programadasLiteral: 0 });
   const [dataBars, setDataBars] = useState<any[]>([]);
   const [objetivosAPI, setObjetivosAPI] = useState<any[]>([]);
@@ -34,8 +34,7 @@ export default function Dashboard() {
   // Data local para drill-down
   const [locData, setLocData] = useState<any>({ indice: 0, productos: [], objetivosBars: [], pieData: [], actList: [] });
 
-  // Por ahora el dashboard permite edición si tienes los botones, el backend validará el rol
-  const isAdmin = true;
+  const isAdmin = userData?.rol === 'ADMIN';
 
   useEffect(() => {
     fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)

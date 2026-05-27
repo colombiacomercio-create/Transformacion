@@ -6,14 +6,19 @@ interface Props {
   actividad: any;
   onClose: () => void;
   onRefresh: () => void;
+  userData?: any;
 }
 
-export default function ModalDetalleActividad({ actividad, onClose, onRefresh }: Props) {
-  const esAdmin = (actividad.asignaciones?.length || 0) > 1;
-  const asignacionesOrdenadas = [...(actividad.asignaciones || [])].sort((a: any, b: any) => a.localidad?.nombre.localeCompare(b.localidad?.nombre));
+export default function ModalDetalleActividad({ actividad, onClose, onRefresh, userData }: Props) {
+  const esAdmin = userData?.rol === 'ADMIN';
+  
+  let asignacionesOrdenadas = [...(actividad.asignaciones || [])].sort((a: any, b: any) => a.localidad?.nombre.localeCompare(b.localidad?.nombre));
+  if (userData?.rol === 'GESTOR') {
+      asignacionesOrdenadas = asignacionesOrdenadas.filter((a: any) => userData.localidadesAsignadas?.includes(a.localidadId));
+  }
   
   const [tab, setTab] = useState<'detalles'|'comentarios'|'evidencias'>('detalles');
-  const [locAdminSelected, setLocAdminSelected] = useState<string>(asignacionesOrdenadas[0]?.localidadId || '');
+  const [locSelected, setLocSelected] = useState<string>(asignacionesOrdenadas[0]?.localidadId || '');
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [postingComment, setPostingComment] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -35,7 +40,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
   const [evidenciaEstado, setEvidenciaEstado] = useState<File | null>(null);
   const [procesandoEstado, setProcesandoEstado] = useState(false);
 
-  const curLocId = esAdmin ? locAdminSelected : asignacionesOrdenadas[0]?.localidadId;
+  const curLocId = locSelected || asignacionesOrdenadas[0]?.localidadId;
   const asigActual = asignacionesOrdenadas.find((a: any) => a.localidadId === curLocId);
   
   const comentariosAMostrar = actividad.comentarios?.filter((c: any) => c.localidadId === curLocId) || [];
@@ -203,19 +208,25 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh }:
           </button>
         </div>
 
+        {asignacionesOrdenadas.length > 1 && (
+          <div className="bg-gray-100 px-6 py-2 border-b border-gray-200 flex items-center justify-between">
+             <span className="text-sm font-bold text-gray-700">Seleccionar Localidad:</span>
+             <select 
+               value={locSelected} 
+               onChange={e => setLocSelected(e.target.value)}
+               className="border border-gray-300 rounded px-2 py-1 text-sm bg-white font-medium outline-none focus:ring-2 focus:ring-bogota-primary/30"
+             >
+               {asignacionesOrdenadas.map((a: any) => (
+                 <option key={a.id} value={a.localidadId}>{a.localidad?.nombre} ({a.estadoLocal === 'COMPLETADA_LOCAL' ? 'Completado' : 'Abierto'})</option>
+               ))}
+             </select>
+          </div>
+        )}
+
         {esAdmin && (
           <div className="bg-orange-50 px-6 py-3 border-b border-orange-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-orange-800">Caja de Auditoría (ADMIN):</span>
-              <select 
-                value={locAdminSelected} 
-                onChange={e => setLocAdminSelected(e.target.value)}
-                className="border border-orange-200 rounded px-2 py-1 text-sm bg-white font-medium outline-none focus:ring-2 focus:ring-orange-300"
-              >
-                {asignacionesOrdenadas.map((a: any) => (
-                  <option key={a.id} value={a.localidadId}>{a.localidad?.nombre} ({a.estadoLocal === 'COMPLETADA_LOCAL' ? 'Completado' : 'Abierto'})</option>
-                ))}
-              </select>
             </div>
             
             <div className="flex items-center gap-2">

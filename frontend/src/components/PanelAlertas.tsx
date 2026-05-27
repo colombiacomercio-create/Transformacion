@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, Plus, X, Search, ShieldAlert, Edit, Save } from 'lucide-react';
 import { fetchApi } from '../utils/api';
 
-export default function PanelAlertas() {
+export default function PanelAlertas({ userData }: { userData?: any }) {
   const [alertas, setAlertas] = useState<any[]>([]);
   const [localidades, setLocalidades] = useState<any[]>([]);
   const [objetivos, setObjetivos] = useState<any[]>([]);
@@ -14,7 +14,7 @@ export default function PanelAlertas() {
      localidadId: '', objetivoId: '', tipo: 'BLOQUEO_GESTION', desc: '', responsable: '', fecha: ''
   });
   
-  const [formGestion, setFormGestion] = useState({ estado: 'ABIERTA', ultimaAccion: '' });
+  const [formGestion, setFormGestion] = useState({ estado: 'ABIERTA', ultimaAccion: '', expectativa: '' });
 
   const fetchAlertas = () => {
     fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`)
@@ -93,8 +93,25 @@ export default function PanelAlertas() {
      return 'bg-orange-100 text-orange-800 border-orange-200';
   };
 
-  const activas = alertas.filter(a => a.estado !== 'RESUELTA').length;
-  const cerradas = alertas.filter(a => a.estado === 'RESUELTA').length;
+  const getEstadoBadge = (estado: string) => {
+     if (estado === 'RESUELTA') return 'bg-green-100 text-green-800';
+     if (estado === 'ESCALADA_DESPACHO' || estado === 'ESCALADA_GABINETE') return 'bg-purple-100 text-purple-800';
+     return 'bg-red-100 text-red-800';
+  };
+
+  let alertasFiltradas = alertas;
+  let localidadesForm = localidades;
+  
+  if (userData?.rol === 'GESTOR') {
+     alertasFiltradas = alertas.filter(a => !a.localidadId || userData.localidadesAsignadas?.includes(a.localidadId));
+     localidadesForm = localidades.filter(l => userData.localidadesAsignadas?.includes(l.id));
+  }
+
+  const cerradas = alertasFiltradas.filter(a => a.estado === 'RESUELTA').length;
+  const enGestion = alertasFiltradas.filter(a => a.estado === 'ABIERTA').length;
+  const escDespacho = alertasFiltradas.filter(a => a.estado === 'ESCALADA_DESPACHO').length;
+  const escGabinete = alertasFiltradas.filter(a => a.estado === 'ESCALADA_GABINETE').length;
+  const activas = enGestion + escDespacho + escGabinete;
 
   return (
     <div className="flex flex-col gap-6 font-sans">
@@ -103,13 +120,25 @@ export default function PanelAlertas() {
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><ShieldAlert className="w-8 h-8 text-red-600"/> Gestor de Alertas Prioritarias</h2>
             <p className="text-gray-500 text-sm">Registro y escalamiento de cuellos de botella reales en seguimiento a metas institucionales.</p>
          </div>
-         <div className="flex items-center gap-6 bg-gray-50 p-2 rounded-lg border border-gray-100">
-             <div className="text-center px-4 border-r">
+         <div className="flex flex-wrap items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+             <div className="text-center px-4 border-r border-gray-200">
                 <span className="block text-2xl font-black text-red-600">{activas}</span>
                 <span className="text-[10px] uppercase font-bold text-gray-500">Activas</span>
              </div>
+             <div className="text-center px-4 border-r border-gray-200">
+                <span className="block text-xl font-bold text-gray-700">{enGestion}</span>
+                <span className="text-[10px] uppercase font-bold text-gray-500">Gestión UGRT</span>
+             </div>
+             <div className="text-center px-4 border-r border-gray-200">
+                <span className="block text-xl font-bold text-purple-700">{escDespacho}</span>
+                <span className="text-[10px] uppercase font-bold text-purple-600">Esc. Despacho</span>
+             </div>
+             <div className="text-center px-4 border-r border-gray-200">
+                <span className="block text-xl font-bold text-purple-700">{escGabinete}</span>
+                <span className="text-[10px] uppercase font-bold text-purple-600">Gab. Local</span>
+             </div>
              <div className="text-center px-4">
-                <span className="block text-2xl font-black text-green-600">{cerradas}</span>
+                <span className="block text-xl font-bold text-green-600">{cerradas}</span>
                 <span className="text-[10px] uppercase font-bold text-gray-500">Cerradas</span>
              </div>
          </div>
@@ -119,17 +148,17 @@ export default function PanelAlertas() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-         {alertas.length === 0 && (
+         {alertasFiltradas.length === 0 && (
             <div className="p-8 text-center bg-gray-50 rounded-xl border-dashed border-2 border-gray-300">
                <span className="text-gray-400 font-medium">Excelente. No hay alertas registradas en el momento.</span>
             </div>
          )}
-         {alertas.map(a => (
+         {alertasFiltradas.map(a => (
             <div key={a.id} className={`p-6 bg-white rounded border shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start transition-all ${a.estado === 'RESUELTA' ? 'opacity-70 border-l-4 border-green-500' : 'border-l-4 border-red-600'}`}>
                <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-3">
                      <span className={`text-xs font-bold px-3 py-1 rounded-full border uppercase ${getTipoColor(a.tipo)}`}>{a.tipo.replace(/_/g, ' ')}</span>
-                     <span className={`text-xs font-bold uppercase py-1 px-2 rounded-full ${a.estado === 'RESUELTA' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{a.estado}</span>
+                     <span className={`text-xs font-bold uppercase py-1 px-2 rounded-full ${getEstadoBadge(a.estado)}`}>{a.estado.replace(/_/g, ' ')}</span>
                   </div>
                   <h3 className="text-gray-800 font-bold text-lg">{a.descripcion}</h3>
                   <div className="flex flex-wrap gap-2 text-xs text-gray-600 mt-2">
@@ -139,15 +168,38 @@ export default function PanelAlertas() {
                   </div>
                   
                   {a.ultimaAccion && (
-                    <div className="mt-4 bg-yellow-50 p-3 rounded-lg border-l-4 border-yellow-400 text-sm">
-                       <span className="block font-bold text-yellow-800 mb-1">Última acción / Seguimiento:</span>
-                       <span className="text-yellow-900">{a.ultimaAccion}</span>
+                    <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                       <h4 className="font-bold text-gray-700 mb-3 text-sm">Trazabilidad y Gestiones:</h4>
+                       <div className="space-y-3">
+                         {(() => {
+                            try {
+                               const historial = JSON.parse(a.ultimaAccion);
+                               if (!Array.isArray(historial)) throw new Error('Not array');
+                               if (historial.length === 0) return <span className="text-sm text-gray-400 italic">No hay gestiones registradas.</span>;
+                               return historial.map((h: any, idx: number) => (
+                                 <div key={idx} className="text-sm pl-4 border-l-2 border-bogota-primary relative">
+                                    <div className="absolute w-2 h-2 rounded-full bg-bogota-primary -left-[5px] top-1.5"></div>
+                                    <div className="flex justify-between items-baseline mb-1">
+                                       <span className="font-bold text-gray-800">{h.usuario || 'Usuario'} <span className="font-normal text-gray-500 text-xs ml-2">cambió estado a <span className="font-bold">{h.estadoNuevo?.replace(/_/g, ' ')}</span></span></span>
+                                       <span className="text-xs text-gray-400">{new Date(h.fecha).toLocaleString()}</span>
+                                    </div>
+                                    <p className="text-gray-700 bg-white p-2 rounded shadow-sm border border-gray-100">{h.accion}</p>
+                                    {h.expectativa && (
+                                       <p className="text-purple-700 bg-purple-50 p-2 rounded shadow-sm border border-purple-100 mt-1"><span className="font-bold">Expectativa:</span> {h.expectativa}</p>
+                                    )}
+                                 </div>
+                               ));
+                            } catch(e) {
+                               return <div className="text-sm text-gray-600 bg-white p-3 rounded shadow-sm">{a.ultimaAccion}</div>;
+                            }
+                         })()}
+                       </div>
                     </div>
                   )}
                </div>
                
                <div className="flex flex-col items-end gap-3 min-w-[200px]">
-                  <button onClick={() => { setMostrandoGestion(a.id); setFormGestion({estado: a.estado, ultimaAccion: a.ultimaAccion || ''})}} className="bg-white border-2 border-bogota-primary text-bogota-primary hover:bg-red-50 px-4 py-2 rounded font-bold flex items-center gap-2 transition w-full justify-center">
+                  <button onClick={() => { setMostrandoGestion(a.id); setFormGestion({estado: a.estado, ultimaAccion: '', expectativa: ''})}} className="bg-white border-2 border-bogota-primary text-bogota-primary hover:bg-red-50 px-4 py-2 rounded font-bold flex items-center gap-2 transition w-full justify-center">
                      <Edit className="w-4 h-4"/> Gestionar / Actualizar
                   </button>
                   <span className="text-xs text-gray-400 font-medium tracking-wide">Reportado: {new Date(a.fechaCreacion).toLocaleDateString()}</span>
@@ -167,14 +219,22 @@ export default function PanelAlertas() {
                <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Estado de la Alerta</label>
                   <select className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 font-bold" value={formGestion.estado} onChange={e => setFormGestion({...formGestion, estado: e.target.value})}>
-                     <option value="ABIERTA">🚨 ABIERTA (En Gestión)</option>
+                     <option value="ABIERTA">🚨 ABIERTA (En Gestión UGRT)</option>
+                     <option value="ESCALADA_DESPACHO">🏛️ ESCALADA (Despacho / Secretario)</option>
+                     <option value="ESCALADA_GABINETE">🏛️ ESCALADA (Gabinete Local)</option>
                      <option value="RESUELTA">✅ RESUELTA (Cerrada)</option>
                   </select>
                </div>
                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Última Acción Realizada / Seguimiento</label>
-                  <textarea required className="w-full p-3 border rounded-lg bg-gray-50 h-32 focus:ring-2 focus:ring-red-500 text-sm" value={formGestion.ultimaAccion} onChange={e => setFormGestion({...formGestion, ultimaAccion: e.target.value})} placeholder="Ej: Hubo reunión con Gabinete Local el martes y se acordó destrabar los fondos..."/>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Justificación / Gestión Realizada</label>
+                  <textarea required className="w-full p-3 border rounded-lg bg-gray-50 h-24 focus:ring-2 focus:ring-red-500 text-sm" value={formGestion.ultimaAccion} onChange={e => setFormGestion({...formGestion, ultimaAccion: e.target.value})} placeholder="Ej: Se intentó desbloquear contactando al contratista pero fue necesario elevar el requerimiento..."/>
                </div>
+               {formGestion.estado.includes('ESCALADA') && (
+                 <div>
+                    <label className="block text-sm font-bold text-purple-700 mb-1">¿Qué se espera del escalonamiento? (Expectativa)</label>
+                    <textarea required className="w-full p-3 border border-purple-200 rounded-lg bg-purple-50 h-20 focus:ring-2 focus:ring-purple-500 text-sm" value={formGestion.expectativa} onChange={e => setFormGestion({...formGestion, expectativa: e.target.value})} placeholder="Ej: Que el Secretario autorice la firma de la prórroga de manera urgente..."/>
+                 </div>
+               )}
             </div>
             <div className="bg-gray-100 p-4 border-t flex justify-end gap-3">
                <button type="button" onClick={() => setMostrandoGestion(null)} className="px-5 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded">Cancelar</button>
@@ -208,7 +268,7 @@ export default function PanelAlertas() {
                     <select required className="w-full p-2 border rounded" value={form.localidadId} onChange={e => setForm({...form, localidadId: e.target.value})}>
                        <option value="">Seleccione...</option>
                        <option value="GLOBAL">Alerta General (Todas las localidades)</option>
-                       {localidades.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                       {localidadesForm.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
                     </select>
                  </div>
                  <div className="col-span-1">

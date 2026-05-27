@@ -1,6 +1,7 @@
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { loginRequest } from "./authConfig";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fetchApi } from "./utils/api";
 import KanbanBoard from "./components/KanbanBoard";
 import Dashboard from "./components/Dashboard";
 import ModalInstrucciones from "./components/ModalInstrucciones";
@@ -11,6 +12,16 @@ function App() {
   const isAuthenticated = useIsAuthenticated();
   const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas'>('kanban');
   const [showHelp, setShowHelp] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchApi(`${import.meta.env.VITE_API_URL || ''}/api/auth/me`)
+        .then(res => res.json())
+        .then(data => setUserData(data))
+        .catch(err => console.error("Error fetching user data:", err));
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = () => {
     instance.loginPopup(loginRequest).catch(e => {
@@ -108,9 +119,17 @@ function App() {
       </header>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {activeTab === 'kanban' && <KanbanBoard />}
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'alertas' && <PanelAlertas />}
+        {userData ? (
+          <>
+            {activeTab === 'kanban' && <KanbanBoard userData={userData} />}
+            {activeTab === 'dashboard' && <Dashboard userData={userData} />}
+            {activeTab === 'alertas' && <PanelAlertas userData={userData} />}
+          </>
+        ) : (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bogota-primary"></div>
+          </div>
+        )}
       </main>
 
       {showHelp && <ModalInstrucciones onClose={() => setShowHelp(false)} />}

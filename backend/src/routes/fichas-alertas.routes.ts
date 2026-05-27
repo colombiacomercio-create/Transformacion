@@ -47,7 +47,8 @@ router.post('/', azureADAuth, async (req: AuthRequest, res) => {
           descripcion,
           responsable,
           fechaCompromiso: fechaCompromiso ? new Date(fechaCompromiso) : null,
-          creadoPorId: req.user!.id
+          creadoPorId: req.user!.id,
+          ultimaAccion: "[]" // Inicializar historial vacío
        }
     });
     res.json(ficha);
@@ -57,14 +58,44 @@ router.post('/', azureADAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// Cerrar / Editar ficha
+// Cerrar / Editar ficha (Registrar Gestión)
 router.patch('/:id/estado', azureADAuth, async (req: AuthRequest, res) => {
-  const { estado, ultimaAccion, responsable } = req.body;
+  const { estado, ultimaAccion, expectativa, responsable } = req.body;
   try {
+     const fichaAnterior = await prisma.fichaAlerta.findUnique({ where: { id: req.params.id } });
+     if (!fichaAnterior) return res.status(404).json({ error: 'No encontrada' });
+
+     let historial = [];
+     try {
+       historial = JSON.parse(fichaAnterior.ultimaAccion || '[]');
+       if (!Array.isArray(historial)) historial = [];
+     } catch (e) {
+       if (fichaAnterior.ultimaAccion) {
+         historial = [{
+           fecha: fichaAnterior.fechaCreacion.toISOString(),
+           usuario: 'Historial Legado',
+           estadoAnterior: 'ABIERTA',
+           estadoNuevo: fichaAnterior.estado,
+           accion: fichaAnterior.ultimaAccion
+         }];
+       }
+     }
+
      const dataToUpdate: any = {};
      if (estado) dataToUpdate.estado = estado;
-     if (ultimaAccion) dataToUpdate.ultimaAccion = ultimaAccion;
      if (responsable) dataToUpdate.responsable = responsable;
+
+     if (ultimaAccion) {
+        historial.push({
+           fecha: new Date().toISOString(),
+           usuario: req.user!.nombre,
+           estadoAnterior: fichaAnterior.estado,
+           estadoNuevo: estado || fichaAnterior.estado,
+           accion: ultimaAccion,
+           expectativa: expectativa || null
+        });
+        dataToUpdate.ultimaAccion = JSON.stringify(historial);
+     }
 
      const ficha = await prisma.fichaAlerta.update({
         where: { id: req.params.id },

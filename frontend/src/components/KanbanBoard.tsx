@@ -40,7 +40,7 @@ const mockActividades = [
   }
 ];
 
-export default function KanbanBoard() {
+export default function KanbanBoard({ userData }: { userData?: any }) {
   const [actividades, setActividades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actividadSeleccionada, setActividadSeleccionada] = useState<any>(null);
@@ -51,7 +51,7 @@ export default function KanbanBoard() {
   const [filtroObjetivo, setFiltroObjetivo] = useState('TODOS');
   const [filtroProducto, setFiltroProducto] = useState('TODOS');
   
-  const [userRole, setUserRole] = useState<string>('');
+  const [filtroProducto, setFiltroProducto] = useState('TODOS');
   
   const [mostrandoBandejaValidacion, setMostrandoBandejaValidacion] = useState(false);
 
@@ -61,7 +61,7 @@ export default function KanbanBoard() {
        .map((asig: any) => ({ ...asig, actividadUrl: a.codigoCompleto, actividadNombre: a.nombre })) || []
   );
   
-  const esAdminStr = userRole === 'ADMIN';
+  const esAdminStr = userData?.rol === 'ADMIN';
 
   const fetchActividades = () => {
     fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)
@@ -83,21 +83,7 @@ export default function KanbanBoard() {
       });
   };
 
-  const fetchUser = () => {
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/me`)
-      .then(res => res.json())
-      .then(data => {
-         if (data && data.rol) {
-             setUserRole(data.rol);
-         }
-      })
-      .catch(err => {
-         console.error('Error fetching user profile:', err);
-      });
-  };
-
   useEffect(() => {
-    fetchUser();
     fetchActividades();
   }, []);
 
@@ -108,6 +94,11 @@ export default function KanbanBoard() {
   const mesProximo = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59);
 
   let actividadesFiltradas = actividades.filter(a => {
+    if (userData?.rol === 'GESTOR') {
+      const tieneAsig = a.asignaciones?.some((asig: any) => userData.localidadesAsignadas?.includes(asig.localidadId));
+      if (!tieneAsig) return false;
+    }
+
     if (filtroTexto && !a.codigoCompleto?.toLowerCase().includes(filtroTexto.toLowerCase()) && !a.nombre.toLowerCase().includes(filtroTexto.toLowerCase())) return false;
     
     if (filtroFecha !== 'TODAS') {
@@ -120,14 +111,18 @@ export default function KanbanBoard() {
     }
     if (filtroEstado !== 'TODOS') {
        // Buscar si ALGUNA asignacion cumple (Para Gestores será la de ellos, para Admin mira el global)
+       const asignacionesAValidar = userData?.rol === 'GESTOR' 
+         ? a.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId))
+         : a.asignaciones;
+         
        if (filtroEstado === 'PENDIENTES') {
-          if (!a.asignaciones?.some((asig:any) => asig.estadoLocal === 'NO_INICIADA')) return false;
+          if (!asignacionesAValidar?.some((asig:any) => asig.estadoLocal === 'NO_INICIADA')) return false;
        }
        if (filtroEstado === 'EN_REVISION') {
-          if (!a.asignaciones?.some((asig:any) => asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' && asig.estadoValidacion === 'PENDIENTE_REVISION')) return false;
+          if (!asignacionesAValidar?.some((asig:any) => asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' && asig.estadoValidacion === 'PENDIENTE_REVISION')) return false;
        }
        if (filtroEstado === 'COMPLETADA') {
-          if (!a.asignaciones?.some((asig:any) => asig.estadoValidacion === 'VALIDADA_COMPLETADA')) return false;
+          if (!asignacionesAValidar?.some((asig:any) => asig.estadoValidacion === 'VALIDADA_COMPLETADA')) return false;
        }
     }
     
@@ -145,10 +140,16 @@ export default function KanbanBoard() {
     lista.forEach(act => {
        const obs = act.hito?.programa?.objetivo?.nombre || 'General';
        const progs = act.hito?.programa ? `${act.hito.programa.codigo} ${act.hito.programa.nombre}` : 'General';
-       if (!act.asignaciones || act.asignaciones.length === 0) {
+       
+       let asignacionesExportar = act.asignaciones;
+       if (userData?.rol === 'GESTOR') {
+         asignacionesExportar = act.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId));
+       }
+
+       if (!asignacionesExportar || asignacionesExportar.length === 0) {
            csvData += `"${act.codigoCompleto || ''}","${act.nombre}","${obs}","${progs}","Sin Asignacion","",""\n`;
        } else {
-           act.asignaciones.forEach((asig:any) => {
+           asignacionesExportar.forEach((asig:any) => {
               csvData += `"${act.codigoCompleto || ''}","${act.nombre}","${obs}","${progs}","${asig.localidad?.nombre || 'General'}","${asig.estadoLocal || ''}","${asig.estadoValidacion || ''}"\n`;
            });
        }
@@ -345,6 +346,7 @@ export default function KanbanBoard() {
           actividad={actividadSeleccionada}
           onClose={() => setActividadSeleccionada(null)}
           onRefresh={fetchActividades}
+          userData={userData}
         />
       )}
     </div>
