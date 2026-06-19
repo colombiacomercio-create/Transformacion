@@ -26,7 +26,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   const comMeta = ultimaFicha.comitesMeta ?? 1;
   const comitesData = [
     { name: 'Realizados', value: comRealizados, color: '#FFCD00' },
-    { name: 'Pendientes', value: Math.max(0, comMeta - comRealizados), color: '#d1d5db' }
+    { name: 'Pendientes', value: Math.max(0.1, comMeta - comRealizados), color: '#d1d5db' }
   ];
 
   // Venta informal vs Org parqueo
@@ -48,12 +48,12 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   // Rollos legendarios
   const rollosData = [
     { name: 'Resueltos', value: ultimaFicha.rollosResueltos ?? 0, color: '#FFCD00' },
-    { name: 'En curso', value: Math.max(1, ultimaFicha.rollosEnCurso ?? 0), color: '#e5e7eb' }
+    { name: 'En curso', value: Math.max(0.1, ultimaFicha.rollosEnCurso ?? 1), color: '#e5e7eb' }
   ];
 
   // Estrategias
   const estResueltas = ultimaFicha.estrategiasResueltas ?? 0;
-  const estForm = Math.max(1, ultimaFicha.estrategiasFormulacion ?? 0);
+  const estForm = Math.max(0.1, ultimaFicha.estrategiasFormulacion ?? 1);
   const estData = [
     { name: 'Resueltas', value: estResueltas, color: '#dc2626' },
     { name: 'En formulación', value: estForm, color: '#e5e7eb' }
@@ -63,13 +63,13 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   const archVal = ultimaFicha.archivosPct ?? 0;
   const archData = [
     { name: 'Archivos', value: archVal, color: '#dc2626' },
-    { name: 'Restante', value: Math.max(1, 100 - archVal), color: '#ffffff' }
+    { name: 'Restante', value: Math.max(0.1, 100 - archVal), color: '#ffffff' }
   ];
   
   const fallosVal = ultimaFicha.fallosPrimeraEstanciaPct ?? 0;
   const fallosData = [
     { name: 'Fallos 1° estancia', value: fallosVal, color: '#FFCD00' },
-    { name: 'Restante', value: Math.max(1, 100 - fallosVal), color: '#ffffff' }
+    { name: 'Restante', value: Math.max(0.1, 100 - fallosVal), color: '#ffffff' }
   ];
 
   return (
@@ -296,7 +296,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                       <span className="text-4xl font-black text-[#e3182d]">{ultimaFicha.kmCarrilIntervenido ?? 0}</span>
                    </div>
                    <div className="flex items-center justify-between pb-3">
-                      <span className="text-lg text-gray-600 font-medium">Km<br/>intervenidos</span>
+                      <span className="text-lg text-gray-600 font-medium">m²<br/>intervenidos</span>
                       <div className="flex-1 mx-4 flex items-center">
                          <div className="h-[4px] w-full bg-[#e3182d]"></div>
                          <div className="w-4 h-4 bg-[#e3182d]"></div>
