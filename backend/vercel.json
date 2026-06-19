@@ -5,9 +5,11 @@
       "src": "dist/index.js",
       "use": "@vercel/node",
       "config": {
+        "maxLambdaSize": "50mb",
         "includeFiles": [
           "node_modules/.prisma/client/**/*",
-          "node_modules/@prisma/client/**/*"
+          "node_modules/@prisma/client/**/*",
+          "node_modules/@sparticuz/chromium-min/**/*"
         ]
       }
     }

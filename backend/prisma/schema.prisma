@@ -75,7 +75,13 @@ model Usuario {
   evidencias       Evidencia[]
   localidades      Localidad[] // si es responsable principal
   alertasResueltas Alerta[]              @relation("ResueltaPor")
-  fichasAlertas    FichaAlerta[]
+  fichasAlertas          FichaAlerta[]
+  fichasResultados       FichaResultados[]
+  reuniones              Reunion[]
+  informes               Informe[]
+  eventos                Evento[]
+  seguimientosNormativos SeguimientoNormativo[]
+  otrosEspacios          OtroEspacioArticulacion[]
 }
 
 model Plan {
@@ -286,4 +292,168 @@ model FichaAlerta {
   actividad Actividad?           @relation(fields: [actividadId], references: [id])
   localidad Localidad?           @relation(fields: [localidadId], references: [id])
   creador   Usuario              @relation(fields: [creadoPorId], references: [id])
+}
+
+// ─── MÓDULO GESTIÓN Y RESULTADOS ─────────────────────────────────────────────
+
+model FichaResultados {
+  id                       String   @id @default(uuid())
+  periodo                  DateTime // fecha de corte del reporte
+  // Ejecución presupuestal
+  compromisosPct           Float?
+  girosPct                 Float?
+  procesosMonitoreados     Int?
+  procesosRequierenComite  Int?
+  alertaEjecucion          String?  @db.Text
+  // Obras locales
+  metaObras                Int?
+  intervencionesFinalizadas Int?
+  kmCarrilIntervenido      Float?
+  kmIntervenidos           Float?
+  alertaObras              String?  @db.Text
+  // Comités de contratación
+  comitesRealizados        Int?
+  comitesMeta              Int?
+  alertaComites            String?  @db.Text
+  // Espacio público – Residuos (general)
+  accionesReportadas       Int?
+  residuosM3               Float?
+  espacioPublicoM2         Float?
+  // Espacio público – Venta Informal / Parqueo
+  puntosIntervenidos       Int?
+  ventaInformal            Int?
+  orgParqueo               Int?
+  m2RecuperadosInformal    Float?
+  personasReubicadas       Int?
+  // Convivencia y seguridad
+  motosContratadas         Int?
+  motosPendientesFdl       Int?
+  motosAlmacenFdl          Int?
+  motosEntregadas          Int?
+  alertaConvivencia        String?  @db.Text
+  // Actuaciones
+  archivosPct              Float?
+  metaArchivos             Int?
+  fallosPrimeraEstanciaPct Float?
+  metaFallos               Int?
+  // Estrategias de memoria
+  estrategiasResueltas     Int?
+  estrategiasFormulacion   Int?
+  // Rollos legendarios
+  rollosResueltos          Int?
+  rollosEnCurso            Int?
+  alertaRollos             String?  @db.Text
+  // General
+  observaciones            String?  @db.Text
+  reportadoPorId           String
+  fechaCreacion            DateTime @default(now())
+
+  reportadoPor Usuario @relation(fields: [reportadoPorId], references: [id])
+}
+
+model Reunion {
+  id               String   @id @default(uuid())
+  // SESION_UNIDAD | REUNION_SEGUIMIENTO_AL | STOCKTAKE | VISITA_LOCALIDAD | MESA_TRABAJO | OTRA
+  tipoReunion      String
+  // ALCALDIA | SECTOR_GOBIERNO | ENTIDAD_DISTRITO | INTERNA | OTRA_ENTIDAD
+  tipoContraparte  String
+  // GLOBAL | P01..P10 | OTRO
+  tematica         String   @default("GLOBAL")
+  objeto           String
+  fecha            DateTime
+  horaInicio       String
+  horaFin          String
+  lugar            String
+  // PRESENCIAL | VIRTUAL | TELEFONICA | MIXTA
+  modalidad        String
+  responsable      String
+  desarrollo       String   @db.Text
+  imagenAsistencia String?  // URL en Supabase Storage
+  creadoPorId      String
+  fechaCreacion    DateTime @default(now())
+
+  creadoPor   Usuario            @relation(fields: [creadoPorId], references: [id])
+  asistentes  AsistenteReunion[]
+  compromisos CompromisoReunion[]
+}
+
+model AsistenteReunion {
+  id        String  @id @default(uuid())
+  reunionId String
+  nombre    String
+  cargo     String?
+  entidad   String?
+
+  reunion Reunion @relation(fields: [reunionId], references: [id], onDelete: Cascade)
+}
+
+model CompromisoReunion {
+  id           String    @id @default(uuid())
+  reunionId    String
+  descripcion  String
+  responsable  String
+  fechaEntrega DateTime?
+  cumplido     Boolean   @default(false)
+
+  reunion Reunion @relation(fields: [reunionId], references: [id], onDelete: Cascade)
+}
+
+model Informe {
+  id            String   @id @default(uuid())
+  // BOLETIN_TRANSFORMACION | REPORTE_SDG | INFORME_OAP | OTRO
+  tipo          String
+  titulo        String
+  periodo       String
+  descripcion   String?  @db.Text
+  urlArchivo    String?
+  creadoPorId   String
+  fechaCreacion DateTime @default(now())
+
+  creadoPor Usuario @relation(fields: [creadoPorId], references: [id])
+}
+
+model Evento {
+  id            String   @id @default(uuid())
+  // CONECTAR_TRANSFORMAR | OTRO
+  tipo          String
+  nombre        String
+  fecha         DateTime
+  lugar         String
+  descripcion   String?  @db.Text
+  resultados    String?  @db.Text
+  urlArchivo    String?
+  creadoPorId   String
+  fechaCreacion DateTime @default(now())
+
+  creadoPor Usuario @relation(fields: [creadoPorId], references: [id])
+}
+
+model SeguimientoNormativo {
+  id            String   @id @default(uuid())
+  // DECRETO | PROYECTO_LEY | OTRO
+  tipo          String
+  nombre        String
+  descripcion   String?  @db.Text
+  // EN_FORMULACION | EXPEDIDO | EN_IMPLEMENTACION | ARCHIVADO
+  estado        String   @default("EN_FORMULACION")
+  avances       String?  @db.Text
+  urlDocumento  String?
+  creadoPorId   String
+  fechaCreacion DateTime @default(now())
+
+  creadoPor Usuario @relation(fields: [creadoPorId], references: [id])
+}
+
+model OtroEspacioArticulacion {
+  id            String   @id @default(uuid())
+  // CIRCULO_CALIDAD | COMITE_OBRAS | COMITE_ESPACIO_PUBLICO | COMITE_RESIDUOS | COMITE_ACTUACIONES | OTRO
+  tipo          String
+  nombre        String
+  fecha         DateTime
+  descripcion   String?  @db.Text
+  resultados    String?  @db.Text
+  creadoPorId   String
+  fechaCreacion DateTime @default(now())
+
+  creadoPor Usuario @relation(fields: [creadoPorId], references: [id])
 }

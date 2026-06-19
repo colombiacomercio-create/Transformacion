@@ -15,6 +15,7 @@
   "dependencies": {
     "@azure/msal-node": "^2.6.0",
     "@prisma/client": "^5.10.2",
+    "@sparticuz/chromium-min": "^149.0.0",
     "@supabase/supabase-js": "^2.104.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -22,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.11",
+    "puppeteer-core": "^25.1.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

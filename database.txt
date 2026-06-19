@@ -7,3 +7,10 @@ postgresql://postgres:[*z$,WP/#Tx4,kKW]@db.chyxultlgupbvhtgkxek.supabase.co:5432
 DATABASE_URL="postgresql://postgres.chyxultlgupbvhtgkxek:%2Az%24%2CWP%2F%23Tx4%2CkKW@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
 
 DIRECT_URL="postgresql://postgres.chyxultlgupbvhtgkxek:%2Az%24%2CWP%2F%23Tx4%2CkKW@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
+
+
+
+Obras
+Tablero Obras UGRT
+
+*z$,WP/#Tx4,kKW

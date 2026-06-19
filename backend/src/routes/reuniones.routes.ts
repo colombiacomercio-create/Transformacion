@@ -1,0 +1,243 @@
+import { Router } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { azureADAuth, AuthRequest } from '../middlewares/auth.middleware';
+import multer from 'multer';
+import { uploadFileToSupabase } from '../services/supabase.service';
+import { generarActaPDF, ActaData } from '../services/acta.service';
+
+const router = Router();
+const prisma = new PrismaClient();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+
+// GET /api/reuniones — lista con filtros opcionales
+router.get('/', azureADAuth, async (req: AuthRequest, res) => {
+  try {
+    const { tipoReunion, tipoContraparte, responsable, desde, hasta } = req.query;
+    const reuniones = await prisma.reunion.findMany({
+      where: {
+        ...(tipoReunion ? { tipoReunion: String(tipoReunion) } : {}),
+        ...(tipoContraparte ? { tipoContraparte: String(tipoContraparte) } : {}),
+        ...(responsable ? { responsable: { contains: String(responsable), mode: 'insensitive' } } : {}),
+        ...(desde || hasta ? {
+          fecha: {
+            ...(desde ? { gte: new Date(String(desde)) } : {}),
+            ...(hasta ? { lte: new Date(String(hasta)) } : {}),
+          },
+        } : {}),
+      },
+      include: {
+        creadoPor: { select: { id: true, nombre: true } },
+        asistentes: true,
+        compromisos: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+    res.json(reuniones);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error obteniendo reuniones' });
+  }
+});
+
+// GET /api/reuniones/stats — estadísticas de reuniones
+router.get('/stats', azureADAuth, async (_req, res) => {
+  try {
+    const reuniones = await prisma.reunion.findMany({
+      select: { tipoReunion: true, tipoContraparte: true, tematica: true, responsable: true, fecha: true },
+    });
+
+    const porTipoContraparte: Record<string, number> = {};
+    const porResponsable: Record<string, number> = {};
+    const porTipoReunion: Record<string, number> = {};
+    const porTematica: Record<string, number> = {};
+    const porMes: Record<string, number> = {};
+
+    for (const r of reuniones) {
+      porTipoContraparte[r.tipoContraparte] = (porTipoContraparte[r.tipoContraparte] || 0) + 1;
+      porResponsable[r.responsable] = (porResponsable[r.responsable] || 0) + 1;
+      porTipoReunion[r.tipoReunion] = (porTipoReunion[r.tipoReunion] || 0) + 1;
+      const t = r.tematica || 'GLOBAL';
+      porTematica[t] = (porTematica[t] || 0) + 1;
+      const mes = r.fecha.toISOString().slice(0, 7);
+      porMes[mes] = (porMes[mes] || 0) + 1;
+    }
+
+    const compromisosTotal = await prisma.compromisoReunion.count();
+    const compromisosPendientes = await prisma.compromisoReunion.count({ where: { cumplido: false } });
+
+    res.json({ total: reuniones.length, porTipoContraparte, porResponsable, porTipoReunion, porTematica, porMes, compromisosTotal, compromisosPendientes });
+  } catch (error) {
+    res.status(500).json({ error: 'Error obteniendo estadísticas' });
+  }
+});
+
+// GET /api/reuniones/:id — detalle de una reunión
+router.get('/:id', azureADAuth, async (req: AuthRequest, res) => {
+  try {
+    const reunion = await prisma.reunion.findUnique({
+      where: { id: req.params.id },
+      include: { creadoPor: { select: { id: true, nombre: true } }, asistentes: true, compromisos: true },
+    });
+    if (!reunion) return res.status(404).json({ error: 'Reunión no encontrada' });
+    res.json(reunion);
+  } catch (error) {
+    res.status(500).json({ error: 'Error obteniendo reunión' });
+  }
+});
+
+// POST /api/reuniones — crear reunión
+router.post('/', azureADAuth, async (req: AuthRequest, res) => {
+  const { tipoReunion, tipoContraparte, tematica, objeto, fecha, horaInicio, horaFin, lugar, modalidad, responsable, desarrollo, asistentes, compromisos } = req.body;
+  try {
+    const reunion = await prisma.reunion.create({
+      data: {
+        tipoReunion: tipoReunion || '', tipoContraparte: tipoContraparte || '',
+        tematica: tematica || 'GLOBAL', objeto: objeto || '',
+        fecha: new Date(fecha),
+        horaInicio: horaInicio || '', horaFin: horaFin || '', lugar: lugar || '', modalidad: modalidad || 'VIRTUAL', responsable: responsable || '',
+        desarrollo: desarrollo || '',
+        creadoPorId: req.user!.id,
+        asistentes: {
+          create: (asistentes || []).map((a: any) => ({ nombre: a.nombre, cargo: a.cargo || null, entidad: a.entidad || null })),
+        },
+        compromisos: {
+          create: (compromisos || []).map((c: any) => ({
+            descripcion: c.descripcion,
+            responsable: c.responsable,
+            fechaEntrega: c.fechaEntrega ? new Date(c.fechaEntrega) : null,
+          })),
+        },
+      },
+      include: { asistentes: true, compromisos: true, creadoPor: { select: { id: true, nombre: true } } },
+    });
+    res.status(201).json(reunion);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error creando reunión' });
+  }
+});
+
+// PATCH /api/reuniones/:id — actualizar campos básicos
+router.patch('/:id', azureADAuth, async (req: AuthRequest, res) => {
+  const { objeto, fecha, horaInicio, horaFin, lugar, modalidad, responsable, desarrollo } = req.body;
+  try {
+    const reunion = await prisma.reunion.update({
+      where: { id: req.params.id },
+      data: {
+        ...(objeto && { objeto }),
+        ...(fecha && { fecha: new Date(fecha) }),
+        ...(horaInicio && { horaInicio }),
+        ...(horaFin && { horaFin }),
+        ...(lugar && { lugar }),
+        ...(modalidad && { modalidad }),
+        ...(responsable && { responsable }),
+        ...(desarrollo && { desarrollo }),
+      },
+    });
+    res.json(reunion);
+  } catch (error) {
+    res.status(500).json({ error: 'Error actualizando reunión' });
+  }
+});
+
+// POST /api/reuniones/:id/imagen — subir imagen de asistencia
+router.post('/:id/imagen', azureADAuth, upload.single('imagen'), async (req: AuthRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió imagen' });
+  try {
+    const url = await uploadFileToSupabase(req.file.originalname, req.file.buffer, req.file.mimetype);
+    const reunion = await prisma.reunion.update({
+      where: { id: req.params.id },
+      data: { imagenAsistencia: url },
+    });
+    res.json({ url, reunion });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error subiendo imagen' });
+  }
+});
+
+// GET /api/reuniones/:id/preview — previsualizar HTML del acta (solo dev)
+router.get('/:id/preview', azureADAuth, async (req: AuthRequest, res) => {
+  try {
+    const reunion = await prisma.reunion.findUnique({
+      where: { id: req.params.id },
+      include: { asistentes: true, compromisos: true },
+    });
+    if (!reunion) return res.status(404).json({ error: 'Reunión no encontrada' });
+    const { buildActaHtml } = await import('../services/acta.service');
+    const actaData: ActaData = {
+      objeto: reunion.objeto, fecha: reunion.fecha,
+      horaInicio: reunion.horaInicio, horaFin: reunion.horaFin,
+      lugar: reunion.lugar, modalidad: reunion.modalidad as ActaData['modalidad'],
+      dependencia: 'Subsecretaria Gestión Local - Unidad de Transformación',
+      responsable: reunion.responsable,
+      asistentes: reunion.asistentes.map(a => ({ nombre: a.nombre, cargo: a.cargo || undefined, entidad: a.entidad || undefined })),
+      imagenAsistenciaUrl: reunion.imagenAsistencia || null,
+      desarrollo: reunion.desarrollo,
+      compromisos: reunion.compromisos.map(c => ({ descripcion: c.descripcion, responsable: c.responsable, fechaEntrega: c.fechaEntrega ? c.fechaEntrega.toISOString() : null })),
+    };
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(buildActaHtml(actaData));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// GET /api/reuniones/:id/pdf — generar PDF del acta
+router.get('/:id/pdf', azureADAuth, async (req: AuthRequest, res) => {
+  try {
+    const reunion = await prisma.reunion.findUnique({
+      where: { id: req.params.id },
+      include: { asistentes: true, compromisos: true },
+    });
+    if (!reunion) return res.status(404).json({ error: 'Reunión no encontrada' });
+
+    const actaData: ActaData = {
+      objeto: reunion.objeto,
+      fecha: reunion.fecha,
+      horaInicio: reunion.horaInicio,
+      horaFin: reunion.horaFin,
+      lugar: reunion.lugar,
+      modalidad: reunion.modalidad as ActaData['modalidad'],
+      dependencia: 'Subsecretaria Gestión Local - Unidad de Transformación',
+      responsable: reunion.responsable,
+      asistentes: reunion.asistentes.map(a => ({ nombre: a.nombre, cargo: a.cargo || undefined, entidad: a.entidad || undefined })),
+      imagenAsistenciaUrl: reunion.imagenAsistencia || null,
+      desarrollo: reunion.desarrollo,
+      compromisos: reunion.compromisos.map(c => ({
+        descripcion: c.descripcion,
+        responsable: c.responsable,
+        fechaEntrega: c.fechaEntrega ? c.fechaEntrega.toISOString() : null,
+      })),
+    };
+
+    const pdfBuffer = await generarActaPDF(actaData);
+
+    const fechaStr = reunion.fecha.toISOString().slice(0, 10);
+    const filename = `Acta_Reunion_${fechaStr}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('[PDF] Error generando acta:', error);
+    res.status(500).json({ error: 'Error generando PDF del acta' });
+  }
+});
+
+// PATCH /api/reuniones/compromisos/:compromisoId — marcar compromiso como cumplido
+router.patch('/compromisos/:compromisoId', azureADAuth, async (req: AuthRequest, res) => {
+  const { cumplido } = req.body;
+  try {
+    const compromiso = await prisma.compromisoReunion.update({
+      where: { id: req.params.compromisoId },
+      data: { cumplido: Boolean(cumplido) },
+    });
+    res.json(compromiso);
+  } catch (error) {
+    res.status(500).json({ error: 'Error actualizando compromiso' });
+  }
+});
+
+export default router;

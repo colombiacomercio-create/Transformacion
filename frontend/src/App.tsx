@@ -6,11 +6,12 @@ import KanbanBoard from "./components/KanbanBoard";
 import Dashboard from "./components/Dashboard";
 import ModalInstrucciones from "./components/ModalInstrucciones";
 import PanelAlertas from "./components/PanelAlertas";
+import PanelGestionResultados from "./components/PanelGestionResultados";
 
 function App() {
   const { instance, accounts } = useMsal();
   const isAuthenticated = useIsAuthenticated();
-  const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas'>('kanban');
+  const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas' | 'gestion'>('kanban');
   const [showHelp, setShowHelp] = useState(false);
   const [userData, setUserData] = useState<any>(null);
 
@@ -97,6 +98,12 @@ function App() {
                 Gestor Alertas
               </button>
               <button 
+                onClick={() => setActiveTab('gestion')}
+                className={`px-3 py-2 rounded-md text-sm font-bold transition-colors leading-tight ${activeTab === 'gestion' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
+              >
+                Gestión<br/>Resultados
+              </button>
+              <button 
                 onClick={() => setShowHelp(true)}
                 className="px-3 py-2 rounded-md text-sm font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 transition-colors flex items-center gap-1"
               >
@@ -124,6 +131,7 @@ function App() {
             {activeTab === 'kanban' && <KanbanBoard userData={userData} />}
             {activeTab === 'dashboard' && <Dashboard userData={userData} />}
             {activeTab === 'alertas' && <PanelAlertas userData={userData} />}
+            {activeTab === 'gestion' && <PanelGestionResultados userData={userData} />}
           </>
         ) : (
           <div className="flex justify-center items-center h-64">

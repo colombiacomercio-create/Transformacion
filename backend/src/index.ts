@@ -8,6 +8,12 @@ import evidenciasRoutes from './routes/evidencias.routes';
 import cortesRoutes from './routes/cortes.routes';
 import fichasAlertasRoutes from './routes/fichas-alertas.routes';
 import actividadesRoutes from './routes/actividades.routes';
+import fichaResultadosRoutes from './routes/ficha-resultados.routes';
+import reunionesRoutes from './routes/reuniones.routes';
+import informesRoutes from './routes/informes.routes';
+import eventosRoutes from './routes/eventos.routes';
+import normativoRoutes from './routes/normativo.routes';
+import otrosEspaciosRoutes from './routes/otros-espacios.routes';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 
@@ -28,6 +34,12 @@ app.use('/api/alertas', alertasRoutes);
 app.use('/api/evidencias', evidenciasRoutes);
 app.use('/api/cortes', cortesRoutes);
 app.use('/api/fichas-alertas', fichasAlertasRoutes);
+app.use('/api/ficha-resultados', fichaResultadosRoutes);
+app.use('/api/reuniones', reunionesRoutes);
+app.use('/api/informes', informesRoutes);
+app.use('/api/eventos', eventosRoutes);
+app.use('/api/normativo', normativoRoutes);
+app.use('/api/otros-espacios', otrosEspaciosRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
