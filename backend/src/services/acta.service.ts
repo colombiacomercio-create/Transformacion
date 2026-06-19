@@ -290,7 +290,7 @@ export async function generarActaPDF(data: ActaData): Promise<Buffer> {
     args: chromium.args,
     defaultViewport: (chromium as any).defaultViewport,
     executablePath:
-      process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath()),
+      process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath(process.env.CHROMIUM_DOWNLOAD_URL)),
     headless: (chromium as any).headless,
   });
 
