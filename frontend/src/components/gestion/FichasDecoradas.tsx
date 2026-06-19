@@ -372,42 +372,63 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
                 Actuaciones
              </h3>
-             <div className="bg-[#facc15] p-6 m-4 rounded-xl shadow-inner border border-yellow-500">
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="flex flex-col items-center bg-white rounded py-2 shadow-sm font-bold text-sm mx-2">
-                     Archivos
-                   </div>
-                   <div className="flex flex-col items-center bg-white rounded py-2 shadow-sm font-bold text-sm mx-2 text-center leading-tight">
-                     Fallos 1° estancia
-                   </div>
+             <div className="bg-[#facc15] p-4 m-4 rounded-xl shadow-inner border border-yellow-500">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    
-                   <div className="flex flex-col items-center relative mt-4">
-                      <div className="w-full h-24">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={archData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
-                              {archData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
+                   {/* Columna Archivos */}
+                   <div className="flex flex-col bg-white/20 p-4 rounded-xl shadow-sm border border-yellow-400">
+                      <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center mb-4 text-gray-800">
+                        Archivos
                       </div>
-                      <span className="text-white font-bold text-xl absolute bottom-0 bg-[#dc2626] px-2 rounded">{archVal}%</span>
-                      <span className="text-xs text-white mt-4 font-medium text-center bg-[#ca8a04] px-2 py-1 rounded w-full">Meta 11 anual:<br/>{ultimaFicha.metaArchivos?.toLocaleString('es-CO')}</span>
-                   </div>
-                   
-                   <div className="flex flex-col items-center relative mt-4">
-                      <div className="w-full h-24">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={fallosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
-                              {fallosData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
+                      
+                      <div className="flex flex-col items-center relative flex-1 justify-end">
+                         <div className="w-full h-24 mb-4">
+                           <ResponsiveContainer width="100%" height="100%">
+                             <PieChart>
+                               <Pie data={archData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
+                                 {archData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                               </Pie>
+                             </PieChart>
+                           </ResponsiveContainer>
+                         </div>
+                         <div className="relative w-full mt-2">
+                           <div className="text-xs text-white font-medium text-center bg-[#ca8a04] px-2 py-3 rounded-lg shadow-inner w-full border border-yellow-600 leading-tight">
+                             Meta 11 anual:<br/><span className="text-sm font-bold">{ultimaFicha.metaArchivos?.toLocaleString('es-CO')}</span>
+                           </div>
+                           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                              <span className="text-white font-bold text-lg bg-[#dc2626] px-3 py-1 rounded-md shadow-md border border-red-800">{archVal}%</span>
+                           </div>
+                         </div>
                       </div>
-                      <span className="text-white font-bold text-xl absolute bottom-0 bg-[#FFCD00] text-gray-800 px-2 rounded">{fallosVal}%</span>
-                      <span className="text-xs text-white mt-4 font-medium text-center bg-[#ca8a04] px-2 py-1 rounded w-full">Meta 12 anual:<br/>{ultimaFicha.metaFallos?.toLocaleString('es-CO')}</span>
                    </div>
+
+                   {/* Columna Fallos */}
+                   <div className="flex flex-col bg-white/20 p-4 rounded-xl shadow-sm border border-yellow-400">
+                      <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center leading-tight mb-4 text-gray-800">
+                        Fallos 1° estancia
+                      </div>
+                      
+                      <div className="flex flex-col items-center relative flex-1 justify-end">
+                         <div className="w-full h-24 mb-4">
+                           <ResponsiveContainer width="100%" height="100%">
+                             <PieChart>
+                               <Pie data={fallosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
+                                 {fallosData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                               </Pie>
+                             </PieChart>
+                           </ResponsiveContainer>
+                         </div>
+                         <div className="relative w-full mt-2">
+                           <div className="text-xs text-white font-medium text-center bg-[#ca8a04] px-2 py-3 rounded-lg shadow-inner w-full border border-yellow-600 leading-tight">
+                             Meta 12 anual:<br/><span className="text-sm font-bold">{ultimaFicha.metaFallos?.toLocaleString('es-CO')}</span>
+                           </div>
+                           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                              <span className="text-gray-900 font-bold text-lg bg-[#FFCD00] px-3 py-1 rounded-md shadow-md border border-yellow-600">{fallosVal}%</span>
+                           </div>
+                         </div>
+                      </div>
+                   </div>
+
                 </div>
              </div>
           </div>
