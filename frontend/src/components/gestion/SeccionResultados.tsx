@@ -10,6 +10,7 @@ interface Props { userData: any; }
 export default function SeccionResultados({ userData }: Props) {
   const [fichas, setFichas] = useState<any[]>([]);
   const [ultimaFicha, setUltimaFicha] = useState<any>(null);
+  const [fichaActivaId, setFichaActivaId] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const isAdmin = userData?.rol === 'ADMIN';
@@ -21,6 +22,7 @@ export default function SeccionResultados({ userData }: Props) {
     ]).then(([lista, ultima]) => {
       setFichas(Array.isArray(lista) ? lista : []);
       setUltimaFicha(ultima);
+      if (ultima) setFichaActivaId(ultima.id);
       setLoading(false);
     });
   };
@@ -29,28 +31,45 @@ export default function SeccionResultados({ userData }: Props) {
 
   if (loading) return <Spinner />;
 
+  const fichaMostrar = fichas.find(f => f.id === fichaActivaId) || ultimaFicha;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-gray-800">Ficha de Resultados — Datos de la Unidad</h3>
-        {isAdmin && (
-          <button onClick={() => setShowModal(true)}
-            className="bg-bogota-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
-            + Reportar Datos
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          {fichas.length > 0 && (
+             <select 
+               value={fichaActivaId} 
+               onChange={e => setFichaActivaId(e.target.value)}
+               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-700 bg-white"
+             >
+               {fichas.map(f => (
+                 <option key={f.id} value={f.id}>
+                   Corte: {new Date(f.periodo).toLocaleDateString('es-CO')}
+                 </option>
+               ))}
+             </select>
+          )}
+          {isAdmin && (
+            <button onClick={() => setShowModal(true)}
+              className="bg-bogota-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+              + Reportar Datos
+            </button>
+          )}
+        </div>
       </div>
 
-      {ultimaFicha ? (
+      {fichaMostrar ? (
         <div className="space-y-4">
-          <p className="text-xs text-gray-500">Última actualización: corte <strong>{new Date(ultimaFicha.periodo).toLocaleDateString('es-CO')}</strong> — por {ultimaFicha.reportadoPor?.nombre}</p>
+          <p className="text-xs text-gray-500">Actualización del corte <strong>{new Date(fichaMostrar.periodo).toLocaleDateString('es-CO')}</strong> — por {fichaMostrar.reportadoPor?.nombre}</p>
 
-          <FichasDecoradas ultimaFicha={ultimaFicha} />
+          <FichasDecoradas ultimaFicha={fichaMostrar} />
 
-          {ultimaFicha.observaciones && (
+          {fichaMostrar.observaciones && (
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <p className="text-xs font-semibold text-gray-500 mb-1">Observaciones</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{ultimaFicha.observaciones}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{fichaMostrar.observaciones}</p>
             </div>
           )}
         </div>

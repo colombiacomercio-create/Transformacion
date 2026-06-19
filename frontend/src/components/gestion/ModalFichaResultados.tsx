@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchApi } from '../../utils/api';
 
 const API = import.meta.env.VITE_API_URL || '';
@@ -92,9 +92,28 @@ export default function ModalFichaResultados({ onClose }: Props) {
   const [form, setForm] = useState<Record<string, any>>({ periodo: new Date().toISOString().slice(0, 10) });
   const [seccionAbierta, setSeccionAbierta] = useState<string>('ejecucion');
   const [guardando, setGuardando] = useState(false);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
 
   const set = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }));
+
+  useEffect(() => {
+    if (!form.periodo) return;
+    setCargando(true);
+    fetchApi(`${API}/api/ficha-resultados/periodo/${form.periodo}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.id) {
+          // Extraer la fecha yyyyy-mm-dd y mezclar con data
+          setForm({ ...data, periodo: data.periodo.split('T')[0] });
+        } else {
+          // Si no hay datos, limpiamos el form pero conservamos la fecha
+          setForm({ periodo: form.periodo });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCargando(false));
+  }, [form.periodo]);
 
   const guardar = async () => {
     if (!form.periodo) { setError('El período de corte es obligatorio'); return; }
@@ -126,8 +145,12 @@ export default function ModalFichaResultados({ onClose }: Props) {
           {/* Período */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha de corte *</label>
-            <input type="date" value={form.periodo || ''} onChange={e => set('periodo', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent" />
+            <div className="flex gap-2 items-center">
+               <input type="date" value={form.periodo || ''} onChange={e => set('periodo', e.target.value)}
+                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent" />
+               {cargando && <span className="text-xs text-gray-400">Cargando...</span>}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1">Si seleccionas una fecha existente, los datos se cargarán para ser editados. Al guardar se actualizarán.</p>
           </div>
 
           {/* Secciones acordeón */}
@@ -148,7 +171,8 @@ export default function ModalFichaResultados({ onClose }: Props) {
                         <textarea value={form[campo.key] || ''} onChange={e => set(campo.key, e.target.value)}
                           rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent resize-none" />
                       ) : (
-                        <input type="number" value={form[campo.key] ?? ''} onChange={e => set(campo.key, e.target.value ? Number(e.target.value) : null)}
+                        <input type={campo.type} value={form[campo.key] ?? ''} 
+                          onChange={e => set(campo.key, e.target.value === '' ? null : Number(e.target.value))}
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent" />
                       )}
                     </div>
