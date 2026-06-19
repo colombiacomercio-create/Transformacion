@@ -5,6 +5,11 @@ import http from 'http';
 
 // Descarga una URL como Buffer
 function fetchBuffer(url: string): Promise<Buffer> {
+  // Hack para que Vercel (@vercel/nft) empaquete estos módulos ESM en la lambda
+  if (process.env.VERCEL_FORCE_INCLUDE === 'true') {
+    require('puppeteer-core');
+    require('@sparticuz/chromium-min');
+  }
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
     client.get(url, res => {
