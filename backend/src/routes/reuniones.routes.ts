@@ -220,9 +220,9 @@ router.get('/:id/pdf', azureADAuth, async (req: AuthRequest, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(pdfBuffer);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[PDF] Error generando acta:', error);
-    res.status(500).json({ error: 'Error generando PDF del acta' });
+    res.status(500).json({ message: `Error generando PDF del acta: ${error.message || String(error)}` });
   }
 });
 

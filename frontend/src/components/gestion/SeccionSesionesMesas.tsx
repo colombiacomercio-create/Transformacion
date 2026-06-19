@@ -81,13 +81,16 @@ export default function SeccionSesionesMesas({ userData }: Props) {
   useEffect(() => { cargar(); }, [filtroContraparte, filtroTipo, filtroMes]);
 
   const descargarPDF = async (id: string, fecha: string) => {
-    const res = await fetchApi(`${API}/api/reuniones/${id}/pdf`);
-    if (!res.ok) { alert('Error generando el acta PDF'); return; }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `Acta_Reunion_${fecha.slice(0, 10)}.pdf`; a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const res = await fetchApi(`${API}/api/reuniones/${id}/pdf`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `Acta_Reunion_${fecha.slice(0, 10)}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      alert(`Error: ${error.message || 'Error generando el acta PDF'}`);
+    }
   };
 
   // Datos para gráficas
