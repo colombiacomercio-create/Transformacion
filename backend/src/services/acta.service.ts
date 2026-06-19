@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer-core';
+
 import chromium from '@sparticuz/chromium-min';
 import https from 'https';
 import http from 'http';
@@ -286,6 +286,10 @@ export async function generarActaPDF(data: ActaData): Promise<Buffer> {
   }
 
   const html = buildHtml(dataResolved);
+  // Importamos puppeteer-core dinámicamente porque es ESM
+  const puppeteerMod = await new Function("return import('puppeteer-core')")();
+  const puppeteer = puppeteerMod.default || puppeteerMod;
+
   const browser = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: (chromium as any).defaultViewport,
