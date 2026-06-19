@@ -46,7 +46,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend funciona', timestamp: new Date() });
+  res.json({ message: 'Backend funciona v2', timestamp: new Date() });
 });
 
 const PORT = process.env.PORT || 4000;
