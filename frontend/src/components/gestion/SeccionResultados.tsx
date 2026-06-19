@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchApi } from '../../utils/api';
 import ModalFichaResultados from './ModalFichaResultados';
+import FichasDecoradas from './FichasDecoradas';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -44,69 +45,7 @@ export default function SeccionResultados({ userData }: Props) {
         <div className="space-y-4">
           <p className="text-xs text-gray-500">Última actualización: corte <strong>{new Date(ultimaFicha.periodo).toLocaleDateString('es-CO')}</strong> — por {ultimaFicha.reportadoPor?.nombre}</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <FichaCard titulo="Ejecución Presupuestal" color="bg-red-50 border-red-200">
-              <MetricaRow label="Compromisos" valor={`${ultimaFicha.compromisosPct ?? '-'}%`} />
-              <MetricaRow label="Giros" valor={`${ultimaFicha.girosPct ?? '-'}%`} />
-              <MetricaRow label="Procesos monitoreados" valor={ultimaFicha.procesosMonitoreados} />
-              <MetricaRow label="Requieren comité" valor={ultimaFicha.procesosRequierenComite} />
-              {ultimaFicha.alertaEjecucion && <AlertaTexto texto={ultimaFicha.alertaEjecucion} />}
-            </FichaCard>
-
-            <FichaCard titulo="Obras Locales" color="bg-gray-50 border-gray-200">
-              <MetricaRow label="Meta obras" valor={ultimaFicha.metaObras?.toLocaleString('es-CO')} />
-              <MetricaRow label="Intervenciones finalizadas" valor={ultimaFicha.intervencionesFinalizadas} />
-              <MetricaRow label="Km carril intervenido" valor={ultimaFicha.kmCarrilIntervenido} />
-              <MetricaRow label="Km intervenidos" valor={ultimaFicha.kmIntervenidos?.toLocaleString('es-CO')} />
-              {ultimaFicha.alertaObras && <AlertaTexto texto={ultimaFicha.alertaObras} />}
-            </FichaCard>
-
-            <FichaCard titulo="Comités de Contratación" color="bg-yellow-50 border-yellow-200">
-              <MetricaRow label="Comités realizados" valor={ultimaFicha.comitesRealizados} />
-              <MetricaRow label="Meta comités" valor={ultimaFicha.comitesMeta} />
-              {ultimaFicha.alertaComites && <AlertaTexto texto={ultimaFicha.alertaComites} />}
-            </FichaCard>
-
-            <FichaCard titulo="Espacio Público – Residuos" color="bg-green-50 border-green-200">
-              <MetricaRow label="Acciones reportadas" valor={ultimaFicha.accionesReportadas} />
-              <MetricaRow label="Residuos recolectados" valor={ultimaFicha.residuosM3 ? `${ultimaFicha.residuosM3.toLocaleString('es-CO')} m³` : '-'} />
-              <MetricaRow label="Espacio público recuperado" valor={ultimaFicha.espacioPublicoM2 ? `${ultimaFicha.espacioPublicoM2.toLocaleString('es-CO')} m²` : '-'} />
-            </FichaCard>
-
-            <FichaCard titulo="Espacio Público – Venta Informal / Parqueo" color="bg-green-50 border-green-200">
-              <MetricaRow label="Puntos intervenidos" valor={ultimaFicha.puntosIntervenidos} />
-              <MetricaRow label="Venta informal" valor={ultimaFicha.ventaInformal} />
-              <MetricaRow label="Org. parqueo" valor={ultimaFicha.orgParqueo} />
-              <MetricaRow label="m² recuperados" valor={ultimaFicha.m2RecuperadosInformal ? `${ultimaFicha.m2RecuperadosInformal.toLocaleString('es-CO')} m²` : '-'} />
-              <MetricaRow label="Personas reubicadas" valor={ultimaFicha.personasReubicadas} />
-            </FichaCard>
-
-            <FichaCard titulo="Convivencia y Seguridad" color="bg-blue-50 border-blue-200">
-              <MetricaRow label="Motos contratadas" valor={ultimaFicha.motosContratadas} />
-              <MetricaRow label="Pendientes FDL" valor={ultimaFicha.motosPendientesFdl} />
-              <MetricaRow label="En almacén FDL" valor={ultimaFicha.motosAlmacenFdl} />
-              <MetricaRow label="Entregadas" valor={ultimaFicha.motosEntregadas} />
-              {ultimaFicha.alertaConvivencia && <AlertaTexto texto={ultimaFicha.alertaConvivencia} />}
-            </FichaCard>
-
-            <FichaCard titulo="Actuaciones" color="bg-purple-50 border-purple-200">
-              <MetricaRow label="Archivos" valor={ultimaFicha.archivosPct ? `${ultimaFicha.archivosPct}%` : '-'} />
-              <MetricaRow label="Meta archivos (M11)" valor={ultimaFicha.metaArchivos?.toLocaleString('es-CO')} />
-              <MetricaRow label="Fallos 1ª estancia" valor={ultimaFicha.fallosPrimeraEstanciaPct ? `${ultimaFicha.fallosPrimeraEstanciaPct}%` : '-'} />
-              <MetricaRow label="Meta fallos (M12)" valor={ultimaFicha.metaFallos?.toLocaleString('es-CO')} />
-            </FichaCard>
-
-            <FichaCard titulo="Estrategias de Memoria" color="bg-orange-50 border-orange-200">
-              <MetricaRow label="Resueltas" valor={ultimaFicha.estrategiasResueltas} />
-              <MetricaRow label="En formulación" valor={ultimaFicha.estrategiasFormulacion} />
-            </FichaCard>
-
-            <FichaCard titulo="Rollos Legendarios" color="bg-orange-50 border-orange-200">
-              <MetricaRow label="Resueltos" valor={ultimaFicha.rollosResueltos} />
-              <MetricaRow label="En curso" valor={ultimaFicha.rollosEnCurso} />
-              {ultimaFicha.alertaRollos && <AlertaTexto texto={ultimaFicha.alertaRollos} />}
-            </FichaCard>
-          </div>
+          <FichasDecoradas ultimaFicha={ultimaFicha} />
 
           {ultimaFicha.observaciones && (
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">

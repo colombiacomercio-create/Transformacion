@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle, Save, Edit2, Info, Flag } from 'lucide-react';
 import { fetchApi } from '../utils/api';
+import FichasDecoradas from './gestion/FichasDecoradas';
 
 const mockAvancePorAspiraciones = [
   { name: 'A1. Presupuesto', avance: 95 },
@@ -33,6 +34,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
   
   // Data local para drill-down
   const [locData, setLocData] = useState<any>({ indice: 0, productos: [], objetivosBars: [], pieData: [], actList: [] });
+  const [ultimaFicha, setUltimaFicha] = useState<any>(null);
 
   const isAdmin = userData?.rol === 'ADMIN';
 
@@ -206,6 +208,11 @@ export default function Dashboard({ userData }: { userData?: any }) {
       .then(data => {
          if (data.length > 0) setObjetivosAPI(data[0].objetivos || []);
       }).catch(err => console.error(err));
+
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ficha-resultados/ultima`)
+      .then(res => res.json())
+      .then(data => setUltimaFicha(data))
+      .catch(err => console.error(err));
 
   }, [localidadFiltro]);
 
@@ -383,6 +390,14 @@ export default function Dashboard({ userData }: { userData?: any }) {
   return (
     <div className="flex flex-col gap-6 font-sans">
       {renderFiltros()}
+
+      {/* FICHAS SUPERIORES */}
+      {ultimaFicha && (
+         <div className="mb-4 bg-gray-50 p-4 rounded-xl shadow-inner border border-gray-200">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 px-2">Gestión y Resultados Globales</h3>
+            <FichasDecoradas ultimaFicha={ultimaFicha} />
+         </div>
+      )}
 
       {/* METRICAS HORIZONTALES */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
