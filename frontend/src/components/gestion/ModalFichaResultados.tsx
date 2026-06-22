@@ -22,7 +22,7 @@ const SECCIONES = [
       { key: 'metaObras', label: 'Meta de obras', type: 'number' },
       { key: 'intervencionesFinalizadas', label: 'Intervenciones finalizadas', type: 'number' },
       { key: 'kmCarrilIntervenido', label: 'Km carril intervenido', type: 'number' },
-      { key: 'kmIntervenidos', label: 'Km intervenidos', type: 'number' },
+      { key: 'kmIntervenidos', label: 'm² intervenidos', type: 'number' },
       { key: 'alertaObras', label: 'Texto de alerta (opcional)', type: 'textarea' },
     ],
   },

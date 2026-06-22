@@ -45,17 +45,14 @@ router.get('/ultima', azureADAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/ficha-resultados — crear o actualizar ficha por periodo (solo ADMIN)
+// POST /api/ficha-resultados — crear o actualizar ficha
 router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res) => {
   const data = req.body;
   try {
     const periodoDate = new Date(data.periodo);
-    
-    const existing = await prisma.fichaResultados.findFirst({
-      where: { periodo: periodoDate }
-    });
 
     const fields = {
+      periodo: periodoDate,
       compromisosPct: data.compromisosPct ?? null,
       girosPct: data.girosPct ?? null,
       procesosMonitoreados: data.procesosMonitoreados ?? null,
@@ -95,20 +92,25 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
       reportadoPorId: req.user!.id,
     };
 
-    if (existing) {
+    if (data.id) {
        const updated = await prisma.fichaResultados.update({
-         where: { id: existing.id },
+         where: { id: data.id },
          data: fields
        });
        res.status(200).json(updated);
     } else {
-       const created = await prisma.fichaResultados.create({
-         data: {
-           periodo: periodoDate,
-           ...fields
-         }
-       });
-       res.status(201).json(created);
+       // Por si acaso no mandaron ID, buscar por periodo
+       const existing = await prisma.fichaResultados.findFirst({ where: { periodo: periodoDate } });
+       if (existing) {
+         const updated = await prisma.fichaResultados.update({
+           where: { id: existing.id },
+           data: fields
+         });
+         res.status(200).json(updated);
+       } else {
+         const created = await prisma.fichaResultados.create({ data: fields });
+         res.status(201).json(created);
+       }
     }
   } catch (error) {
     console.error(error);
