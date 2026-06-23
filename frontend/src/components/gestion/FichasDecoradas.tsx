@@ -83,9 +83,27 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             Unidad de Transformación
           </h2>
         </div>
-        <img src="https://bogota.gov.co/themes/custom/govbr/logo.svg" alt="Alcaldía de Bogotá" className="h-12" />
+        <img src="/Logo_sede_electronica_SDG.png" alt="Alcaldía de Bogotá" className="h-14 object-contain" />
       </div>
 
+      {/* Helper para renderizar quién y cuándo actualizó la sección */}
+      {(() => {
+        const renderFooter = (actPor: any, actEn: string) => {
+          if (!actPor || !actEn) return null;
+          const date = new Date(actEn);
+          const periodoDate = new Date(ultimaFicha.periodo);
+          const isOutdated = date.getFullYear() < periodoDate.getFullYear() || date.getMonth() < periodoDate.getMonth();
+          return (
+            <div className={`mt-3 pt-2 border-t text-[10px] flex justify-between items-center px-4 pb-2 bg-white ${isOutdated ? 'text-orange-600 border-orange-200' : 'text-gray-400 border-gray-100'}`}>
+              <span>Actualizado por: {actPor.nombre}</span>
+              <div className="flex items-center gap-1">
+                {isOutdated && <span className="font-bold">⚠️ Dato corte {date.toLocaleDateString('es-CO', { month: 'long' })}</span>}
+                <span>{date.toLocaleDateString('es-CO')}</span>
+              </div>
+            </div>
+          );
+        };
+        return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* COLUMNA IZQUIERDA */}
@@ -173,6 +191,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                     <strong>Alerta:</strong> {ultimaFicha.alertaComites}
                   </div>
                 )}
+                {renderFooter(ultimaFicha.comitesActPor, ultimaFicha.comitesActEn)}
               </div>
               
               {/* Alerta ejecución general */}
@@ -182,6 +201,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 </div>
               )}
             </div>
+            {renderFooter(ultimaFicha.ejecucionActPor, ultimaFicha.ejecucionActEn)}
           </div>
           
           {/* CONVIVENCIA Y SEGURIDAD */}
@@ -220,10 +240,11 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 </div>
              </div>
              {ultimaFicha.alertaConvivencia && (
-                <div className="bg-gray-100 p-3 text-xs text-gray-800 m-4 rounded border">
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
                   <strong>Alertas:</strong> {ultimaFicha.alertaConvivencia}
                 </div>
              )}
+             {renderFooter(ultimaFicha.convivenciaActPor, ultimaFicha.convivenciaActEn)}
           </div>
           
           {/* ROLLOS LEGENDARIOS */}
@@ -258,6 +279,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alerta:</strong> {ultimaFicha.alertaRollos}
                 </div>
              )}
+             {renderFooter(ultimaFicha.rollosActPor, ultimaFicha.rollosActEn)}
           </div>
         </div>
 
@@ -306,10 +328,11 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 </div>
              </div>
              {ultimaFicha.alertaObras && (
-                <div className="bg-gray-100 p-3 text-xs text-gray-800 m-4 rounded border">
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
                   <strong>Alertas:</strong> {ultimaFicha.alertaObras}
                 </div>
              )}
+             {renderFooter(ultimaFicha.obrasActPor, ultimaFicha.obrasActEn)}
           </div>
 
           {/* ESPACIO PÚBLICO - RESIDUOS */}
@@ -332,10 +355,16 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                       <span className="text-right text-gray-700 text-lg leading-tight">Espacio<br/>público<br/>recuperado</span>
                    </div>
                 </div>
-             </div>
-          </div>
+              </div>
+              {ultimaFicha.alertaEspacioResiduos && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alertas:</strong> {ultimaFicha.alertaEspacioResiduos}
+                </div>
+              )}
+              {renderFooter(ultimaFicha.espacioResiduosActPor, ultimaFicha.espacioResiduosActEn)}
+           </div>
 
-          <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
+           <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
                 Espacio público - Residuos
              </h3>
@@ -365,7 +394,13 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                    </div>
                 </div>
              </div>
-          </div>
+             {ultimaFicha.alertaEspacioVenta && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alertas:</strong> {ultimaFicha.alertaEspacioVenta}
+                </div>
+              )}
+              {renderFooter(ultimaFicha.espacioVentaActPor, ultimaFicha.espacioVentaActEn)}
+           </div>
 
           {/* ACTUACIONES */}
           <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
@@ -431,6 +466,12 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
                 </div>
              </div>
+             {ultimaFicha.alertaActuaciones && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alertas:</strong> {ultimaFicha.alertaActuaciones}
+                </div>
+              )}
+              {renderFooter(ultimaFicha.actuacionesActPor, ultimaFicha.actuacionesActEn)}
           </div>
 
           {/* ESTRATEGIAS DE MEMORIA */}
@@ -460,10 +501,17 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                    </div>
                 </div>
              </div>
+             {ultimaFicha.alertaEstrategias && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alertas:</strong> {ultimaFicha.alertaEstrategias}
+                </div>
+             )}
+             {renderFooter(ultimaFicha.estrategiasActPor, ultimaFicha.estrategiasActEn)}
           </div>
-
         </div>
       </div>
+      );
+      })()}
     </div>
   );
 }

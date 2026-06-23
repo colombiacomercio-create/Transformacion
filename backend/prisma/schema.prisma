@@ -82,6 +82,17 @@ model Usuario {
   eventos                Evento[]
   seguimientosNormativos SeguimientoNormativo[]
   otrosEspacios          OtroEspacioArticulacion[]
+
+  // Ficha Resultados - Tracking por sección
+  fichasEjecucionAct     FichaResultados[] @relation("EjecucionAct")
+  fichasObrasAct         FichaResultados[] @relation("ObrasAct")
+  fichasComitesAct       FichaResultados[] @relation("ComitesAct")
+  fichasResiduosAct      FichaResultados[] @relation("ResiduosAct")
+  fichasVentaAct         FichaResultados[] @relation("VentaAct")
+  fichasConvivenciaAct   FichaResultados[] @relation("ConvivenciaAct")
+  fichasActuacionesAct   FichaResultados[] @relation("ActuacionesAct")
+  fichasEstrategiasAct   FichaResultados[] @relation("EstrategiasAct")
+  fichasRollosAct        FichaResultados[] @relation("RollosAct")
 }
 
 model Plan {
@@ -348,7 +359,42 @@ model FichaResultados {
   reportadoPorId           String
   fechaCreacion            DateTime @default(now())
 
-  reportadoPor Usuario @relation(fields: [reportadoPorId], references: [id])
+  // Alertas faltantes
+  alertaEspacioResiduos    String?  @db.Text
+  alertaEspacioVenta       String?  @db.Text
+  alertaActuaciones        String?  @db.Text
+  alertaEstrategias        String?  @db.Text
+
+  // Tracking por sección
+  ejecucionActPorId         String?
+  ejecucionActEn            DateTime?
+  obrasActPorId             String?
+  obrasActEn                DateTime?
+  comitesActPorId           String?
+  comitesActEn              DateTime?
+  espacioResiduosActPorId   String?
+  espacioResiduosActEn      DateTime?
+  espacioVentaActPorId      String?
+  espacioVentaActEn         DateTime?
+  convivenciaActPorId       String?
+  convivenciaActEn          DateTime?
+  actuacionesActPorId       String?
+  actuacionesActEn          DateTime?
+  estrategiasActPorId       String?
+  estrategiasActEn          DateTime?
+  rollosActPorId            String?
+  rollosActEn               DateTime?
+
+  reportadoPor          Usuario @relation(fields: [reportadoPorId], references: [id])
+  ejecucionActPor       Usuario? @relation("EjecucionAct", fields: [ejecucionActPorId], references: [id])
+  obrasActPor           Usuario? @relation("ObrasAct", fields: [obrasActPorId], references: [id])
+  comitesActPor         Usuario? @relation("ComitesAct", fields: [comitesActPorId], references: [id])
+  espacioResiduosActPor Usuario? @relation("ResiduosAct", fields: [espacioResiduosActPorId], references: [id])
+  espacioVentaActPor    Usuario? @relation("VentaAct", fields: [espacioVentaActPorId], references: [id])
+  convivenciaActPor     Usuario? @relation("ConvivenciaAct", fields: [convivenciaActPorId], references: [id])
+  actuacionesActPor     Usuario? @relation("ActuacionesAct", fields: [actuacionesActPorId], references: [id])
+  estrategiasActPor     Usuario? @relation("EstrategiasAct", fields: [estrategiasActPorId], references: [id])
+  rollosActPor          Usuario? @relation("RollosAct", fields: [rollosActPorId], references: [id])
 }
 
 model Reunion {

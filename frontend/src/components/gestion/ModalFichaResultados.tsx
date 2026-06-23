@@ -40,6 +40,7 @@ const SECCIONES = [
       { key: 'accionesReportadas', label: 'Acciones e intervenciones reportadas', type: 'number' },
       { key: 'residuosM3', label: 'Residuos recolectados (m³)', type: 'number' },
       { key: 'espacioPublicoM2', label: 'Espacio público recuperado (m²)', type: 'number' },
+      { key: 'alertaEspacioResiduos', label: 'Texto de alerta (opcional)', type: 'textarea' },
     ],
   },
   {
@@ -50,6 +51,7 @@ const SECCIONES = [
       { key: 'orgParqueo', label: 'Org. parqueo', type: 'number' },
       { key: 'm2RecuperadosInformal', label: 'm² recuperados', type: 'number' },
       { key: 'personasReubicadas', label: 'Personas reubicadas', type: 'number' },
+      { key: 'alertaEspacioVenta', label: 'Texto de alerta (opcional)', type: 'textarea' },
     ],
   },
   {
@@ -69,6 +71,7 @@ const SECCIONES = [
       { key: 'metaArchivos', label: 'Meta anual archivos (M11)', type: 'number' },
       { key: 'fallosPrimeraEstanciaPct', label: '% Fallos 1ª estancia (M12)', type: 'number' },
       { key: 'metaFallos', label: 'Meta anual fallos (M12)', type: 'number' },
+      { key: 'alertaActuaciones', label: 'Texto de alerta (opcional)', type: 'textarea' },
     ],
   },
   {
@@ -76,6 +79,7 @@ const SECCIONES = [
     campos: [
       { key: 'estrategiasResueltas', label: 'Resueltas', type: 'number' },
       { key: 'estrategiasFormulacion', label: 'En formulación', type: 'number' },
+      { key: 'alertaEstrategias', label: 'Texto de alerta (opcional)', type: 'textarea' },
     ],
   },
   {
@@ -90,6 +94,7 @@ const SECCIONES = [
 
 export default function ModalFichaResultados({ onClose }: Props) {
   const [form, setForm] = useState<Record<string, any>>({ periodo: new Date().toISOString().slice(0, 10) });
+  const [originalForm, setOriginalForm] = useState<Record<string, any>>({});
   const [seccionAbierta, setSeccionAbierta] = useState<string>('ejecucion');
   const [guardando, setGuardando] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -104,11 +109,13 @@ export default function ModalFichaResultados({ onClose }: Props) {
       .then(res => res.json())
       .then(data => {
         if (data && data.id) {
-          // Extraer la fecha yyyyy-mm-dd y mezclar con data
-          setForm({ ...data, periodo: data.periodo.split('T')[0] });
+          const loadedData = { ...data, periodo: data.periodo.split('T')[0] };
+          setForm(loadedData);
+          setOriginalForm(loadedData);
         } else {
-          // Si no hay datos, limpiamos el form pero conservamos la fecha
-          setForm({ periodo: form.periodo });
+          const emptyData = { periodo: form.periodo };
+          setForm(emptyData);
+          setOriginalForm(emptyData);
         }
       })
       .catch(() => {})
@@ -118,11 +125,20 @@ export default function ModalFichaResultados({ onClose }: Props) {
   const guardar = async () => {
     if (!form.periodo) { setError('El período de corte es obligatorio'); return; }
     setGuardando(true);
+    
+    // Computar qué secciones fueron modificadas
+    const seccionesActualizadas = SECCIONES.filter(sec => {
+      return sec.campos.some(campo => form[campo.key] !== originalForm[campo.key]);
+    }).map(sec => sec.id);
+
+    // Añadir el array al payload
+    const payload = { ...form, seccionesActualizadas };
+
     try {
       const res = await fetchApi(`${API}/api/ficha-resultados`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
       onClose();

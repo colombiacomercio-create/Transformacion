@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { fetchApi } from '../../utils/api';
 import ModalFichaResultados from './ModalFichaResultados';
 import FichasDecoradas from './FichasDecoradas';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -13,6 +15,7 @@ export default function SeccionResultados({ userData }: Props) {
   const [fichaActivaId, setFichaActivaId] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const isAdmin = userData?.rol === 'ADMIN';
 
   const cargar = () => {
@@ -29,6 +32,33 @@ export default function SeccionResultados({ userData }: Props) {
 
   useEffect(() => { cargar(); }, []);
 
+  const exportPDF = async () => {
+    const el = document.getElementById('ficha-pdf-container');
+    if (!el) return;
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // If it's too long, scale it to fit one page
+      let finalHeight = pdfHeight;
+      if (pdfHeight > pdf.internal.pageSize.getHeight()) {
+         finalHeight = pdf.internal.pageSize.getHeight();
+      }
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, finalHeight);
+      pdf.save(`Ficha_Resultados_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) return <Spinner />;
 
   const fichaMostrar = fichas.find(f => f.id === fichaActivaId) || ultimaFicha;
@@ -38,6 +68,13 @@ export default function SeccionResultados({ userData }: Props) {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-gray-800">Ficha de Resultados — Datos de la Unidad</h3>
         <div className="flex items-center gap-4">
+          <button 
+             onClick={exportPDF} 
+             disabled={exporting}
+             className="px-4 py-1.5 rounded-lg bg-gray-800 text-white text-sm font-semibold hover:bg-gray-700 disabled:opacity-50"
+          >
+             {exporting ? 'Generando PDF...' : '⬇ Exportar PDF'}
+          </button>
           {fichas.length > 0 && (
              <select 
                value={fichaActivaId} 
@@ -62,9 +99,13 @@ export default function SeccionResultados({ userData }: Props) {
 
       {fichaMostrar ? (
         <div className="space-y-4">
-          <p className="text-xs text-gray-500">Actualización del corte <strong>{new Date(fichaMostrar.periodo).toLocaleDateString('es-CO')}</strong> — por {fichaMostrar.reportadoPor?.nombre}</p>
+          <p className="text-xs text-gray-500">
+            Ficha del corte <strong>{new Date(fichaMostrar.periodo).toLocaleDateString('es-CO')}</strong>
+          </p>
 
-          <FichasDecoradas ultimaFicha={fichaMostrar} />
+          <div id="ficha-pdf-container" className="bg-white p-2">
+            <FichasDecoradas ultimaFicha={fichaMostrar} />
+          </div>
 
           {fichaMostrar.observaciones && (
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
