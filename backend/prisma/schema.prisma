@@ -309,7 +309,7 @@ model FichaAlerta {
 
 model FichaResultados {
   id                       String   @id @default(uuid())
-  periodo                  DateTime // fecha de corte del reporte
+  periodo                  DateTime @unique // fecha de corte del reporte
   // Ejecución presupuestal
   compromisosPct           Float?
   girosPct                 Float?

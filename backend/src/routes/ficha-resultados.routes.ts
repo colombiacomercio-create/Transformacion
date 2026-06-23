@@ -150,17 +150,12 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
        });
        res.status(200).json(updated);
     } else {
-       const existing = await prisma.fichaResultados.findFirst({ where: { periodo: periodoDate } });
-       if (existing) {
-         const updated = await prisma.fichaResultados.update({
-           where: { id: existing.id },
-           data: fields
-         });
-         res.status(200).json(updated);
-       } else {
-         const created = await prisma.fichaResultados.create({ data: fields });
-         res.status(201).json(created);
-       }
+       const upserted = await prisma.fichaResultados.upsert({
+         where: { periodo: periodoDate },
+         update: fields,
+         create: fields
+       });
+       res.status(200).json(upserted);
     }
   } catch (error) {
     console.error(error);
