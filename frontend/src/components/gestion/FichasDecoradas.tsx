@@ -366,7 +366,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
            <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
-                Espacio público - Residuos
+                Organización y Recuperación Espacio Público
              </h3>
              <div className="bg-white p-6 flex items-center justify-between relative h-64">
                 <div className="absolute top-4 left-[40%] transform -translate-x-1/2 text-xs font-bold text-gray-800">Org parqueo <span className="block text-center">{orgParqueo}</span></div>

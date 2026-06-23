@@ -107,15 +107,22 @@ export default function ModalFichaResultados({ onClose }: Props) {
     setCargando(true);
     fetchApi(`${API}/api/ficha-resultados/periodo/${form.periodo}`)
       .then(res => res.json())
-      .then(data => {
+      .then(async data => {
         if (data && data.id) {
           const loadedData = { ...data, periodo: data.periodo.split('T')[0] };
           setForm(loadedData);
           setOriginalForm(loadedData);
         } else {
-          const emptyData = { periodo: form.periodo };
-          setForm(emptyData);
-          setOriginalForm(emptyData);
+          const ultima = await fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null);
+          if (ultima && ultima.id) {
+             const copiedData = { ...ultima, id: undefined, periodo: form.periodo };
+             setForm(copiedData);
+             setOriginalForm(copiedData);
+          } else {
+             const emptyData = { periodo: form.periodo };
+             setForm(emptyData);
+             setOriginalForm(emptyData);
+          }
         }
       })
       .catch(() => {})

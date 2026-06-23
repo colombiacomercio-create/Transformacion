@@ -39,18 +39,13 @@ export default function SeccionResultados({ userData }: Props) {
     try {
       const canvas = await html2canvas(el, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'l' : 'p',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
       
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      // If it's too long, scale it to fit one page
-      let finalHeight = pdfHeight;
-      if (pdfHeight > pdf.internal.pageSize.getHeight()) {
-         finalHeight = pdf.internal.pageSize.getHeight();
-      }
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, finalHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
       pdf.save(`Ficha_Resultados_${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (error) {
       console.error("Error exporting PDF:", error);
@@ -83,7 +78,7 @@ export default function SeccionResultados({ userData }: Props) {
              >
                {fichas.map(f => (
                  <option key={f.id} value={f.id}>
-                   Corte: {new Date(f.periodo).toLocaleDateString('es-CO')}
+                   Corte: {new Date(f.periodo).toLocaleDateString('es-CO', { timeZone: 'UTC' })}
                  </option>
                ))}
              </select>
@@ -100,7 +95,7 @@ export default function SeccionResultados({ userData }: Props) {
       {fichaMostrar ? (
         <div className="space-y-4">
           <p className="text-xs text-gray-500">
-            Ficha del corte <strong>{new Date(fichaMostrar.periodo).toLocaleDateString('es-CO')}</strong>
+            Ficha del corte <strong>{new Date(fichaMostrar.periodo).toLocaleDateString('es-CO', { timeZone: 'UTC' })}</strong>
           </p>
 
           <div id="ficha-pdf-container" className="bg-white p-2">
@@ -139,7 +134,7 @@ export default function SeccionResultados({ userData }: Props) {
               <tbody>
                 {fichas.map((f: any) => (
                   <tr key={f.id} className="border-t border-gray-50 hover:bg-gray-50">
-                    <td className="px-3 py-2">{new Date(f.periodo).toLocaleDateString('es-CO')}</td>
+                    <td className="px-3 py-2">{new Date(f.periodo).toLocaleDateString('es-CO', { timeZone: 'UTC' })}</td>
                     <td className="px-3 py-2">{f.compromisosPct ?? '-'}%</td>
                     <td className="px-3 py-2">{f.girosPct ?? '-'}%</td>
                     <td className="px-3 py-2">{f.intervencionesFinalizadas ?? '-'}</td>
