@@ -16,8 +16,8 @@ const TIPOS_REUNION_LABELS: Record<string, string> = {
 };
 const TIPOS_CONTRAPARTE = ['ALCALDIA','SECTOR_GOBIERNO','ENTIDAD_DISTRITO','INTERNA','OTRA_ENTIDAD'];
 const TIPOS_CONTRAPARTE_LABELS: Record<string, string> = {
-  ALCALDIA: 'Alcaldía / FDL', SECTOR_GOBIERNO: 'Sector Gobierno', ENTIDAD_DISTRITO: 'Entidad Distrito',
-  INTERNA: 'UGRT', OTRA_ENTIDAD: 'Otras entidades y actores',
+  ALCALDIA: 'Alcaldía / FDL', SECTOR_GOBIERNO: 'Sector Gobierno',
+  ENTIDAD_DISTRITO: 'Entidad Distrito', INTERNA: 'Interna UGRT', OTRA_ENTIDAD: 'Otras entidades y actores',
 };
 const MODALIDADES = ['PRESENCIAL','VIRTUAL','TELEFONICA','MIXTA'];
 

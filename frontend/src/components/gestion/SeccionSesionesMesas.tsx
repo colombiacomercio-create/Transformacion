@@ -15,7 +15,7 @@ const TIPOS_REUNION: Record<string, string> = {
 
 const TIPOS_CONTRAPARTE: Record<string, string> = {
   ALCALDIA: 'Alcaldía / FDL', SECTOR_GOBIERNO: 'Sector Gobierno',
-  ENTIDAD_DISTRITO: 'Entidad Distrito', INTERNA: 'UGRT', OTRA_ENTIDAD: 'Otras entidades y actores',
+  ENTIDAD_DISTRITO: 'Entidad Distrito', INTERNA: 'Interna UGRT', OTRA_ENTIDAD: 'Otras entidades y actores',
 };
 
 const TEMATICAS: Record<string, string> = {
@@ -109,16 +109,56 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     }
   };
 
+  const eliminarReunion = async (id: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro por completo? Esta acción no se puede deshacer.')) return;
+    try {
+      const res = await fetchApi(`${API}/api/reuniones/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Reunión eliminada correctamente');
+        cargar(); // Recargar datos
+      } else {
+        const errorData = await res.json();
+        alert(`Error: ${errorData.error || 'Error eliminando la reunión'}`);
+      }
+    } catch (error: any) {
+      alert(`Error: ${error.message || 'Error eliminando la reunión'}`);
+    }
+  };
+
   // Datos para gráficas
   const dataTipoReunion = stats?.porTipoReunion
     ? Object.entries(stats.porTipoReunion).map(([k, v]) => ({ name: TIPOS_REUNION[k] || k, value: v as number }))
     : [];
 
-  const dataProducto = stats?.porTematica
-    ? Object.entries(stats.porTematica)
-        .map(([k, v]) => ({ name: TEMATICAS[k] || k, reuniones: v as number }))
-        .sort((a, b) => b.reuniones - a.reuniones)
-    : [];
+  const dataProducto2026 = reuniones
+    .filter(r => new Date(r.fecha).getFullYear() === 2026)
+    .reduce((acc, r) => {
+      const t = r.tematica || 'GLOBAL';
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const dataProducto2026Chart = Object.entries(dataProducto2026)
+    .map(([k, v]) => ({ name: TEMATICAS[k] || k, reuniones: v as number }))
+    .sort((a: any, b: any) => b.reuniones - a.reuniones);
+
+  // Evolución Mes a Mes
+  const mesesOrdenados = ['2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12'];
+  const dataMes = mesesOrdenados.map(mes => ({
+    name: mes,
+    reuniones: stats?.porMes?.[mes] || 0
+  }));
+
+  const total2025_2026 = reuniones.filter(r => {
+    const y = new Date(r.fecha).getFullYear();
+    return y === 2025 || y === 2026;
+  }).length;
+
+  const tematicasUnicasDB = Array.from(new Set(reuniones.map(r => r.tematica).filter(Boolean)));
+  const todasLasTematicas = { ...TEMATICAS };
+  tematicasUnicasDB.forEach(t => {
+    if (!todasLasTematicas[t]) todasLasTematicas[t] = t; // Si la temática no está en el diccionario por defecto
+  });
 
   // Filtro local por producto y subtematica
   const reunionesFiltradas = reuniones.filter(r => {
@@ -144,58 +184,41 @@ export default function SeccionSesionesMesas({ userData }: Props) {
         </button>
       </div>
 
-      {/* KPIs — solo 3 */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-gray-900 text-white rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold">{stats?.total ?? 0}</p>
-          <p className="text-xs opacity-70 mt-1">Total reuniones</p>
+      {/* Gráficas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* LineChart: Evolución mes a mes */}
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm relative">
+          <div className="absolute top-4 right-4 bg-gray-100 text-gray-800 font-bold px-3 py-1 rounded text-sm">
+            Total 2025-2026: {total2025_2026}
+          </div>
+          <h4 className="text-sm font-bold text-gray-700 mb-3">Reuniones Mes a Mes (desde Diciembre 2025)</h4>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={dataMes} margin={{ left: 0, right: 16 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="reuniones" fill="#e3002b" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-        <div className="bg-bogota-primary text-white rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold">{totalCompromisos}</p>
-          <p className="text-xs opacity-70 mt-1">Compromisos</p>
-        </div>
-        <div className="bg-yellow-400 text-black rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold">{Object.keys(stats?.porTematica || {}).filter(k => k !== 'GLOBAL').length}</p>
-          <p className="text-xs opacity-70 mt-1">Productos activos</p>
+
+        {/* BarChart: por producto 2026 */}
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <h4 className="text-sm font-bold text-gray-700 mb-3">Por producto / aspiración (Solo 2026)</h4>
+          {dataProducto2026Chart.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={dataProducto2026Chart} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <XAxis type="number" tick={{ fontSize: 9 }} allowDecimals={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 8 }} width={130} />
+                <Tooltip />
+                <Bar dataKey="reuniones" fill="#e3002b" radius={[0, 3, 3, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-40 flex items-center justify-center text-gray-400 text-xs">Sin datos para 2026</div>
+          )}
         </div>
       </div>
-
-      {/* Gráficas: Tipo de reunión + Por producto */}
-      {(dataTipoReunion.length > 0 || dataProducto.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Pie: por tipo de reunión */}
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-bold text-gray-700 mb-3">Por tipo de reunión</h4>
-            <ResponsiveContainer width="100%" height={170}>
-              <PieChart>
-                <Pie data={dataTipoReunion} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}>
-                  {dataTipoReunion.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Bar: por producto */}
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-bold text-gray-700 mb-3">Por producto / aspiración</h4>
-            {dataProducto.length > 0 ? (
-              <ResponsiveContainer width="100%" height={170}>
-                <BarChart data={dataProducto} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <XAxis type="number" tick={{ fontSize: 9 }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 8 }} width={130} />
-                  <Tooltip />
-                  <Bar dataKey="reuniones" fill="#e3002b" radius={[0, 3, 3, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-40 flex items-center justify-center text-gray-400 text-xs">Sin datos aún</div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">
@@ -206,7 +229,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
         <select value={filtroProducto} onChange={e => setFiltroProducto(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
           <option value="">Todos los productos</option>
-          {Object.entries(TEMATICAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {Object.entries(todasLasTematicas).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}
         </select>
         <select value={filtroSubtematica} onChange={e => setFiltroSubtematica(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
@@ -240,6 +263,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                 <th className="text-center px-3 py-2">Asistentes</th>
                 <th className="text-center px-3 py-2">Compromisos</th>
                 <th className="text-center px-3 py-2">Acta</th>
+                <th className="text-center px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -269,10 +293,22 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                     <span className="font-semibold text-gray-800">{r.compromisos?.length ?? 0}</span>
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <button onClick={() => descargarPDF(r.id, r.fecha)}
-                      className="text-bogota-primary hover:underline font-semibold text-xs">
-                      📄 PDF
-                    </button>
+                    {r.fecha >= '2026-01-01' ? (
+                      <button onClick={() => descargarPDF(r.id, r.fecha)} title="Descargar Acta"
+                        className="text-red-600 hover:text-red-800 p-1.5 rounded-full hover:bg-red-50 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-[10px]">Sin acta</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {r.creadoPor?.id === userData.id && (
+                      <button onClick={() => eliminarReunion(r.id)} title="Eliminar Registro"
+                        className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

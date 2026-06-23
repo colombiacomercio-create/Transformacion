@@ -140,6 +140,22 @@ router.patch('/:id', azureADAuth, async (req: AuthRequest, res) => {
   }
 });
 
+// DELETE /api/reuniones/:id — eliminar reunión
+router.delete('/:id', azureADAuth, async (req: AuthRequest, res) => {
+  try {
+    const reunion = await prisma.reunion.findUnique({ where: { id: req.params.id } });
+    if (!reunion) return res.status(404).json({ error: 'Reunión no encontrada' });
+    if (reunion.creadoPorId !== req.user!.id) {
+      return res.status(403).json({ error: 'No tienes permiso para eliminar esta reunión' });
+    }
+    await prisma.reunion.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Reunión eliminada correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error eliminando reunión' });
+  }
+});
+
 // POST /api/reuniones/:id/imagen — subir imagen de asistencia
 router.post('/:id/imagen', azureADAuth, upload.single('imagen'), async (req: AuthRequest, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió imagen' });
