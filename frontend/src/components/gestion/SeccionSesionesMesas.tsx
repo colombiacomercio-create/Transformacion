@@ -15,7 +15,7 @@ const TIPOS_REUNION: Record<string, string> = {
 
 const TIPOS_CONTRAPARTE: Record<string, string> = {
   ALCALDIA: 'Alcaldía / FDL', SECTOR_GOBIERNO: 'Sector Gobierno',
-  ENTIDAD_DISTRITO: 'Entidad Distrito', INTERNA: 'Interna (SDG)', OTRA_ENTIDAD: 'Otra Entidad',
+  ENTIDAD_DISTRITO: 'Entidad Distrito', INTERNA: 'UGRT', OTRA_ENTIDAD: 'Otras entidades y actores',
 };
 
 const TEMATICAS: Record<string, string> = {
@@ -36,14 +36,21 @@ const RESPONSABLES = [
   'DAYANA MARCELA LOZANO - TRANSFORMACIÓN',
 ];
 
-const MESES = [
-  { value: '', label: 'Todos los meses' },
+const PERIODOS = [
+  { value: '', label: 'Todo el tiempo' },
+  { value: '2026', label: 'Año 2026' }, { value: '2025', label: 'Año 2025' },
   { value: '2026-01', label: 'Enero 2026' }, { value: '2026-02', label: 'Febrero 2026' },
   { value: '2026-03', label: 'Marzo 2026' },  { value: '2026-04', label: 'Abril 2026' },
   { value: '2026-05', label: 'Mayo 2026' },   { value: '2026-06', label: 'Junio 2026' },
   { value: '2026-07', label: 'Julio 2026' },  { value: '2026-08', label: 'Agosto 2026' },
   { value: '2026-09', label: 'Septiembre 2026' }, { value: '2026-10', label: 'Octubre 2026' },
   { value: '2026-11', label: 'Noviembre 2026' },  { value: '2026-12', label: 'Diciembre 2026' },
+  { value: '2025-01', label: 'Enero 2025' }, { value: '2025-02', label: 'Febrero 2025' },
+  { value: '2025-03', label: 'Marzo 2025' },  { value: '2025-04', label: 'Abril 2025' },
+  { value: '2025-05', label: 'Mayo 2025' },   { value: '2025-06', label: 'Junio 2025' },
+  { value: '2025-07', label: 'Julio 2025' },  { value: '2025-08', label: 'Agosto 2025' },
+  { value: '2025-09', label: 'Septiembre 2025' }, { value: '2025-10', label: 'Octubre 2025' },
+  { value: '2025-11', label: 'Noviembre 2025' },  { value: '2025-12', label: 'Diciembre 2025' },
 ];
 
 interface Props { userData: any; }
@@ -55,6 +62,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroMes, setFiltroMes] = useState('');
   const [filtroProducto, setFiltroProducto] = useState('');
+  const [filtroSubtematica, setFiltroSubtematica] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -63,10 +71,18 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     if (filtroContraparte) params.set('tipoContraparte', filtroContraparte);
     if (filtroTipo) params.set('tipoReunion', filtroTipo);
     if (filtroMes) {
-      params.set('desde', `${filtroMes}-01`);
-      const [y, m] = filtroMes.split('-').map(Number);
-      const ultimo = new Date(y, m, 0).getDate();
-      params.set('hasta', `${filtroMes}-${ultimo}`);
+      if (filtroMes === '2026') {
+        params.set('desde', '2026-01-01');
+        params.set('hasta', '2026-12-31');
+      } else if (filtroMes === '2025') {
+        params.set('desde', '2025-01-01');
+        params.set('hasta', '2025-12-31');
+      } else {
+        params.set('desde', `${filtroMes}-01`);
+        const [y, m] = filtroMes.split('-').map(Number);
+        const ultimo = new Date(y, m, 0).getDate();
+        params.set('hasta', `${filtroMes}-${ultimo}`);
+      }
     }
     Promise.all([
       fetchApi(`${API}/api/reuniones?${params}`).then(r => r.json()).catch(() => []),
@@ -104,10 +120,14 @@ export default function SeccionSesionesMesas({ userData }: Props) {
         .sort((a, b) => b.reuniones - a.reuniones)
     : [];
 
-  // Filtro local por producto
-  const reunionesFiltradas = filtroProducto
-    ? reuniones.filter(r => (r.tematica || 'GLOBAL') === filtroProducto)
-    : reuniones;
+  // Filtro local por producto y subtematica
+  const reunionesFiltradas = reuniones.filter(r => {
+    if (filtroProducto && (r.tematica || 'GLOBAL') !== filtroProducto) return false;
+    if (filtroSubtematica && r.subtematica !== filtroSubtematica) return false;
+    return true;
+  });
+
+  const subtematicasUnicas = Array.from(new Set(reuniones.map(r => r.subtematica).filter(Boolean))) as string[];
 
   const totalCompromisos = reuniones.reduce((s, r) => s + (r.compromisos?.length ?? 0), 0);
 
@@ -181,16 +201,21 @@ export default function SeccionSesionesMesas({ userData }: Props) {
       <div className="flex flex-wrap gap-2">
         <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
-          {MESES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+          {PERIODOS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
         </select>
         <select value={filtroProducto} onChange={e => setFiltroProducto(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
           <option value="">Todos los productos</option>
           {Object.entries(TEMATICAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        <select value={filtroSubtematica} onChange={e => setFiltroSubtematica(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
+          <option value="">Todas las subtemáticas</option>
+          {subtematicasUnicas.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
         <select value={filtroContraparte} onChange={e => setFiltroContraparte(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
-          <option value="">Todos los tipos de reunión</option>
+          <option value="">Todos los actores</option>
           {Object.entries(TIPOS_CONTRAPARTE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
@@ -209,7 +234,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                 <th className="text-left px-3 py-2">Fecha</th>
                 <th className="text-left px-3 py-2">Producto</th>
                 <th className="text-left px-3 py-2">Objeto</th>
-                <th className="text-left px-3 py-2">Tipo de reunión</th>
+                <th className="text-left px-3 py-2">Actores</th>
                 <th className="text-left px-3 py-2">Formato</th>
                 <th className="text-left px-3 py-2">Responsable</th>
                 <th className="text-center px-3 py-2">Asistentes</th>
@@ -224,9 +249,16 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                     {new Date(r.fecha).toLocaleDateString('es-CO')}
                   </td>
                   <td className="px-3 py-2">
-                    <span className="px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-semibold whitespace-nowrap">
-                      {r.tematica && r.tematica !== 'GLOBAL' ? (TEMATICAS[r.tematica] || r.tematica) : 'Global'}
-                    </span>
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className="px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-semibold whitespace-nowrap">
+                        {r.tematica && r.tematica !== 'GLOBAL' ? (TEMATICAS[r.tematica] || r.tematica) : 'Global'}
+                      </span>
+                      {r.subtematica && (
+                        <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-medium whitespace-nowrap">
+                          {r.subtematica}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2 max-w-[160px] truncate text-gray-700">{r.objeto}</td>
                   <td className="px-3 py-2 text-gray-600">{TIPOS_CONTRAPARTE[r.tipoContraparte] || r.tipoContraparte}</td>

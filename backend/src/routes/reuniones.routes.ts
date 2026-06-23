@@ -87,12 +87,12 @@ router.get('/:id', azureADAuth, async (req: AuthRequest, res) => {
 
 // POST /api/reuniones — crear reunión
 router.post('/', azureADAuth, async (req: AuthRequest, res) => {
-  const { tipoReunion, tipoContraparte, tematica, objeto, fecha, horaInicio, horaFin, lugar, modalidad, responsable, desarrollo, asistentes, compromisos } = req.body;
+  const { tipoReunion, tipoContraparte, tematica, subtematica, objeto, fecha, horaInicio, horaFin, lugar, modalidad, responsable, desarrollo, asistentes, compromisos } = req.body;
   try {
     const reunion = await prisma.reunion.create({
       data: {
         tipoReunion: tipoReunion || '', tipoContraparte: tipoContraparte || '',
-        tematica: tematica || 'GLOBAL', objeto: objeto || '',
+        tematica: tematica || 'GLOBAL', subtematica: subtematica || null, objeto: objeto || '',
         fecha: new Date(fecha),
         horaInicio: horaInicio || '', horaFin: horaFin || '', lugar: lugar || '', modalidad: modalidad || 'VIRTUAL', responsable: responsable || '',
         desarrollo: desarrollo || '',

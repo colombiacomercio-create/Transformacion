@@ -17,7 +17,7 @@ const TIPOS_REUNION_LABELS: Record<string, string> = {
 const TIPOS_CONTRAPARTE = ['ALCALDIA','SECTOR_GOBIERNO','ENTIDAD_DISTRITO','INTERNA','OTRA_ENTIDAD'];
 const TIPOS_CONTRAPARTE_LABELS: Record<string, string> = {
   ALCALDIA: 'Alcaldía / FDL', SECTOR_GOBIERNO: 'Sector Gobierno', ENTIDAD_DISTRITO: 'Entidad Distrito',
-  INTERNA: 'Interna (SDG)', OTRA_ENTIDAD: 'Otra entidad',
+  INTERNA: 'UGRT', OTRA_ENTIDAD: 'Otras entidades y actores',
 };
 const MODALIDADES = ['PRESENCIAL','VIRTUAL','TELEFONICA','MIXTA'];
 
@@ -49,6 +49,7 @@ const TEMATICAS = [
 export default function ModalNuevaReunion({ onClose }: Props) {
   const [paso, setPaso] = useState(1);
   const [tematica, setTematica] = useState('GLOBAL');
+  const [subtematica, setSubtematica] = useState('');
   const [form, setForm] = useState({
     tipoReunion: '', tipoContraparte: '', objeto: '', fecha: '',
     horaInicio: '', horaFin: '', lugar: '', modalidad: 'VIRTUAL', responsable: '', desarrollo: '',
@@ -82,7 +83,7 @@ export default function ModalNuevaReunion({ onClose }: Props) {
       const res = await fetchApi(`${API}/api/reuniones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, tematica, asistentes: asistentes.filter(a => a.nombre), compromisos: compromisos.filter(c => c.descripcion) }),
+        body: JSON.stringify({ ...form, tematica, subtematica, asistentes: asistentes.filter(a => a.nombre), compromisos: compromisos.filter(c => c.descripcion) }),
       });
       const data = await res.json();
       setReunionId(data.id);
@@ -146,7 +147,7 @@ export default function ModalNuevaReunion({ onClose }: Props) {
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="label">Tipo de contraparte *</label>
+                  <label className="label">Actores de la reunión *</label>
                   <select value={form.tipoContraparte} onChange={e => set('tipoContraparte', e.target.value)} className="input">
                     <option value="">Seleccione...</option>
                     {TIPOS_CONTRAPARTE.map(t => <option key={t} value={t}>{TIPOS_CONTRAPARTE_LABELS[t]}</option>)}
@@ -157,6 +158,10 @@ export default function ModalNuevaReunion({ onClose }: Props) {
                   <select value={tematica} onChange={e => setTematica(e.target.value)} className="input">
                     {TEMATICAS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">Subtemática (Agrupación específica)</label>
+                  <input type="text" value={subtematica} onChange={e => setSubtematica(e.target.value)} className="input" placeholder="Ej: Mesa de trabajo DGDL" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="label">

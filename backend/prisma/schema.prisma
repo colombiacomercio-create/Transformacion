@@ -405,6 +405,7 @@ model Reunion {
   tipoContraparte  String
   // GLOBAL | P01..P10 | OTRO
   tematica         String   @default("GLOBAL")
+  subtematica      String?
   objeto           String
   fecha            DateTime
   horaInicio       String
