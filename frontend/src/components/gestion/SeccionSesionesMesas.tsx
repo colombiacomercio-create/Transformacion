@@ -154,11 +154,12 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     return y === 2025 || y === 2026;
   }).length;
 
-  const tematicasUnicasDB = Array.from(new Set(reuniones.map(r => r.tematica).filter(Boolean)));
-  const todasLasTematicas = { ...TEMATICAS };
-  tematicasUnicasDB.forEach(t => {
-    if (!todasLasTematicas[t]) todasLasTematicas[t] = t; // Si la temática no está en el diccionario por defecto
-  });
+  const tematicasUnicasDB = Array.from(new Set(reuniones.map(r => r.tematica).filter(Boolean))) as string[];
+  const tematicasDefault = Object.entries(TEMATICAS);
+  const tematicasExtra = tematicasUnicasDB
+    .filter(t => !TEMATICAS[t])
+    .map(t => [t, `2025 - ${t}`]);
+  const renderFiltroProductos = [...tematicasDefault, ...tematicasExtra];
 
   // Filtro local por producto y subtematica
   const reunionesFiltradas = reuniones.filter(r => {
@@ -229,7 +230,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
         <select value={filtroProducto} onChange={e => setFiltroProducto(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
           <option value="">Todos los productos</option>
-          {Object.entries(todasLasTematicas).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}
+          {renderFiltroProductos.map(([k, v]) => <option key={k as string} value={k as string}>{v as string}</option>)}
         </select>
         <select value={filtroSubtematica} onChange={e => setFiltroSubtematica(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
@@ -243,7 +244,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
         </select>
         <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
-          <option value="">Todos los formatos</option>
+          <option value="">Todos los tipos de reunión</option>
           {Object.entries(TIPOS_REUNION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
@@ -258,7 +259,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                 <th className="text-left px-3 py-2">Producto</th>
                 <th className="text-left px-3 py-2">Objeto</th>
                 <th className="text-left px-3 py-2">Actores</th>
-                <th className="text-left px-3 py-2">Formato</th>
+                <th className="text-left px-3 py-2">Tipo de reunión</th>
                 <th className="text-left px-3 py-2">Responsable</th>
                 <th className="text-center px-3 py-2">Asistentes</th>
                 <th className="text-center px-3 py-2">Compromisos</th>
