@@ -143,7 +143,12 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     .sort((a: any, b: any) => b.reuniones - a.reuniones);
 
   // Evolución Mes a Mes
-  const mesesOrdenados = ['2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12'];
+  const mesesOrdenados = [
+    '2025-01', '2025-02', '2025-03', '2025-04', '2025-05', '2025-06',
+    '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
+    '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06',
+    '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12'
+  ];
   const dataMes = mesesOrdenados.map(mes => ({
     name: mes,
     reuniones: stats?.porMes?.[mes] || 0
@@ -192,7 +197,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
           <div className="absolute top-4 right-4 bg-gray-100 text-gray-800 font-bold px-3 py-1 rounded text-sm">
             Total 2025-2026: {total2025_2026}
           </div>
-          <h4 className="text-sm font-bold text-gray-700 mb-3">Reuniones Mes a Mes (desde Diciembre 2025)</h4>
+          <h4 className="text-sm font-bold text-gray-700 mb-3">Reuniones Mes a Mes (2025 - 2026)</h4>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={dataMes} margin={{ left: 0, right: 16 }}>
               <XAxis dataKey="name" tick={{ fontSize: 9 }} />
