@@ -3,7 +3,7 @@ import { fetchApi } from '../../utils/api';
 
 const API = import.meta.env.VITE_API_URL || '';
 
-interface Props { onClose: () => void; }
+interface Props { onClose: (savedId?: string) => void; }
 
 const SECCIONES = [
   {
@@ -149,7 +149,8 @@ export default function ModalFichaResultados({ onClose }: Props) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
-      onClose();
+      const savedData = await res.json();
+      onClose(savedData.id);
     } catch {
       setError('Error guardando la ficha. Intente nuevamente.');
     } finally {

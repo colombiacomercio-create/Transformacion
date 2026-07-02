@@ -18,14 +18,21 @@ export default function SeccionResultados({ userData }: Props) {
   const [exporting, setExporting] = useState(false);
   const isAdmin = userData?.rol === 'ADMIN';
 
-  const cargar = () => {
+  const cargar = (forceId?: string) => {
     Promise.all([
       fetchApi(`${API}/api/ficha-resultados`).then(r => r.json()).catch(() => []),
       fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null),
     ]).then(([lista, ultima]) => {
       setFichas(Array.isArray(lista) ? lista : []);
       setUltimaFicha(ultima);
-      if (ultima) setFichaActivaId(ultima.id);
+      if (forceId) {
+        setFichaActivaId(forceId);
+      } else {
+        setFichaActivaId(prev => {
+          if (prev && Array.isArray(lista) && lista.some(f => f.id === prev)) return prev;
+          return ultima?.id || '';
+        });
+      }
       setLoading(false);
     });
   };
