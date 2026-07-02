@@ -155,7 +155,7 @@ export default function SeccionResultados({ userData }: Props) {
         </div>
       )}
 
-      {showModal && <ModalFichaResultados onClose={() => { setShowModal(false); cargar(); }} />}
+      {showModal && <ModalFichaResultados onClose={(savedId) => { setShowModal(false); cargar(savedId); }} />}
     </div>
   );
 }
