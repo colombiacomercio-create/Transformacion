@@ -31,10 +31,16 @@ export const fetchApi = async (url: string, options: RequestInit = {}): Promise<
     console.error("No se pudo obtener el token de Microsoft. Por favor, vuelve a iniciar sesión.");
   }
 
-  const response = await fetch(url, {
+  const fetchOptions: RequestInit = {
     ...options,
     headers
-  });
+  };
+
+  if (!options.method || options.method === 'GET') {
+     fetchOptions.cache = 'no-store';
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
      const errorData = await response.json().catch(() => ({}));

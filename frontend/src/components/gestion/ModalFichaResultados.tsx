@@ -135,6 +135,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
     
     // Computar qué secciones fueron modificadas
     const seccionesActualizadas = SECCIONES.filter(sec => {
+      if (!form.id) return true; // Si es una ficha nueva, se actualizan todas las secciones para refrescar los timestamps
       return sec.campos.some(campo => form[campo.key] !== originalForm[campo.key]);
     }).map(sec => sec.id);
 
