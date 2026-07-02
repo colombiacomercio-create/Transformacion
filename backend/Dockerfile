@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Instalar dependencias
 COPY package*.json ./
-RUN npm install
+RUN npm install --ignore-scripts
 
 # Copiar el esquema de Prisma y generar el cliente
 COPY prisma ./prisma/
