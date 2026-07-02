@@ -78,7 +78,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
        if (correos.length > 0) {
           const { sendEmailGraphAPI } = await import('../utils/api');
           const subject = "La Unidad de Transformación te ha asignado una ALERTA";
-          const link = `${window.location.origin}/alerta/${nuevaAlerta.id}`;
+          const link = `${window.location.origin}/#/alerta/${nuevaAlerta.id}`;
           const body = `
             <h2>Nueva Alerta Asignada</h2>
             <p>Se te ha asignado como responsable o notificado de la siguiente alerta en SITRA:</p>

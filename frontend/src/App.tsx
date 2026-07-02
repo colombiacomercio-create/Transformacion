@@ -38,7 +38,7 @@ function App() {
   }
 
   const userName = accounts[0]?.name || '';
-  const isAlertaRoute = window.location.pathname.startsWith('/alerta/');
+  const isAlertaRoute = window.location.hash.startsWith('#/alerta/');
 
   if (!isAuthenticated) {
     return (

@@ -3,7 +3,7 @@ import { fetchApi } from '../utils/api';
 import { ShieldAlert, Paperclip, Send } from 'lucide-react';
 
 export default function VistaAlertaAsignada() {
-  const id = window.location.pathname.split('/').pop();
+  const id = window.location.hash.split('/').pop();
   const [alerta, setAlerta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
