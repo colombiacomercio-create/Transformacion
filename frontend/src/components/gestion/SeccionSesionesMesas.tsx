@@ -19,11 +19,18 @@ const TIPOS_CONTRAPARTE: Record<string, string> = {
 };
 
 const TEMATICAS: Record<string, string> = {
-  GLOBAL: 'Global', P01: '[P01] Ejecución Presupuestal', P02: '[P02] Obras Locales',
-  P03: '[P03] Espacio Público', P04: '[P04] Seguridad y Convivencia',
-  P05: '[P05] Inspección, Vigilancia y Control', P06: '[P06] Gestión del Riesgo',
-  P07: '[P07] Participación Ciudadana', P08: '[P08] Memoria Histórica',
-  P09: '[P09] Fortalecimiento Institucional', P10: '[P10] Diálogo Social', OTRO: 'Otro',
+  GLOBAL: 'Global',
+  P01: '[P01] Ingeniería de Detalle',
+  P02: '[P02] Comité de Planeación',
+  P03: '[P03] Obras locales ejecutadas',
+  P04: '[P04] Residuos',
+  P05: '[P05] Organización Espacio Público',
+  P06: '[P06] Equipos de seguridad',
+  P07: '[P07] Operativos IVC',
+  P08: '[P08] Rollos legendarios',
+  P09: '[P09] Transformación de comportamientos',
+  P10: '[P10] Identidad local',
+  PV1: '[PV1] Memoria local', OTRO: 'Otro',
 };
 
 const RESPONSABLES = [
@@ -45,12 +52,6 @@ const PERIODOS = [
   { value: '2026-07', label: 'Julio 2026' },  { value: '2026-08', label: 'Agosto 2026' },
   { value: '2026-09', label: 'Septiembre 2026' }, { value: '2026-10', label: 'Octubre 2026' },
   { value: '2026-11', label: 'Noviembre 2026' },  { value: '2026-12', label: 'Diciembre 2026' },
-  { value: '2025-01', label: 'Enero 2025' }, { value: '2025-02', label: 'Febrero 2025' },
-  { value: '2025-03', label: 'Marzo 2025' },  { value: '2025-04', label: 'Abril 2025' },
-  { value: '2025-05', label: 'Mayo 2025' },   { value: '2025-06', label: 'Junio 2025' },
-  { value: '2025-07', label: 'Julio 2025' },  { value: '2025-08', label: 'Agosto 2025' },
-  { value: '2025-09', label: 'Septiembre 2025' }, { value: '2025-10', label: 'Octubre 2025' },
-  { value: '2025-11', label: 'Noviembre 2025' },  { value: '2025-12', label: 'Diciembre 2025' },
 ];
 
 interface Props { userData: any; }
@@ -59,8 +60,8 @@ export default function SeccionSesionesMesas({ userData }: Props) {
   const [reuniones, setReuniones] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [filtroContraparte, setFiltroContraparte] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('');
-  const [filtroMes, setFiltroMes] = useState('');
+  const [filtroResponsable, setFiltroResponsable] = useState('');
+  const [filtroMes, setFiltroMes] = useState('2026');
   const [filtroProducto, setFiltroProducto] = useState('');
   const [filtroSubtematica, setFiltroSubtematica] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -69,7 +70,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
   const cargar = () => {
     const params = new URLSearchParams();
     if (filtroContraparte) params.set('tipoContraparte', filtroContraparte);
-    if (filtroTipo) params.set('tipoReunion', filtroTipo);
+    if (filtroResponsable) params.set('responsable', filtroResponsable);
     if (filtroMes) {
       if (filtroMes === '2026') {
         params.set('desde', '2026-01-01');
@@ -86,7 +87,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     }
     Promise.all([
       fetchApi(`${API}/api/reuniones?${params}`).then(r => r.json()).catch(() => []),
-      fetchApi(`${API}/api/reuniones/stats`).then(r => r.json()).catch(() => null),
+      fetchApi(`${API}/api/reuniones/stats?${params}`).then(r => r.json()).catch(() => null),
     ]).then(([lista, s]) => {
       setReuniones(Array.isArray(lista) ? lista : []);
       setStats(s);
@@ -94,7 +95,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     });
   };
 
-  useEffect(() => { cargar(); }, [filtroContraparte, filtroTipo, filtroMes]);
+  useEffect(() => { cargar(); }, [filtroContraparte, filtroResponsable, filtroMes]);
 
   const descargarPDF = async (id: string, fecha: string) => {
     try {
@@ -130,17 +131,11 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     ? Object.entries(stats.porTipoReunion).map(([k, v]) => ({ name: TIPOS_REUNION[k] || k, value: v as number }))
     : [];
 
-  const dataProducto2026 = reuniones
-    .filter(r => new Date(r.fecha).getFullYear() === 2026)
-    .reduce((acc, r) => {
-      const t = r.tematica || 'GLOBAL';
-      acc[t] = (acc[t] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-  const dataProducto2026Chart = Object.entries(dataProducto2026)
-    .map(([k, v]) => ({ name: TEMATICAS[k] || k, reuniones: v as number }))
-    .sort((a: any, b: any) => b.reuniones - a.reuniones);
+  const dataContraparteChart = stats?.porTipoContraparte
+    ? Object.entries(stats.porTipoContraparte)
+        .map(([k, v]) => ({ name: TIPOS_CONTRAPARTE[k] || k, reuniones: v as number }))
+        .sort((a: any, b: any) => b.reuniones - a.reuniones)
+    : [];
 
   // Evolución Mes a Mes
   const mesesOrdenados = [
@@ -154,10 +149,10 @@ export default function SeccionSesionesMesas({ userData }: Props) {
     reuniones: stats?.porMes?.[mes] || 0
   }));
 
-  const total2025_2026 = reuniones.filter(r => {
-    const y = new Date(r.fecha).getFullYear();
-    return y === 2025 || y === 2026;
-  }).length;
+  const total2025_2026 = Object.entries(stats?.porMes || {}).reduce((sum, [mes, count]) => {
+    if (mes.startsWith('2025') || mes.startsWith('2026')) return sum + (count as number);
+    return sum;
+  }, 0);
 
   const tematicasUnicasDB = Array.from(new Set(reuniones.map(r => r.tematica).filter(Boolean))) as string[];
   const tematicasDefault = Object.entries(TEMATICAS);
@@ -208,12 +203,12 @@ export default function SeccionSesionesMesas({ userData }: Props) {
           </ResponsiveContainer>
         </div>
 
-        {/* BarChart: por producto 2026 */}
+        {/* BarChart: por Tipo Contraparte */}
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <h4 className="text-sm font-bold text-gray-700 mb-3">Por producto / aspiración (Solo 2026)</h4>
-          {dataProducto2026Chart.length > 0 ? (
+          <h4 className="text-sm font-bold text-gray-700 mb-3">Tipo de reunión</h4>
+          {dataContraparteChart.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={dataProducto2026Chart} layout="vertical" margin={{ left: 8, right: 16 }}>
+              <BarChart data={dataContraparteChart} layout="vertical" margin={{ left: 8, right: 16 }}>
                 <XAxis type="number" tick={{ fontSize: 9 }} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 8 }} width={130} />
                 <Tooltip />
@@ -221,7 +216,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-40 flex items-center justify-center text-gray-400 text-xs">Sin datos para 2026</div>
+            <div className="h-40 flex items-center justify-center text-gray-400 text-xs">Sin datos</div>
           )}
         </div>
       </div>
@@ -244,13 +239,13 @@ export default function SeccionSesionesMesas({ userData }: Props) {
         </select>
         <select value={filtroContraparte} onChange={e => setFiltroContraparte(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
-          <option value="">Todos los actores</option>
+          <option value="">Tipo de reunión</option>
           {Object.entries(TIPOS_CONTRAPARTE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
+        <select value={filtroResponsable} onChange={e => setFiltroResponsable(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-bogota-primary">
-          <option value="">Todos los tipos de reunión</option>
-          {Object.entries(TIPOS_REUNION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <option value="">Todos los responsables</option>
+          {RESPONSABLES.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
       </div>
 

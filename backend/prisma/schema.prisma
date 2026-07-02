@@ -298,11 +298,25 @@ model FichaAlerta {
   ultimaAccion    String?   @db.Text
   creadoPorId     String
   fechaCreacion   DateTime  @default(now())
+  correosResponsables String[]
 
   objetivo  ObjetivoEstrategico? @relation(fields: [objetivoId], references: [id])
   actividad Actividad?           @relation(fields: [actividadId], references: [id])
   localidad Localidad?           @relation(fields: [localidadId], references: [id])
   creador   Usuario              @relation(fields: [creadoPorId], references: [id])
+  actualizaciones ActualizacionAlerta[]
+}
+
+model ActualizacionAlerta {
+  id              String      @id @default(uuid())
+  fichaAlertaId   String
+  autorEmail      String
+  autorNombre     String?
+  comentario      String      @db.Text
+  urlArchivo      String?
+  fechaCreacion   DateTime    @default(now())
+
+  fichaAlerta     FichaAlerta @relation(fields: [fichaAlertaId], references: [id], onDelete: Cascade)
 }
 
 // ─── MÓDULO GESTIÓN Y RESULTADOS ─────────────────────────────────────────────

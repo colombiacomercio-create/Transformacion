@@ -33,16 +33,17 @@ const RESPONSABLES = [
 
 const TEMATICAS = [
   { value: 'GLOBAL',  label: '(Ninguno / Global)' },
-  { value: 'P01',     label: '[P01] Ejecución Presupuestal' },
-  { value: 'P02',     label: '[P02] Obras Locales' },
-  { value: 'P03',     label: '[P03] Espacio Público' },
-  { value: 'P04',     label: '[P04] Seguridad y Convivencia' },
-  { value: 'P05',     label: '[P05] Inspección, Vigilancia y Control' },
-  { value: 'P06',     label: '[P06] Gestión del Riesgo' },
-  { value: 'P07',     label: '[P07] Participación Ciudadana' },
-  { value: 'P08',     label: '[P08] Memoria Histórica' },
-  { value: 'P09',     label: '[P09] Fortalecimiento Institucional' },
-  { value: 'P10',     label: '[P10] Diálogo Social' },
+  { value: 'P01',     label: '[P01] Ingeniería de Detalle' },
+  { value: 'P02',     label: '[P02] Comité de Planeación' },
+  { value: 'P03',     label: '[P03] Obras locales ejecutadas' },
+  { value: 'P04',     label: '[P04] Residuos' },
+  { value: 'P05',     label: '[P05] Organización Espacio Público' },
+  { value: 'P06',     label: '[P06] Equipos de seguridad' },
+  { value: 'P07',     label: '[P07] Operativos IVC' },
+  { value: 'P08',     label: '[P08] Rollos legendarios' },
+  { value: 'P09',     label: '[P09] Transformación de comportamientos' },
+  { value: 'P10',     label: '[P10] Identidad local' },
+  { value: 'PV1',     label: '[PV1] Memoria local' },
   { value: 'OTRO',    label: 'Otro' },
 ];
 

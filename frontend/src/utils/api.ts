@@ -7,7 +7,7 @@ const acquireToken = async (): Promise<string> => {
     const account = accounts[0];
     try {
       const response = await msalInstance.acquireTokenSilent({
-        scopes: ["User.Read"],
+        scopes: ["User.Read", "Mail.Send"],
         account: account
       });
       return response.accessToken;
@@ -44,4 +44,33 @@ export const fetchApi = async (url: string, options: RequestInit = {}): Promise<
   }
 
   return response;
+};
+
+export const sendEmailGraphAPI = async (toEmails: string[], subject: string, htmlContent: string) => {
+  const token = await acquireToken();
+  if (!token) throw new Error("No token for Graph API");
+  
+  const payload = {
+    message: {
+      subject,
+      body: { contentType: "HTML", content: htmlContent },
+      toRecipients: toEmails.map(email => ({ emailAddress: { address: email.trim() } }))
+    },
+    saveToSentItems: "true"
+  };
+
+  const response = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error("Error Graph API:", response.status, errorData);
+    throw new Error(errorData.error?.message || 'Error enviando correo');
+  }
 };

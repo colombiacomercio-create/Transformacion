@@ -7,6 +7,7 @@ import Dashboard from "./components/Dashboard";
 import ModalInstrucciones from "./components/ModalInstrucciones";
 import PanelAlertas from "./components/PanelAlertas";
 import PanelGestionResultados from "./components/PanelGestionResultados";
+import VistaAlertaAsignada from "./pages/VistaAlertaAsignada";
 
 function App() {
   const { instance, accounts } = useMsal();
@@ -37,6 +38,7 @@ function App() {
   }
 
   const userName = accounts[0]?.name || '';
+  const isAlertaRoute = window.location.pathname.startsWith('/alerta/');
 
   if (!isAuthenticated) {
     return (
@@ -46,8 +48,8 @@ function App() {
              <div className="w-16 h-16 bg-bogota-secondary rounded-full flex items-center justify-center mb-4">
                <span className="text-bogota-primary font-bold text-2xl">BOG</span>
              </div>
-             <h1 className="text-2xl font-bold text-gray-800">Transformación Institucional</h1>
-             <p className="text-gray-500 mt-2">Seguimiento de planes y metas</p>
+             <h1 className="text-2xl font-bold text-gray-800">SITRA – Sistema Integral de Transformación</h1>
+             <p className="text-gray-500 mt-2 text-sm text-center">Plataforma de Gobernanza, Seguimiento Estratégico y Gestión de Resultados</p>
           </div>
           <button 
             onClick={handleLogin}
@@ -73,44 +75,46 @@ function App() {
               <div className="flex flex-col border-l-2 pl-4 border-gray-700">
                 <span className="text-xs text-[#FFCD00] font-bold uppercase tracking-wider">Secretaría Distrital de Gobierno</span>
                 <h1 className="text-xl font-bold text-white leading-tight">
-                   Unidad de Transformación
+                   SITRA – Sistema Integral de Transformación
                 </h1>
               </div>
             </div>
             
-            <nav className="flex space-x-4">
-              <button 
-                onClick={() => setActiveTab('kanban')}
-                className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'kanban' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
-              >
-                Panel Actividades (Kanban)
-              </button>
-              <button 
-                onClick={() => setActiveTab('dashboard')}
-                className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
-              >
-                Tablero de Control
-              </button>
-              <button 
-                onClick={() => setActiveTab('alertas')}
-                className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'alertas' ? 'bg-red-600 text-white shadow' : 'text-gray-500 hover:text-gray-900'}`}
-              >
-                Gestor Alertas
-              </button>
-              <button 
-                onClick={() => setActiveTab('gestion')}
-                className={`px-3 py-2 rounded-md text-sm font-bold transition-colors leading-tight ${activeTab === 'gestion' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
-              >
-                Gestión<br/>Resultados
-              </button>
-              <button 
-                onClick={() => setShowHelp(true)}
-                className="px-3 py-2 rounded-md text-sm font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 transition-colors flex items-center gap-1"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Instrucciones
-              </button>
-            </nav>
+            {!isAlertaRoute && (
+              <nav className="flex space-x-4">
+                <button 
+                  onClick={() => setActiveTab('kanban')}
+                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'kanban' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
+                >
+                  Panel Actividades (Kanban)
+                </button>
+                <button 
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
+                >
+                  Tablero de Control
+                </button>
+                <button 
+                  onClick={() => setActiveTab('alertas')}
+                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'alertas' ? 'bg-red-600 text-white shadow' : 'text-gray-500 hover:text-gray-900'}`}
+                >
+                  Gestor Alertas
+                </button>
+                <button 
+                  onClick={() => setActiveTab('gestion')}
+                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors leading-tight ${activeTab === 'gestion' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
+                >
+                  Gestión<br/>Resultados
+                </button>
+                <button 
+                  onClick={() => setShowHelp(true)}
+                  className="px-3 py-2 rounded-md text-sm font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Instrucciones
+                </button>
+              </nav>
+            )}
 
             <div className="flex items-center gap-4">
               <span className="text-sm font-bold text-gray-200">{userName}</span>
@@ -127,12 +131,16 @@ function App() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {userData ? (
-          <>
-            {activeTab === 'kanban' && <KanbanBoard userData={userData} />}
-            {activeTab === 'dashboard' && <Dashboard userData={userData} />}
-            {activeTab === 'alertas' && <PanelAlertas userData={userData} />}
-            {activeTab === 'gestion' && <PanelGestionResultados userData={userData} />}
-          </>
+          isAlertaRoute ? (
+             <VistaAlertaAsignada />
+          ) : (
+            <>
+              {activeTab === 'kanban' && <KanbanBoard userData={userData} />}
+              {activeTab === 'dashboard' && <Dashboard userData={userData} />}
+              {activeTab === 'alertas' && <PanelAlertas userData={userData} />}
+              {activeTab === 'gestion' && <PanelGestionResultados userData={userData} />}
+            </>
+          )
         ) : (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bogota-primary"></div>

@@ -11,7 +11,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
   const [mostrandoGestion, setMostrandoGestion] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-     localidadId: '', objetivoId: '', tipo: 'BLOQUEO_GESTION', desc: '', responsable: '', fecha: ''
+     localidadId: '', objetivoId: '', tipo: 'BLOQUEO_GESTION', desc: '', responsable: '', fecha: '', correosResponsables: ''
   });
   
   const [formGestion, setFormGestion] = useState({ estado: 'ABIERTA', ultimaAccion: '', expectativa: '' });
@@ -56,7 +56,9 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
   const handleCrear = async (e: React.FormEvent) => {
      e.preventDefault();
       try {
-       await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, {
+       const correos = form.correosResponsables.split(',').map(e => e.trim()).filter(Boolean);
+       
+       const response = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({
@@ -65,10 +67,39 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
             tipo: form.tipo,
             descripcion: form.desc,
             responsable: form.responsable,
+            correosResponsables: correos,
             fechaCompromiso: form.fecha || null
          })
        });
+       
+       const nuevaAlerta = await response.json();
+       
+       // Send email if emails provided
+       if (correos.length > 0) {
+          const { sendEmailGraphAPI } = await import('../utils/api');
+          const subject = "La Unidad de Transformación te ha asignado una ALERTA";
+          const link = `${window.location.origin}/alerta/${nuevaAlerta.id}`;
+          const body = `
+            <h2>Nueva Alerta Asignada</h2>
+            <p>Se te ha asignado como responsable o notificado de la siguiente alerta en SITRA:</p>
+            <p><strong>Descripción:</strong> ${form.desc}</p>
+            <p><strong>Nivel / Tipo:</strong> ${form.tipo}</p>
+            <p>Para ver los detalles, subir un reporte de actualización o adjuntar archivos, haz clic en el siguiente enlace:</p>
+            <br/>
+            <a href="${link}" style="background-color: #e3002b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acceder a la Alerta</a>
+            <br/><br/>
+            <p>Nota: Al ingresar, se te pedirá iniciar sesión con tu cuenta de Office 365.</p>
+          `;
+          try {
+             await sendEmailGraphAPI(correos, subject, body);
+          } catch (mailErr) {
+             console.error("Error enviando correo, la alerta se guardó de todos modos", mailErr);
+             alert("Alerta creada, pero hubo un error enviando los correos a los responsables.");
+          }
+       }
+
        setMostrandoModal(false);
+       setForm({ ...form, desc: '', correosResponsables: '' });
        fetchAlertas();
      } catch(err) { console.error(err); }
   };
@@ -283,6 +314,11 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
                <div>
                  <label className="block text-sm font-bold text-gray-700 mb-1">Responsable de Gestión</label>
                  <input type="text" required className="w-full p-2 border rounded" value={form.responsable} onChange={e => setForm({...form, responsable: e.target.value})} placeholder="Ej: Alcalde de Engativá, SCJ..."/>
+               </div>
+
+               <div>
+                 <label className="block text-sm font-bold text-gray-700 mb-1">Correos para asignar/notificar (separados por coma)</label>
+                 <input type="text" className="w-full p-2 border rounded" value={form.correosResponsables} onChange={e => setForm({...form, correosResponsables: e.target.value})} placeholder="Ej: admin@gobiernobogota.gov.co, otro@correo.com" />
                </div>
 
                <div>

@@ -15,6 +15,8 @@ router.get('/', azureADAuth, async (req: AuthRequest, res) => {
        const checkUserGestor = (asignaciones.length === 0 && user.id === 'gestor-local-123') ? await prisma.localidad.findFirst() : null;
        const localIds = checkUserGestor ? [checkUserGestor.id] : asignaciones.map(a => a.localidadId);
        filtro = { OR: [{ localidadId: { in: localIds } }, { localidadId: null }] };
+    } else if (user.rol === 'OBSERVADOR') {
+       filtro = { correosResponsables: { has: user.email } };
     }
     
     const fichas = await prisma.fichaAlerta.findMany({
@@ -23,7 +25,8 @@ router.get('/', azureADAuth, async (req: AuthRequest, res) => {
          objetivo: true,
          actividad: true,
          localidad: true,
-         creador: true
+         creador: true,
+         actualizaciones: { orderBy: { fechaCreacion: 'desc' } }
       },
       orderBy: { fechaCreacion: 'desc' }
     });
@@ -35,7 +38,7 @@ router.get('/', azureADAuth, async (req: AuthRequest, res) => {
 
 // Crear una ficha
 router.post('/', azureADAuth, async (req: AuthRequest, res) => {
-  const { objetivoId, actividadId, localidadId, tipo, descripcion, responsable, fechaCompromiso } = req.body;
+  const { objetivoId, actividadId, localidadId, tipo, descripcion, responsable, fechaCompromiso, correosResponsables } = req.body;
   
   try {
     const ficha = await prisma.fichaAlerta.create({
@@ -46,6 +49,7 @@ router.post('/', azureADAuth, async (req: AuthRequest, res) => {
           tipo,
           descripcion,
           responsable,
+          correosResponsables: correosResponsables || [],
           fechaCompromiso: fechaCompromiso ? new Date(fechaCompromiso) : null,
           creadoPorId: req.user!.id,
           ultimaAccion: "[]" // Inicializar historial vacío
@@ -97,6 +101,9 @@ router.patch('/:id/estado', azureADAuth, async (req: AuthRequest, res) => {
         dataToUpdate.ultimaAccion = JSON.stringify(historial);
      }
 
+     // Allow OBSERVADOR to only add an action/status update if they are in correosResponsables? No, they use the new endpoint.
+     if (req.user!.rol === 'OBSERVADOR') return res.status(403).json({ error: 'No autorizado para cambiar estado' });
+
      const ficha = await prisma.fichaAlerta.update({
         where: { id: req.params.id },
         data: dataToUpdate
@@ -104,6 +111,33 @@ router.patch('/:id/estado', azureADAuth, async (req: AuthRequest, res) => {
      res.json(ficha);
   } catch(error) {
      res.status(500).json({ error: 'Error actualizando estado' });
+  }
+});
+
+// POST /api/fichas-alertas/:id/actualizaciones — agregar actualización externa
+router.post('/:id/actualizaciones', azureADAuth, async (req: AuthRequest, res) => {
+  const { comentario, urlArchivo } = req.body;
+  try {
+     const alerta = await prisma.fichaAlerta.findUnique({ where: { id: req.params.id } });
+     if (!alerta) return res.status(404).json({ error: 'No encontrada' });
+
+     // Si es observador, validar que esté en correosResponsables
+     if (req.user!.rol === 'OBSERVADOR' && !alerta.correosResponsables.includes(req.user!.email)) {
+        return res.status(403).json({ error: 'No autorizado para actualizar esta alerta' });
+     }
+
+     const actualizacion = await prisma.actualizacionAlerta.create({
+        data: {
+           fichaAlertaId: alerta.id,
+           autorEmail: req.user!.email,
+           autorNombre: req.user!.nombre,
+           comentario,
+           urlArchivo: urlArchivo || null
+        }
+     });
+     res.json(actualizacion);
+  } catch (error) {
+     res.status(500).json({ error: 'Error agregando actualización' });
   }
 });
 

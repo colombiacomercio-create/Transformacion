@@ -40,9 +40,21 @@ router.get('/', azureADAuth, async (req: AuthRequest, res) => {
 });
 
 // GET /api/reuniones/stats — estadísticas de reuniones
-router.get('/stats', azureADAuth, async (_req, res) => {
+router.get('/stats', azureADAuth, async (req: AuthRequest, res) => {
   try {
+    const { tipoReunion, tipoContraparte, responsable, desde, hasta } = req.query;
     const reuniones = await prisma.reunion.findMany({
+      where: {
+        ...(tipoReunion ? { tipoReunion: String(tipoReunion) } : {}),
+        ...(tipoContraparte ? { tipoContraparte: String(tipoContraparte) } : {}),
+        ...(responsable ? { responsable: { contains: String(responsable), mode: 'insensitive' } } : {}),
+        ...(desde || hasta ? {
+          fecha: {
+            ...(desde ? { gte: new Date(String(desde)) } : {}),
+            ...(hasta ? { lte: new Date(String(hasta)) } : {}),
+          },
+        } : {}),
+      },
       select: { tipoReunion: true, tipoContraparte: true, tematica: true, responsable: true, fecha: true },
     });
 
