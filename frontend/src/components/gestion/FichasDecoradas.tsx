@@ -86,18 +86,6 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
         <img src="/Logo_sede_electronica_SDG.png" alt="Alcaldía de Bogotá" className="h-14 object-contain" />
       </div>
 
-      {/* Helper para renderizar la fecha de corte de la sección */}
-      {(() => {
-        const renderCorte = (actEn: string | null) => {
-          if (!actEn) return null;
-          const date = new Date(actEn);
-          return (
-            <div className="text-[11px] text-gray-500 text-right px-4 pb-2 font-medium bg-white">
-              Fecha de Corte: {date.toLocaleDateString('es-CO', { timeZone: 'UTC' })}
-            </div>
-          );
-        };
-        return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* COLUMNA IZQUIERDA */}
@@ -185,7 +173,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                     <strong>Alerta:</strong> {ultimaFicha.alertaComites}
                   </div>
                 )}
-                {renderCorte(ultimaFicha.comitesActEn)}
+                
               </div>
               
               {/* Alerta ejecución general */}
@@ -195,7 +183,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 </div>
               )}
             </div>
-            {renderCorte(ultimaFicha.ejecucionActEn)}
+            
           </div>
           
           {/* CONVIVENCIA Y SEGURIDAD */}
@@ -238,7 +226,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaConvivencia}
                 </div>
              )}
-             {renderCorte(ultimaFicha.convivenciaActEn)}
+             
           </div>
           
           {/* ROLLOS LEGENDARIOS */}
@@ -273,7 +261,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alerta:</strong> {ultimaFicha.alertaRollos}
                 </div>
              )}
-             {renderCorte(ultimaFicha.rollosActEn)}
+             
           </div>
         </div>
 
@@ -326,7 +314,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaObras}
                 </div>
              )}
-             {renderCorte(ultimaFicha.obrasActEn)}
+             
           </div>
 
           {/* ESPACIO PÚBLICO - RESIDUOS */}
@@ -355,7 +343,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaEspacioResiduos}
                 </div>
               )}
-              {renderCorte(ultimaFicha.espacioResiduosActEn)}
+              
            </div>
 
            <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
@@ -393,7 +381,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaEspacioVenta}
                 </div>
               )}
-              {renderCorte(ultimaFicha.espacioVentaActEn)}
+              
            </div>
 
           {/* ACTUACIONES */}
@@ -465,7 +453,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaActuaciones}
                 </div>
               )}
-              {renderCorte(ultimaFicha.actuacionesActEn)}
+              
           </div>
 
           {/* ESTRATEGIAS DE MEMORIA */}
@@ -500,12 +488,10 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaEstrategias}
                 </div>
              )}
-             {renderCorte(ultimaFicha.estrategiasActEn)}
+             
           </div>
         </div>
       </div>
-      );
-      })()}
     </div>
   );
 }
