@@ -99,7 +99,7 @@ router.get('/:id', azureADAuth, async (req: AuthRequest, res) => {
 
 // POST /api/reuniones — crear reunión
 router.post('/', azureADAuth, async (req: AuthRequest, res) => {
-  const { tipoReunion, tipoContraparte, tematica, subtematica, objeto, fecha, horaInicio, horaFin, lugar, modalidad, responsable, desarrollo, compromisos } = req.body;
+  const { tipoReunion, tipoContraparte, tematica, subtematica, objeto, fecha, horaInicio, horaFin, lugar, modalidad, responsable, desarrollo, asistentes, compromisos } = req.body;
   try {
     const reunion = await prisma.reunion.create({
       data: {
@@ -109,6 +109,9 @@ router.post('/', azureADAuth, async (req: AuthRequest, res) => {
         horaInicio: horaInicio || '', horaFin: horaFin || '', lugar: lugar || '', modalidad: modalidad || 'VIRTUAL', responsable: responsable || '',
         desarrollo: desarrollo || '',
         creadoPorId: req.user!.id,
+        asistentes: {
+          create: (asistentes || []).map((nombre: string) => ({ nombre, cargo: 'Unidad de Transformación', entidad: 'SDG' })),
+        },
         compromisos: {
           create: (compromisos || []).map((c: any) => ({
             descripcion: c.descripcion,
@@ -117,7 +120,7 @@ router.post('/', azureADAuth, async (req: AuthRequest, res) => {
           })),
         },
       },
-      include: { compromisos: true, creadoPor: { select: { id: true, nombre: true } } },
+      include: { asistentes: true, compromisos: true, creadoPor: { select: { id: true, nombre: true } } },
     });
     res.status(201).json(reunion);
   } catch (error) {
@@ -196,6 +199,7 @@ router.get('/:id/preview', azureADAuth, async (req: AuthRequest, res) => {
       lugar: reunion.lugar, modalidad: reunion.modalidad as ActaData['modalidad'],
       dependencia: 'Subsecretaria Gestión Local - Unidad de Transformación',
       responsable: reunion.responsable,
+      asistentes: reunion.asistentes.map(a => ({ nombre: a.nombre, cargo: a.cargo || undefined, entidad: a.entidad || undefined })),
       imagenAsistenciaUrl: reunion.imagenAsistencia || null,
       desarrollo: reunion.desarrollo,
       compromisos: reunion.compromisos.map(c => ({ descripcion: c.descripcion, responsable: c.responsable, fechaEntrega: c.fechaEntrega ? c.fechaEntrega.toISOString() : null })),
@@ -226,6 +230,7 @@ router.get('/:id/pdf', azureADAuth, async (req: AuthRequest, res) => {
       modalidad: reunion.modalidad as ActaData['modalidad'],
       dependencia: 'Subsecretaria Gestión Local - Unidad de Transformación',
       responsable: reunion.responsable,
+      asistentes: reunion.asistentes.map(a => ({ nombre: a.nombre, cargo: a.cargo || undefined, entidad: a.entidad || undefined })),
       imagenAsistenciaUrl: reunion.imagenAsistencia || null,
       desarrollo: reunion.desarrollo,
       compromisos: reunion.compromisos.map(c => ({

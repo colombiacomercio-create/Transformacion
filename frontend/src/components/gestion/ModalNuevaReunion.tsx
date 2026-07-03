@@ -76,16 +76,15 @@ export default function ModalNuevaReunion({ onClose }: Props) {
   const removeCompromiso = (i: number) => setCompromisos(c => c.filter((_, idx) => idx !== i));
 
   const guardarReunion = async () => {
-    if (!form.tipoReunion || !form.tipoContraparte || !form.objeto || !form.fecha || (responsablesList.length === 0 && !otroResponsable) || !form.lugar || !form.horaInicio || !form.horaFin || !form.desarrollo) {
+    if (!form.tipoReunion || !form.tipoContraparte || !form.objeto || !form.fecha || !form.responsable || !form.lugar || !form.horaInicio || !form.horaFin || !form.desarrollo) {
       setError('Complete todos los campos obligatorios: Tipo, Contraparte, Objeto, Fecha, Horas, Lugar, Responsable y Desarrollo'); return;
     }
     setGuardando(true); setError('');
     try {
-      const finalResponsable = [...responsablesList, otroResponsable].filter(Boolean).join(', ');
       const res = await fetchApi(`${API}/api/reuniones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, responsable: finalResponsable, tematica, subtematica, compromisos: compromisos.filter(c => c.descripcion) }),
+        body: JSON.stringify({ ...form, tematica, subtematica, asistentes: responsablesList, compromisos: compromisos.filter(c => c.descripcion) }),
       });
       const data = await res.json();
       setReunionId(data.id);
@@ -202,30 +201,49 @@ export default function ModalNuevaReunion({ onClose }: Props) {
                 <div><label className="label">Hora fin</label><input type="time" value={form.horaFin} onChange={e => set('horaFin', e.target.value)} className="input" /></div>
                 <div className="sm:col-span-2"><label className="label">Lugar</label><input value={form.lugar} onChange={e => set('lugar', e.target.value)} className="input" placeholder="Ej: TEAMS, Sala de reuniones..." /></div>
                 <div className="sm:col-span-2">
-                  <label className="label">Responsables de la reunión *</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    {RESPONSABLES.map(r => (
-                      <label key={r} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={responsablesList.includes(r)}
-                          onChange={e => {
-                            if (e.target.checked) setResponsablesList(prev => [...prev, r]);
-                            else setResponsablesList(prev => prev.filter(x => x !== r));
-                          }}
-                          className="rounded text-bogota-primary focus:ring-bogota-primary"
-                        />
-                        {r.split('-')[0].trim()}
-                      </label>
-                    ))}
-                  </div>
-                  <input 
-                    type="text" 
-                    value={otroResponsable} 
-                    onChange={e => setOtroResponsable(e.target.value)} 
-                    className="input mt-2 text-xs" 
-                    placeholder="Otro(s) responsable(s) (Opcional)" 
-                  />
+                  <label className="label">Responsable de la reunión *</label>
+                  <select 
+                    value={form.responsable === 'OTRO' ? 'OTRO' : (RESPONSABLES.includes(form.responsable) ? form.responsable : (form.responsable ? 'OTRO' : ''))}
+                    onChange={e => {
+                      if (e.target.value !== 'OTRO') set('responsable', e.target.value);
+                      else set('responsable', 'OTRO');
+                    }}
+                    className="input"
+                  >
+                    <option value="">Seleccione responsable...</option>
+                    {RESPONSABLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    <option value="OTRO">Otro...</option>
+                  </select>
+                  {(!RESPONSABLES.includes(form.responsable) && form.responsable !== '') || form.responsable === 'OTRO' ? (
+                    <input 
+                      type="text" 
+                      value={form.responsable === 'OTRO' ? '' : form.responsable} 
+                      onChange={e => set('responsable', e.target.value)} 
+                      className="input mt-2 text-xs" 
+                      placeholder="¿Cuál?" 
+                    />
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Asistentes Unidad Transformación */}
+              <div>
+                <label className="label">Asistentes Unidad de Transformación</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  {RESPONSABLES.map(r => (
+                    <label key={r} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={responsablesList.includes(r)}
+                        onChange={e => {
+                          if (e.target.checked) setResponsablesList(prev => [...prev, r]);
+                          else setResponsablesList(prev => prev.filter(x => x !== r));
+                        }}
+                        className="rounded text-bogota-primary focus:ring-bogota-primary"
+                      />
+                      {r.split('-')[0].trim()}
+                    </label>
+                  ))}
                 </div>
               </div>
 

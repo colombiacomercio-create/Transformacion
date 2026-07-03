@@ -21,7 +21,11 @@ function fetchBuffer(url: string): Promise<Buffer> {
   });
 }
 
-// Asistentes removidos a peticion del usuario
+export interface AsistenteData {
+  nombre: string;
+  cargo?: string;
+  entidad?: string;
+}
 
 export interface CompromisoData {
   descripcion: string;
@@ -38,6 +42,7 @@ export interface ActaData {
   modalidad: 'PRESENCIAL' | 'VIRTUAL' | 'TELEFONICA' | 'MIXTA';
   dependencia?: string;
   responsable: string;
+  asistentes: AsistenteData[];
   imagenAsistenciaUrl?: string | null;
   desarrollo: string;
   compromisos: CompromisoData[];
@@ -206,8 +211,8 @@ function buildHtml(data: ActaData): string {
   <!-- Fila 5: Dependencia | Responsable -->
   <tr>
     <td class="lbl">Dependencia:</td>
-    <td colspan="2" style="font-size:9pt;">${data.dependencia || 'Subsecretaria Gesti&#243;n Local - Unidad de Transformaci&#243;n'}</td>
-    <td colspan="2" style="font-size:9pt;"><b>Nombre del Responsable:</b> ${data.responsable}</td>
+    <td style="font-size:9pt;padding-right:10px;">${data.dependencia || 'Subsecretaria Gesti&#243;n Local - Unidad de Transformaci&#243;n'}</td>
+    <td colspan="3" style="font-size:9pt;"><b>Nombre del Responsable:</b> ${data.responsable}</td>
   </tr>
 
 </table>
@@ -223,8 +228,14 @@ function buildHtml(data: ActaData): string {
 <!-- ══════════════ PÁGINA 2 ══════════════ -->
 <div class="page-break"></div>
 
+<!-- Asistentes -->
+<table class="main" style="margin-top:12px;">
+  <tr><td class="sec">ASISTENTES DE LA UNIDAD DE TRANSFORMACI&#211;N:</td></tr>
+  <tr><td style="padding:8px;font-size:9pt;">${data.asistentes && data.asistentes.length > 0 ? data.asistentes.map(a => a.nombre).join(', ') : 'Ninguno'}</td></tr>
+</table>
+
 <!-- Desarrollo y conclusiones -->
-<table class="main">
+<table class="main" style="margin-top:12px;">
   <tr><td class="sec">DESARROLLO Y CONCLUSIONES DE LA REUNI&#211;N:</td></tr>
   <tr><td class="texto">
     ${data.desarrollo}
