@@ -21,11 +21,7 @@ function fetchBuffer(url: string): Promise<Buffer> {
   });
 }
 
-export interface AsistenteData {
-  nombre: string;
-  cargo?: string;
-  entidad?: string;
-}
+// Asistentes removidos a peticion del usuario
 
 export interface CompromisoData {
   descripcion: string;
@@ -42,7 +38,6 @@ export interface ActaData {
   modalidad: 'PRESENCIAL' | 'VIRTUAL' | 'TELEFONICA' | 'MIXTA';
   dependencia?: string;
   responsable: string;
-  asistentes: AsistenteData[];
   imagenAsistenciaUrl?: string | null;
   desarrollo: string;
   compromisos: CompromisoData[];
@@ -95,8 +90,8 @@ function buildHtml(data: ActaData): string {
       ).join('');
 
   const imagenHtml = data.imagenAsistenciaUrl
-    ? `<img src="${data.imagenAsistenciaUrl}" style="width:100%;height:100%;object-fit:contain;display:block;"/>`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:9pt;font-style:italic;">Evidencia de reuni&#243;n</div>`;
+    ? `<img src="${data.imagenAsistenciaUrl}" style="max-width:100%;max-height:500px;object-fit:contain;display:block;margin:10px auto;"/>`
+    : ``;
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -215,14 +210,6 @@ function buildHtml(data: ActaData): string {
     <td colspan="2" style="font-size:9pt;"><b>Nombre del Responsable:</b> ${data.responsable}</td>
   </tr>
 
-  <!-- Fila 6: Área de imagen — altura fija, nunca se expande -->
-  <tr>
-    <td colspan="5" class="img-cell">
-      <div class="img-wrap">
-        ${imagenHtml}
-      </div>
-    </td>
-  </tr>
 </table>
 
 <!-- Consentimiento HABEAS DATA — todo en página 1, sin salto de página interno -->
@@ -239,7 +226,10 @@ function buildHtml(data: ActaData): string {
 <!-- Desarrollo y conclusiones -->
 <table class="main">
   <tr><td class="sec">DESARROLLO Y CONCLUSIONES DE LA REUNI&#211;N:</td></tr>
-  <tr><td class="texto">${data.desarrollo}</td></tr>
+  <tr><td class="texto">
+    ${data.desarrollo}
+    ${imagenHtml}
+  </td></tr>
 </table>
 
 <!-- Compromisos -->

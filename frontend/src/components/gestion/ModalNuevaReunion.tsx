@@ -25,7 +25,7 @@ const RESPONSABLES = [
   'MIGUEL EDUARDO PARRA CORVACHO - ASESOR LIDER TRANSFORMACIÓN',
   'ROBERTO CARLOS PARRA BORREGO - TRANSFORMACIÓN',
   'ARMANDO ESCOBAR SANCHEZ - TRANSFORMACIÓN',
-  'MARIA ADELAIDA BARRIOS - TRANSFORMACIÓN',
+  'MARIA ADELAIDA BARROS - TRANSFORMACIÓN',
   'MARIA ALEJANDRA CHAHIN - TRANSFORMACIÓN',
   'JUAN CAMILO RIVERA ACEVEDO - TRANSFORMACIÓN',
   'DAYANA MARCELA LOZANO - TRANSFORMACIÓN',
@@ -44,6 +44,8 @@ const TEMATICAS = [
   { value: 'P09',     label: '[P09] Transformación de comportamientos' },
   { value: 'P10',     label: '[P10] Identidad local' },
   { value: 'PV1',     label: '[PV1] Memoria local' },
+  { value: 'NIVEL_CENTRAL', label: 'Nivel Central' },
+  { value: 'OV2',     label: '[OV2] Canales' },
   { value: 'OTRO',    label: 'Otro' },
 ];
 
@@ -55,7 +57,8 @@ export default function ModalNuevaReunion({ onClose }: Props) {
     tipoReunion: '', tipoContraparte: '', objeto: '', fecha: '',
     horaInicio: '', horaFin: '', lugar: '', modalidad: 'VIRTUAL', responsable: '', desarrollo: '',
   });
-  const [asistentes, setAsistentes] = useState<Asistente[]>([{ nombre: '', cargo: '', entidad: '' }]);
+  const [responsablesList, setResponsablesList] = useState<string[]>([]);
+  const [otroResponsable, setOtroResponsable] = useState('');
   const [compromisos, setCompromisos] = useState<Compromiso[]>([{ descripcion: '', responsable: '', fechaEntrega: '' }]);
   const [imagenFile, setImagenFile] = useState<File | null>(null);
   const [reunionId, setReunionId] = useState<string | null>(null);
@@ -65,10 +68,7 @@ export default function ModalNuevaReunion({ onClose }: Props) {
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  const addAsistente = () => setAsistentes(a => [...a, { nombre: '', cargo: '', entidad: '' }]);
-  const setAsistente = (i: number, k: keyof Asistente, v: string) =>
-    setAsistentes(a => a.map((x, idx) => idx === i ? { ...x, [k]: v } : x));
-  const removeAsistente = (i: number) => setAsistentes(a => a.filter((_, idx) => idx !== i));
+  // Asistentes eliminados
 
   const addCompromiso = () => setCompromisos(c => [...c, { descripcion: '', responsable: '', fechaEntrega: '' }]);
   const setCompromiso = (i: number, k: keyof Compromiso, v: string) =>
@@ -76,15 +76,16 @@ export default function ModalNuevaReunion({ onClose }: Props) {
   const removeCompromiso = (i: number) => setCompromisos(c => c.filter((_, idx) => idx !== i));
 
   const guardarReunion = async () => {
-    if (!form.tipoReunion || !form.tipoContraparte || !form.objeto || !form.fecha || !form.responsable || !form.lugar || !form.horaInicio || !form.horaFin || !form.desarrollo) {
+    if (!form.tipoReunion || !form.tipoContraparte || !form.objeto || !form.fecha || (responsablesList.length === 0 && !otroResponsable) || !form.lugar || !form.horaInicio || !form.horaFin || !form.desarrollo) {
       setError('Complete todos los campos obligatorios: Tipo, Contraparte, Objeto, Fecha, Horas, Lugar, Responsable y Desarrollo'); return;
     }
     setGuardando(true); setError('');
     try {
+      const finalResponsable = [...responsablesList, otroResponsable].filter(Boolean).join(', ');
       const res = await fetchApi(`${API}/api/reuniones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, tematica, subtematica, asistentes: asistentes.filter(a => a.nombre), compromisos: compromisos.filter(c => c.descripcion) }),
+        body: JSON.stringify({ ...form, responsable: finalResponsable, tematica, subtematica, compromisos: compromisos.filter(c => c.descripcion) }),
       });
       const data = await res.json();
       setReunionId(data.id);
@@ -98,7 +99,25 @@ export default function ModalNuevaReunion({ onClose }: Props) {
   };
 
   const subirImagenYGenerar = async () => {
-    if (!imagenFile || !reunionId) { setError('La imagen de asistencia es obligatoria'); return; }
+    if (!imagenFile) {
+      // Si no hay imagen, solo generar el PDF
+      setGuardando(true); setError('');
+      try {
+        const pdfRes = await fetchApi(`${API}/api/reuniones/${reunionId}/pdf`);
+        if (!pdfRes.ok) throw new Error('Error generando PDF');
+        const blob = await pdfRes.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Acta_Reunion_${form.fecha}.pdf`; a.click();
+        URL.revokeObjectURL(url);
+        onClose();
+      } catch (e: any) {
+        setError(e?.message || 'Error generando el PDF.');
+      } finally {
+        setGuardando(false);
+      }
+      return;
+    }
     setGuardando(true); setError('');
     try {
       const fd = new FormData();
@@ -183,31 +202,30 @@ export default function ModalNuevaReunion({ onClose }: Props) {
                 <div><label className="label">Hora fin</label><input type="time" value={form.horaFin} onChange={e => set('horaFin', e.target.value)} className="input" /></div>
                 <div className="sm:col-span-2"><label className="label">Lugar</label><input value={form.lugar} onChange={e => set('lugar', e.target.value)} className="input" placeholder="Ej: TEAMS, Sala de reuniones..." /></div>
                 <div className="sm:col-span-2">
-                  <label className="label">Responsable de la reunión *</label>
-                  <select value={form.responsable} onChange={e => set('responsable', e.target.value)} className="input">
-                    <option value="">Seleccione responsable...</option>
-                    {RESPONSABLES.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Asistentes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-700">Asistentes</label>
-                  <button onClick={addAsistente} className="text-xs text-bogota-primary font-semibold hover:underline">+ Agregar</button>
-                </div>
-                <div className="space-y-2">
-                  {asistentes.map((a, i) => (
-                    <div key={i} className="grid grid-cols-3 gap-2 items-center">
-                      <input value={a.nombre} onChange={e => setAsistente(i, 'nombre', e.target.value)} placeholder="Nombre *" className="input text-xs" />
-                      <input value={a.cargo} onChange={e => setAsistente(i, 'cargo', e.target.value)} placeholder="Cargo" className="input text-xs" />
-                      <div className="flex gap-1">
-                        <input value={a.entidad} onChange={e => setAsistente(i, 'entidad', e.target.value)} placeholder="Entidad" className="input text-xs flex-1" />
-                        {asistentes.length > 1 && <button onClick={() => removeAsistente(i)} className="text-red-400 hover:text-red-600 text-sm font-bold px-1">×</button>}
-                      </div>
-                    </div>
-                  ))}
+                  <label className="label">Responsables de la reunión *</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    {RESPONSABLES.map(r => (
+                      <label key={r} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={responsablesList.includes(r)}
+                          onChange={e => {
+                            if (e.target.checked) setResponsablesList(prev => [...prev, r]);
+                            else setResponsablesList(prev => prev.filter(x => x !== r));
+                          }}
+                          className="rounded text-bogota-primary focus:ring-bogota-primary"
+                        />
+                        {r.split('-')[0].trim()}
+                      </label>
+                    ))}
+                  </div>
+                  <input 
+                    type="text" 
+                    value={otroResponsable} 
+                    onChange={e => setOtroResponsable(e.target.value)} 
+                    className="input mt-2 text-xs" 
+                    placeholder="Otro(s) responsable(s) (Opcional)" 
+                  />
                 </div>
               </div>
 
@@ -244,11 +262,11 @@ export default function ModalNuevaReunion({ onClose }: Props) {
             <div className="space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
                 <p className="text-green-700 font-semibold">✓ Reunión guardada correctamente</p>
-                <p className="text-xs text-green-600 mt-1">Ahora suba la imagen de asistencia para generar el acta PDF</p>
+                <p className="text-xs text-green-600 mt-1">Ahora suba la imagen de desarrollo para generar el acta PDF</p>
               </div>
               <div>
-                <label className="label">Imagen de asistencia *</label>
-                <p className="text-xs text-gray-500 mb-2">Foto de la planilla de asistencia firmada o captura de pantalla de la reunión en Teams.</p>
+                <label className="label">Cargar imagen de desarrollo y conclusiones (Opcional)</label>
+                <p className="text-xs text-gray-500 mb-2">Foto del desarrollo de la reunión, tablero, o conclusiones.</p>
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-bogota-primary transition-colors cursor-pointer"
                   onClick={() => fileRef.current?.click()}>
                   {imagenFile ? (
@@ -282,9 +300,9 @@ export default function ModalNuevaReunion({ onClose }: Props) {
               {guardando ? 'Guardando...' : 'Guardar y Continuar →'}
             </button>
           ) : (
-            <button onClick={subirImagenYGenerar} disabled={guardando || !imagenFile}
+            <button onClick={subirImagenYGenerar} disabled={guardando}
               className="px-6 py-2 rounded-lg bg-bogota-primary text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60">
-              {guardando ? 'Generando acta...' : '📄 Guardar imagen y Generar Acta PDF'}
+              {guardando ? 'Generando acta...' : '📄 Finalizar y Generar Acta PDF'}
             </button>
           )}
         </div>

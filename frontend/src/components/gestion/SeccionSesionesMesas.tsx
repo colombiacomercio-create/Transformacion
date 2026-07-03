@@ -30,14 +30,17 @@ const TEMATICAS: Record<string, string> = {
   P08: '[P08] Rollos legendarios',
   P09: '[P09] Transformación de comportamientos',
   P10: '[P10] Identidad local',
-  PV1: '[PV1] Memoria local', OTRO: 'Otro',
+  PV1: '[PV1] Memoria local',
+  NIVEL_CENTRAL: 'Nivel Central',
+  OV2: '[OV2] Canales',
+  OTRO: 'Otro',
 };
 
 const RESPONSABLES = [
   'MIGUEL EDUARDO PARRA CORVACHO - ASESOR LIDER TRANSFORMACIÓN',
   'ROBERTO CARLOS PARRA BORREGO - TRANSFORMACIÓN',
   'ARMANDO ESCOBAR SANCHEZ - TRANSFORMACIÓN',
-  'MARIA ADELAIDA BARRIOS - TRANSFORMACIÓN',
+  'MARIA ADELAIDA BARROS - TRANSFORMACIÓN',
   'MARIA ALEJANDRA CHAHIN - TRANSFORMACIÓN',
   'JUAN CAMILO RIVERA ACEVEDO - TRANSFORMACIÓN',
   'DAYANA MARCELA LOZANO - TRANSFORMACIÓN',
@@ -261,7 +264,6 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                 <th className="text-left px-3 py-2">Actores</th>
                 <th className="text-left px-3 py-2">Tipo de reunión</th>
                 <th className="text-left px-3 py-2">Responsable</th>
-                <th className="text-center px-3 py-2">Asistentes</th>
                 <th className="text-center px-3 py-2">Compromisos</th>
                 <th className="text-center px-3 py-2">Acta</th>
                 <th className="text-center px-3 py-2"></th>
@@ -271,7 +273,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
               {reunionesFiltradas.map((r: any) => (
                 <tr key={r.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-3 py-2 whitespace-nowrap font-medium">
-                    {new Date(r.fecha).toLocaleDateString('es-CO')}
+                    {r.fecha.slice(0, 10)}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-col gap-1 items-start">
@@ -289,7 +291,6 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                   <td className="px-3 py-2 text-gray-600">{TIPOS_CONTRAPARTE[r.tipoContraparte] || r.tipoContraparte}</td>
                   <td className="px-3 py-2 text-gray-600">{TIPOS_REUNION[r.tipoReunion] || r.tipoReunion}</td>
                   <td className="px-3 py-2 text-gray-700 max-w-[140px] truncate">{r.responsable}</td>
-                  <td className="px-3 py-2 text-center font-semibold">{r.asistentes?.length ?? 0}</td>
                   <td className="px-3 py-2 text-center">
                     <span className="font-semibold text-gray-800">{r.compromisos?.length ?? 0}</span>
                   </td>
