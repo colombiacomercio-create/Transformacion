@@ -189,8 +189,8 @@ export default function ModalFichaResultados({ onClose }: Props) {
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
-          {/* Período */}
-          <div>
+          {/* Se oculta la fecha de corte superior por solicitud del usuario para evitar redundancia (quedará oculta pero funcional) */}
+          <div className="hidden">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha de corte *</label>
             <div className="flex gap-2 items-center">
                <input type="date" value={form.periodo || ''} onChange={e => set('periodo', e.target.value)}
