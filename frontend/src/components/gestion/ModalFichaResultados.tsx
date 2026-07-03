@@ -93,7 +93,12 @@ const SECCIONES = [
 ];
 
 export default function ModalFichaResultados({ onClose }: Props) {
-  const [form, setForm] = useState<Record<string, any>>({ periodo: new Date().toISOString().slice(0, 10) });
+  const getLocalISODate = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  };
+  const [form, setForm] = useState<Record<string, any>>({ periodo: getLocalISODate() });
   const [originalForm, setOriginalForm] = useState<Record<string, any>>({});
   const [seccionAbierta, setSeccionAbierta] = useState<string>('ejecucion');
   const [guardando, setGuardando] = useState(false);
