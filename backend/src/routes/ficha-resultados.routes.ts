@@ -66,7 +66,7 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
     const periodoDate = new Date(data.periodo);
     const secciones = data.seccionesActualizadas || [];
     const userId = req.user!.id;
-    const ahora = new Date();
+    const ahora = periodoDate;
 
     const fields = {
       periodo: periodoDate,

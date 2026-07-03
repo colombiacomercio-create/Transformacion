@@ -97,8 +97,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             <div className={`mt-3 pt-2 border-t text-[10px] flex justify-between items-center px-4 pb-2 bg-white ${isOutdated ? 'text-orange-600 border-orange-200' : 'text-gray-400 border-gray-100'}`}>
               <span>Actualizado por: {actPor.nombre?.toUpperCase()}</span>
               <div className="flex items-center gap-1">
-                {isOutdated && <span className="font-bold">⚠️ Dato corte {date.toLocaleDateString('es-CO', { month: 'long' })}</span>}
-                <span>{date.toLocaleDateString('es-CO')}</span>
+                {isOutdated && <span className="font-bold">⚠️ Dato corte {date.toLocaleDateString('es-CO', { month: 'long', timeZone: 'UTC' })}</span>}
+                <span>Corte: {date.toLocaleDateString('es-CO', { timeZone: 'UTC' })}</span>
               </div>
             </div>
           );
