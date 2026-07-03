@@ -215,6 +215,14 @@ function buildHtml(data: ActaData): string {
     <td colspan="3" style="font-size:9pt;"><b>Nombre del Responsable:</b> ${data.responsable}</td>
   </tr>
 
+  <!-- Fila 6: Asistentes Unidad Transformación -->
+  <tr>
+    <td class="lbl">Asistentes U.T:</td>
+    <td colspan="4" style="font-size:9pt;padding:4px 8px;">
+      ${data.asistentes && data.asistentes.length > 0 ? data.asistentes.map(a => a.nombre).join(', ') : 'Ninguno'}
+    </td>
+  </tr>
+
 </table>
 
 <!-- Consentimiento HABEAS DATA — todo en página 1, sin salto de página interno -->
@@ -227,12 +235,6 @@ function buildHtml(data: ActaData): string {
 
 <!-- ══════════════ PÁGINA 2 ══════════════ -->
 <div class="page-break"></div>
-
-<!-- Asistentes -->
-<table class="main" style="margin-top:12px;">
-  <tr><td class="sec">ASISTENTES DE LA UNIDAD DE TRANSFORMACI&#211;N:</td></tr>
-  <tr><td style="padding:8px;font-size:9pt;">${data.asistentes && data.asistentes.length > 0 ? data.asistentes.map(a => a.nombre).join(', ') : 'Ninguno'}</td></tr>
-</table>
 
 <!-- Desarrollo y conclusiones -->
 <table class="main" style="margin-top:12px;">
