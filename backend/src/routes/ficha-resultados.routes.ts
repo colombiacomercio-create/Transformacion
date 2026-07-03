@@ -131,16 +131,21 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
       rollosActPorId: data.rollosActPorId ?? null,
       rollosActEn: data.rollosActEn ? new Date(data.rollosActEn) : null,
 
-      // Mapear tracking si la seccion viene en el array
-      ...(secciones.includes('ejecucion') && { ejecucionActPorId: userId, ejecucionActEn: ahora }),
-      ...(secciones.includes('obras') && { obrasActPorId: userId, obrasActEn: ahora }),
-      ...(secciones.includes('comites') && { comitesActPorId: userId, comitesActEn: ahora }),
-      ...(secciones.includes('espacioResid') && { espacioResiduosActPorId: userId, espacioResiduosActEn: ahora }),
-      ...(secciones.includes('ventaInformal') && { espacioVentaActPorId: userId, espacioVentaActEn: ahora }),
-      ...(secciones.includes('convivencia') && { convivenciaActPorId: userId, convivenciaActEn: ahora }),
-      ...(secciones.includes('actuaciones') && { actuacionesActPorId: userId, actuacionesActEn: ahora }),
-      ...(secciones.includes('memoria') && { estrategiasActPorId: userId, estrategiasActEn: ahora }),
-      ...(secciones.includes('rollos') && { rollosActPorId: userId, rollosActEn: ahora }),
+      // Helper para extraer la fecha manual o usar la del periodo
+      ...(() => {
+        const getDate = (val: any) => val ? new Date(val) : ahora;
+        return {
+          ...(secciones.includes('ejecucion') && { ejecucionActPorId: userId, ejecucionActEn: getDate(data.ejecucionActEn) }),
+          ...(secciones.includes('obras') && { obrasActPorId: userId, obrasActEn: getDate(data.obrasActEn) }),
+          ...(secciones.includes('comites') && { comitesActPorId: userId, comitesActEn: getDate(data.comitesActEn) }),
+          ...(secciones.includes('espacioResid') && { espacioResiduosActPorId: userId, espacioResiduosActEn: getDate(data.espacioResiduosActEn) }),
+          ...(secciones.includes('ventaInformal') && { espacioVentaActPorId: userId, espacioVentaActEn: getDate(data.espacioVentaActEn) }),
+          ...(secciones.includes('convivencia') && { convivenciaActPorId: userId, convivenciaActEn: getDate(data.convivenciaActEn) }),
+          ...(secciones.includes('actuaciones') && { actuacionesActPorId: userId, actuacionesActEn: getDate(data.actuacionesActEn) }),
+          ...(secciones.includes('memoria') && { estrategiasActPorId: userId, estrategiasActEn: getDate(data.estrategiasActEn) }),
+          ...(secciones.includes('rollos') && { rollosActPorId: userId, rollosActEn: getDate(data.rollosActEn) }),
+        };
+      })(),
     };
 
     if (data.id) {

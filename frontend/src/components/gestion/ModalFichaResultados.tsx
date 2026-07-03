@@ -9,6 +9,7 @@ const SECCIONES = [
   {
     id: 'ejecucion', titulo: 'Ejecución Presupuestal',
     campos: [
+      { key: 'ejecucionActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'compromisosPct', label: '% Compromisos', type: 'number' },
       { key: 'girosPct', label: '% Giros', type: 'number' },
       { key: 'procesosMonitoreados', label: 'Procesos contractuales monitoreados', type: 'number' },
@@ -19,6 +20,7 @@ const SECCIONES = [
   {
     id: 'obras', titulo: 'Obras Locales',
     campos: [
+      { key: 'obrasActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'metaObras', label: 'Meta de obras', type: 'number' },
       { key: 'intervencionesFinalizadas', label: 'Intervenciones finalizadas', type: 'number' },
       { key: 'kmCarrilIntervenido', label: 'Km carril intervenido', type: 'number' },
@@ -29,6 +31,7 @@ const SECCIONES = [
   {
     id: 'comites', titulo: 'Comités de Contratación',
     campos: [
+      { key: 'comitesActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'comitesRealizados', label: 'Comités realizados', type: 'number' },
       { key: 'comitesMeta', label: 'Meta de comités', type: 'number' },
       { key: 'alertaComites', label: 'Texto de alerta (opcional)', type: 'textarea' },
@@ -37,6 +40,7 @@ const SECCIONES = [
   {
     id: 'espacioResid', titulo: 'Espacio Público – Residuos',
     campos: [
+      { key: 'espacioResiduosActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'accionesReportadas', label: 'Acciones e intervenciones reportadas', type: 'number' },
       { key: 'residuosM3', label: 'Residuos recolectados (m³)', type: 'number' },
       { key: 'espacioPublicoM2', label: 'Espacio público recuperado (m²)', type: 'number' },
@@ -46,6 +50,7 @@ const SECCIONES = [
   {
     id: 'ventaInformal', titulo: 'Espacio Público – Venta Informal / Parqueo',
     campos: [
+      { key: 'espacioVentaActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'puntosIntervenidos', label: 'Puntos intervenidos', type: 'number' },
       { key: 'ventaInformal', label: 'Venta informal', type: 'number' },
       { key: 'orgParqueo', label: 'Org. parqueo', type: 'number' },
@@ -57,6 +62,7 @@ const SECCIONES = [
   {
     id: 'convivencia', titulo: 'Convivencia y Seguridad',
     campos: [
+      { key: 'convivenciaActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'motosContratadas', label: 'Motos contratadas', type: 'number' },
       { key: 'motosPendientesFdl', label: 'Motos pendientes FDL', type: 'number' },
       { key: 'motosAlmacenFdl', label: 'Motos en almacén FDL', type: 'number' },
@@ -67,6 +73,7 @@ const SECCIONES = [
   {
     id: 'actuaciones', titulo: 'Actuaciones Administrativas',
     campos: [
+      { key: 'actuacionesActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'archivosPct', label: '% Archivos (M11)', type: 'number' },
       { key: 'metaArchivos', label: 'Meta anual archivos (M11)', type: 'number' },
       { key: 'fallosPrimeraEstanciaPct', label: '% Fallos 1ª estancia (M12)', type: 'number' },
@@ -77,6 +84,7 @@ const SECCIONES = [
   {
     id: 'memoria', titulo: 'Estrategias de Memoria',
     campos: [
+      { key: 'estrategiasActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'estrategiasResueltas', label: 'Resueltas', type: 'number' },
       { key: 'estrategiasFormulacion', label: 'En formulación', type: 'number' },
       { key: 'alertaEstrategias', label: 'Texto de alerta (opcional)', type: 'textarea' },
@@ -85,6 +93,7 @@ const SECCIONES = [
   {
     id: 'rollos', titulo: 'Rollos Legendarios',
     campos: [
+      { key: 'rollosActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
       { key: 'rollosResueltos', label: 'Resueltos', type: 'number' },
       { key: 'rollosEnCurso', label: 'En curso', type: 'number' },
       { key: 'alertaRollos', label: 'Texto de alerta por localidad (opcional)', type: 'textarea' },
@@ -113,14 +122,23 @@ export default function ModalFichaResultados({ onClose }: Props) {
     fetchApi(`${API}/api/ficha-resultados/periodo/${form.periodo}`)
       .then(res => res.json())
       .then(async data => {
+        const formatearFechas = (obj: any) => {
+          const res = { ...obj, periodo: obj.periodo.split('T')[0] };
+          Object.keys(res).forEach(k => {
+             if (k.endsWith('ActEn') && res[k]) {
+                res[k] = res[k].split('T')[0];
+             }
+          });
+          return res;
+        };
         if (data && data.id) {
-          const loadedData = { ...data, periodo: data.periodo.split('T')[0] };
+          const loadedData = formatearFechas(data);
           setForm(loadedData);
           setOriginalForm(loadedData);
         } else {
           const ultima = await fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null);
           if (ultima && ultima.id) {
-             const copiedData = { ...ultima, id: undefined, periodo: form.periodo };
+             const copiedData = { ...formatearFechas(ultima), id: undefined, periodo: form.periodo };
              setForm(copiedData);
              setOriginalForm(copiedData);
           } else {
@@ -199,6 +217,10 @@ export default function ModalFichaResultados({ onClose }: Props) {
                       {campo.type === 'textarea' ? (
                         <textarea value={form[campo.key] || ''} onChange={e => set(campo.key, e.target.value)}
                           rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent resize-none" />
+                      ) : campo.type === 'date' ? (
+                        <input type="date" value={form[campo.key] || ''} 
+                          onChange={e => set(campo.key, e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent" />
                       ) : (
                         <input type={campo.type} value={form[campo.key] ?? ''} 
                           onChange={e => set(campo.key, e.target.value === '' ? null : Number(e.target.value))}
