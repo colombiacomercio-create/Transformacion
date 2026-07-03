@@ -135,7 +135,6 @@ export default function ModalFichaResultados({ onClose }: Props) {
     
     // Computar qué secciones fueron modificadas
     const seccionesActualizadas = SECCIONES.filter(sec => {
-      if (!form.id) return true; // Si es una ficha nueva, se actualizan todas las secciones para refrescar los timestamps
       return sec.campos.some(campo => form[campo.key] !== originalForm[campo.key]);
     }).map(sec => sec.id);
 
@@ -163,7 +162,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-800">Reportar Datos de la Ficha</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+          <button onClick={() => onClose()} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
@@ -218,7 +217,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+          <button onClick={() => onClose()} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
           <button onClick={guardar} disabled={guardando}
             className="px-6 py-2 rounded-lg bg-bogota-primary text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors">
             {guardando ? 'Guardando...' : 'Guardar Ficha'}
