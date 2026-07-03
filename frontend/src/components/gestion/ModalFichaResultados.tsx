@@ -189,15 +189,14 @@ export default function ModalFichaResultados({ onClose }: Props) {
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
-          {/* Se oculta la fecha de corte superior por solicitud del usuario para evitar redundancia (quedará oculta pero funcional) */}
-          <div className="hidden">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha de corte *</label>
+          <div className="mb-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Período del Reporte (General) *</label>
             <div className="flex gap-2 items-center">
                <input type="date" value={form.periodo || ''} onChange={e => set('periodo', e.target.value)}
                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent" />
                {cargando && <span className="text-xs text-gray-400">Cargando...</span>}
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">Si seleccionas una fecha existente, los datos se cargarán para ser editados. Al guardar se actualizarán.</p>
+            <p className="text-[10px] text-gray-500 mt-1">Si seleccionas una fecha existente (ej. la que ves en el filtro), los datos se cargarán para ser editados.</p>
           </div>
 
           {/* Secciones acordeón */}
