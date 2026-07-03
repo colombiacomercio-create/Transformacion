@@ -41,17 +41,17 @@ const SECCIONES = [
     id: 'espacioResid', titulo: 'Espacio Público – Residuos',
     campos: [
       { key: 'espacioResiduosActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
-      { key: 'accionesReportadas', label: 'Acciones e intervenciones reportadas', type: 'number' },
+      { key: 'accionesReportadas', label: 'Intervenciones reportadas', type: 'number' },
       { key: 'residuosM3', label: 'Residuos recolectados (m³)', type: 'number' },
       { key: 'espacioPublicoM2', label: 'Espacio público recuperado (m²)', type: 'number' },
       { key: 'alertaEspacioResiduos', label: 'Texto de alerta (opcional)', type: 'textarea' },
     ],
   },
   {
-    id: 'ventaInformal', titulo: 'Espacio Público – Venta Informal / Parqueo',
+    id: 'ventaInformal', titulo: 'Organización y Recuperación Espacio Público',
     campos: [
       { key: 'espacioVentaActEn', label: 'Fecha de corte (esta sección)', type: 'date' },
-      { key: 'puntosIntervenidos', label: 'Puntos intervenidos', type: 'number' },
+      { key: 'puntosIntervenidos', label: 'Intervenciones reportadas', type: 'number' },
       { key: 'ventaInformal', label: 'Venta informal', type: 'number' },
       { key: 'orgParqueo', label: 'Org. parqueo', type: 'number' },
       { key: 'm2RecuperadosInformal', label: 'm² recuperados', type: 'number' },

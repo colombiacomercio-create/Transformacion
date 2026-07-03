@@ -86,20 +86,14 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
         <img src="/Logo_sede_electronica_SDG.png" alt="Alcaldía de Bogotá" className="h-14 object-contain" />
       </div>
 
-      {/* Helper para renderizar quién y cuándo actualizó la sección */}
+      {/* Helper para renderizar la fecha de corte de la sección */}
       {(() => {
-        const renderFooter = (actPor: any, actEn: string) => {
-          if (!actPor || !actEn) return null;
+        const renderCorte = (actEn: string | null) => {
+          if (!actEn) return null;
           const date = new Date(actEn);
-          const periodoDate = new Date(ultimaFicha.periodo);
-          const isOutdated = date.getFullYear() < periodoDate.getFullYear() || date.getMonth() < periodoDate.getMonth();
           return (
-            <div className={`mt-3 pt-2 border-t text-[10px] flex justify-between items-center px-4 pb-2 bg-white ${isOutdated ? 'text-orange-600 border-orange-200' : 'text-gray-400 border-gray-100'}`}>
-              <span>Actualizado por: {actPor.nombre?.toUpperCase()}</span>
-              <div className="flex items-center gap-1">
-                {isOutdated && <span className="font-bold">⚠️ Dato corte {date.toLocaleDateString('es-CO', { month: 'long', timeZone: 'UTC' })}</span>}
-                <span>Corte: {date.toLocaleDateString('es-CO', { timeZone: 'UTC' })}</span>
-              </div>
+            <div className="text-[11px] text-gray-500 text-right px-4 pb-2 font-medium bg-white">
+              Fecha de Corte: {date.toLocaleDateString('es-CO', { timeZone: 'UTC' })}
             </div>
           );
         };
@@ -191,7 +185,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                     <strong>Alerta:</strong> {ultimaFicha.alertaComites}
                   </div>
                 )}
-                {renderFooter(ultimaFicha.comitesActPor, ultimaFicha.comitesActEn)}
+                {renderCorte(ultimaFicha.comitesActEn)}
               </div>
               
               {/* Alerta ejecución general */}
@@ -201,7 +195,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 </div>
               )}
             </div>
-            {renderFooter(ultimaFicha.ejecucionActPor, ultimaFicha.ejecucionActEn)}
+            {renderCorte(ultimaFicha.ejecucionActEn)}
           </div>
           
           {/* CONVIVENCIA Y SEGURIDAD */}
@@ -244,7 +238,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaConvivencia}
                 </div>
              )}
-             {renderFooter(ultimaFicha.convivenciaActPor, ultimaFicha.convivenciaActEn)}
+             {renderCorte(ultimaFicha.convivenciaActEn)}
           </div>
           
           {/* ROLLOS LEGENDARIOS */}
@@ -279,7 +273,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alerta:</strong> {ultimaFicha.alertaRollos}
                 </div>
              )}
-             {renderFooter(ultimaFicha.rollosActPor, ultimaFicha.rollosActEn)}
+             {renderCorte(ultimaFicha.rollosActEn)}
           </div>
         </div>
 
@@ -332,7 +326,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaObras}
                 </div>
              )}
-             {renderFooter(ultimaFicha.obrasActPor, ultimaFicha.obrasActEn)}
+             {renderCorte(ultimaFicha.obrasActEn)}
           </div>
 
           {/* ESPACIO PÚBLICO - RESIDUOS */}
@@ -344,7 +338,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 <div className="border border-[#e3182d] rounded-lg mb-4 overflow-hidden">
                    <div className="flex items-center justify-between p-4 border-b border-[#e3182d]">
                       <span className="text-5xl font-black text-[#e3182d]">{ultimaFicha.accionesReportadas?.toLocaleString('es-CO') ?? 0}</span>
-                      <span className="text-right text-gray-700 text-lg leading-tight">Acciones e intervenciones<br/>reportadas</span>
+                      <span className="text-right text-gray-700 text-lg leading-tight">Intervenciones<br/>reportadas</span>
                    </div>
                    <div className="flex items-center justify-between p-4 border-b border-[#e3182d]">
                       <span className="text-5xl font-black text-[#e3182d]">{ultimaFicha.residuosM3?.toLocaleString('es-CO') ?? 0} <span className="text-3xl">m³</span></span>
@@ -361,7 +355,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaEspacioResiduos}
                 </div>
               )}
-              {renderFooter(ultimaFicha.espacioResiduosActPor, ultimaFicha.espacioResiduosActEn)}
+              {renderCorte(ultimaFicha.espacioResiduosActEn)}
            </div>
 
            <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
@@ -386,7 +380,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 <div className="flex flex-col gap-6 items-end w-full pl-48 z-10">
                    <div className="text-right">
                       <span className="text-5xl font-black text-[#e3182d] block leading-none">{ultimaFicha.puntosIntervenidos ?? 0}</span>
-                      <span className="text-lg text-gray-600 leading-tight block">Puntos<br/>intervenidos</span>
+                      <span className="text-lg text-gray-600 leading-tight block">Intervenciones<br/>reportadas</span>
                    </div>
                    <div className="text-right mt-2">
                       <span className="text-lg font-bold text-gray-700 block">{ultimaFicha.m2RecuperadosInformal?.toLocaleString('es-CO') ?? 0} m² recuperados</span>
@@ -399,7 +393,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaEspacioVenta}
                 </div>
               )}
-              {renderFooter(ultimaFicha.espacioVentaActPor, ultimaFicha.espacioVentaActEn)}
+              {renderCorte(ultimaFicha.espacioVentaActEn)}
            </div>
 
           {/* ACTUACIONES */}
@@ -471,7 +465,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaActuaciones}
                 </div>
               )}
-              {renderFooter(ultimaFicha.actuacionesActPor, ultimaFicha.actuacionesActEn)}
+              {renderCorte(ultimaFicha.actuacionesActEn)}
           </div>
 
           {/* ESTRATEGIAS DE MEMORIA */}
@@ -506,7 +500,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <strong>Alertas:</strong> {ultimaFicha.alertaEstrategias}
                 </div>
              )}
-             {renderFooter(ultimaFicha.estrategiasActPor, ultimaFicha.estrategiasActEn)}
+             {renderCorte(ultimaFicha.estrategiasActEn)}
           </div>
         </div>
       </div>
