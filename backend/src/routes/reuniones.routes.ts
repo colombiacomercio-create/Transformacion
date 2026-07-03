@@ -110,7 +110,11 @@ router.post('/', azureADAuth, async (req: AuthRequest, res) => {
         desarrollo: desarrollo || '',
         creadoPorId: req.user!.id,
         asistentes: {
-          create: (asistentes || []).map((nombre: string) => ({ nombre, cargo: 'Unidad de Transformación', entidad: 'SDG' })),
+          create: (asistentes || []).map((a: any) => ({ 
+            nombre: typeof a === 'string' ? a : (a.nombre || ''), 
+            cargo: typeof a === 'string' ? 'Unidad de Transformación' : (a.cargo || ''), 
+            entidad: typeof a === 'string' ? 'SDG' : (a.entidad || '') 
+          })),
         },
         compromisos: {
           create: (compromisos || []).map((c: any) => ({

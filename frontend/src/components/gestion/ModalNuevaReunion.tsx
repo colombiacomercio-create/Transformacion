@@ -81,10 +81,15 @@ export default function ModalNuevaReunion({ onClose }: Props) {
     }
     setGuardando(true); setError('');
     try {
+      const asistentesPayload = responsablesList.map(nombre => ({
+        nombre,
+        cargo: 'Unidad de Transformación',
+        entidad: 'SDG'
+      }));
       const res = await fetchApi(`${API}/api/reuniones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, tematica, subtematica, asistentes: responsablesList, compromisos: compromisos.filter(c => c.descripcion) }),
+        body: JSON.stringify({ ...form, tematica, subtematica, asistentes: asistentesPayload, compromisos: compromisos.filter(c => c.descripcion) }),
       });
       const data = await res.json();
       setReunionId(data.id);
