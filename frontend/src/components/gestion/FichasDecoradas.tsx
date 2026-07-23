@@ -175,16 +175,16 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   Comites de contratación
                 </h4>
                 <div className="p-4 flex flex-col items-center">
-                  <div className="relative h-32 w-full mb-2 mt-4">
+                  <div className="relative h-48 w-full mb-2 mt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={comitesData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
+                        <Pie data={comitesData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
                           {comitesData.map((e, i) => <Cell key={i} fill={e.color} />)}
                         </Pie>
                         <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
-                    {comRealizados > 0 && comMeta > 0 && renderNeedle((comRealizados / comMeta) * 100, 55)}
+                    {comRealizados > 0 && comMeta > 0 && renderNeedle((comRealizados / comMeta) * 100, 85)}
                   </div>
                   
                   <div className="flex justify-around w-full mt-4">
