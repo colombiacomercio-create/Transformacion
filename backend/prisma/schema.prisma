@@ -360,8 +360,10 @@ model FichaResultados {
   alertaConvivencia        String?  @db.Text
   // Actuaciones
   archivosPct              Float?
+  metaArchivosPct          Float?
   metaArchivos             Int?
   fallosPrimeraEstanciaPct Float?
+  metaFallosPct            Float?
   metaFallos               Int?
   // Estrategias de memoria
   estrategiasResueltas     Int?

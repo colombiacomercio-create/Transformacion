@@ -63,13 +63,13 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   const archVal = ultimaFicha.archivosPct ?? 0;
   const archData = [
     { name: 'Archivos', value: archVal, color: '#dc2626' },
-    { name: 'Restante', value: Math.max(0.1, 100 - archVal), color: '#ffffff' }
+    { name: 'Restante', value: Math.max(0.1, 100 - archVal), color: '#d1d5db' }
   ];
   
   const fallosVal = ultimaFicha.fallosPrimeraEstanciaPct ?? 0;
   const fallosData = [
     { name: 'Fallos 1° estancia', value: fallosVal, color: '#FFCD00' },
-    { name: 'Restante', value: Math.max(0.1, 100 - fallosVal), color: '#ffffff' }
+    { name: 'Restante', value: Math.max(0.1, 100 - fallosVal), color: '#d1d5db' }
   ];
 
   return (
@@ -110,9 +110,9 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                         </PieChart>
                       </ResponsiveContainer>
                       {ultimaFicha.metaCompromisosPct !== undefined && ultimaFicha.metaCompromisosPct !== null && (
-                         <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                         <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible">
                             <div className="absolute border-t-2 border-red-500 border-dashed w-[55px] origin-right" style={{
-                               top: '100%', left: 'calc(50% - 55px)', transform: `rotate(${180 - (ultimaFicha.metaCompromisosPct * 180 / 100)}deg)`
+                               top: 'calc(100% - 1px)', left: 'calc(50% - 55px)', transform: `rotate(${180 - (ultimaFicha.metaCompromisosPct * 180 / 100)}deg)`
                             }}></div>
                          </div>
                       )}
@@ -134,9 +134,9 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                         </PieChart>
                       </ResponsiveContainer>
                       {ultimaFicha.metaGirosPct !== undefined && ultimaFicha.metaGirosPct !== null && (
-                         <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                         <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible">
                             <div className="absolute border-t-2 border-red-500 border-dashed w-[55px] origin-right" style={{
-                               top: '100%', left: 'calc(50% - 55px)', transform: `rotate(${180 - (ultimaFicha.metaGirosPct * 180 / 100)}deg)`
+                               top: 'calc(100% - 1px)', left: 'calc(50% - 55px)', transform: `rotate(${180 - (ultimaFicha.metaGirosPct * 180 / 100)}deg)`
                             }}></div>
                          </div>
                       )}
@@ -186,7 +186,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                     {comRealizados > 0 && comMeta > 0 && (
                       <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center">
                          <div className="absolute w-[120px] h-0 border-t-2 border-red-500 border-dashed" style={{
-                            transform: `rotate(${-90 + ((comMeta / Math.max(comRealizados, comMeta)) * 360)}deg)`
+                            transform: `rotate(0deg)`
                          }}></div>
                       </div>
                     )}
@@ -231,11 +231,11 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                              <PieChart>
                                <Pie data={[
                                  { name: 'Entregadas', value: ultimaFicha.motosEntregadas ?? 0, color: '#7f1d1d' },
-                                 { name: 'Faltantes', value: Math.max(0, (ultimaFicha.motosContratadas ?? 0) - (ultimaFicha.motosEntregadas ?? 0)), color: '#f3f4f6' }
+                                 { name: 'Faltantes', value: Math.max(0.1, (ultimaFicha.motosContratadas ?? 0) - (ultimaFicha.motosEntregadas ?? 0)), color: '#d1d5db' }
                                ]} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
                                  {[
                                  { name: 'Entregadas', value: ultimaFicha.motosEntregadas ?? 0, color: '#7f1d1d' },
-                                 { name: 'Faltantes', value: Math.max(0, (ultimaFicha.motosContratadas ?? 0) - (ultimaFicha.motosEntregadas ?? 0)), color: '#f3f4f6' }
+                                 { name: 'Faltantes', value: Math.max(0.1, (ultimaFicha.motosContratadas ?? 0) - (ultimaFicha.motosEntregadas ?? 0)), color: '#d1d5db' }
                                  ].map((e, i) => <Cell key={i} fill={e.color} />)}
                                </Pie>
                              </PieChart>
@@ -474,10 +474,10 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
-                           {ultimaFicha.metaArchivos !== undefined && ultimaFicha.metaArchivos !== null && (
-                             <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                           {ultimaFicha.metaArchivosPct !== undefined && ultimaFicha.metaArchivosPct !== null && (
+                             <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible">
                                 <div className="absolute border-t-2 border-red-500 border-dashed w-[60px] origin-right" style={{
-                                   top: '100%', left: 'calc(50% - 60px)', transform: `rotate(${180 - (Math.min(100, ultimaFicha.metaArchivos) * 180 / 100)}deg)`
+                                   top: 'calc(100% - 1px)', left: 'calc(50% - 60px)', transform: `rotate(${180 - (Math.min(100, ultimaFicha.metaArchivosPct) * 180 / 100)}deg)`
                                 }}></div>
                              </div>
                            )}
@@ -490,8 +490,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                               <span className="text-white font-bold text-lg bg-[#dc2626] px-3 py-1 rounded-md shadow-md border border-red-800">{archVal}%</span>
                            </div>
                          </div>
-                         {ultimaFicha.metaArchivos !== undefined && ultimaFicha.metaArchivos !== null && (
-                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaArchivos}% programados</span>
+                         {ultimaFicha.metaArchivosPct !== undefined && ultimaFicha.metaArchivosPct !== null && (
+                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaArchivosPct}% programados</span>
                          )}
                       </div>
                    </div>
@@ -511,10 +511,10 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
-                           {ultimaFicha.metaFallos !== undefined && ultimaFicha.metaFallos !== null && (
-                             <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                           {ultimaFicha.metaFallosPct !== undefined && ultimaFicha.metaFallosPct !== null && (
+                             <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible">
                                 <div className="absolute border-t-2 border-red-500 border-dashed w-[60px] origin-right" style={{
-                                   top: '100%', left: 'calc(50% - 60px)', transform: `rotate(${180 - (Math.min(100, ultimaFicha.metaFallos) * 180 / 100)}deg)`
+                                   top: 'calc(100% - 1px)', left: 'calc(50% - 60px)', transform: `rotate(${180 - (Math.min(100, ultimaFicha.metaFallosPct) * 180 / 100)}deg)`
                                 }}></div>
                              </div>
                            )}
@@ -527,8 +527,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                               <span className="text-gray-900 font-bold text-lg bg-[#FFCD00] px-3 py-1 rounded-md shadow-md border border-yellow-600">{fallosVal}%</span>
                            </div>
                          </div>
-                         {ultimaFicha.metaFallos !== undefined && ultimaFicha.metaFallos !== null && (
-                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaFallos}% programados</span>
+                         {ultimaFicha.metaFallosPct !== undefined && ultimaFicha.metaFallosPct !== null && (
+                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaFallosPct}% programados</span>
                          )}
                       </div>
                    </div>

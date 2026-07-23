@@ -70,9 +70,11 @@ const SECCIONES = [
     id: 'actuaciones', titulo: 'Actuaciones y Fallos',
     campos: [
       { key: 'archivosPct', label: 'Archivos %', type: 'number', step: '0.1' },
-      { key: 'metaArchivos', label: 'Meta de Archivos', type: 'number' },
+      { key: 'metaArchivosPct', label: 'Meta de Archivos % a la fecha', type: 'number', step: '0.1' },
+      { key: 'metaArchivos', label: 'Meta de Archivos Anual', type: 'number' },
       { key: 'fallosPrimeraEstanciaPct', label: 'Fallos %', type: 'number', step: '0.1' },
-      { key: 'metaFallos', label: 'Meta de Fallos', type: 'number' },
+      { key: 'metaFallosPct', label: 'Meta de Fallos % a la fecha', type: 'number', step: '0.1' },
+      { key: 'metaFallos', label: 'Meta de Fallos Anual', type: 'number' },
       { key: 'alertaActuaciones', label: 'Texto de alerta (opcional)', type: 'textarea' },
     ],
   },
