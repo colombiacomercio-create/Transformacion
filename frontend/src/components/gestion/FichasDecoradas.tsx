@@ -12,10 +12,12 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
     const angleDeg = 180 - (safePct * 180 / 100);
     const angleRad = (angleDeg * Math.PI) / 180;
     const length = radius + 5;
-    const x = `calc(50% + ${Math.cos(angleRad) * length}px)`;
-    const y = `calc(100% - ${Math.sin(angleRad) * length}px)`;
+    const dx = (Math.cos(angleRad) * length).toFixed(4);
+    const dy = (Math.sin(angleRad) * length).toFixed(4);
+    const x = `calc(50% + ${dx}px)`;
+    const y = `calc(100% - ${dy}px)`;
     return (
-      <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+      <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-10">
         <line x1="50%" y1="100%" x2={x} y2={y} stroke="red" strokeWidth="2" strokeDasharray="3 3" />
       </svg>
     );
@@ -173,10 +175,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   Comites de contratación
                 </h4>
                 <div className="p-4 flex flex-col items-center">
-                  <span className="text-sm font-bold text-gray-800">Realizados</span>
-                  <span className="text-2xl font-black text-gray-800 leading-none">{comRealizados}</span>
-                  
-                  <div className="relative h-32 w-full mt-2">
+                  <div className="relative h-32 w-full mb-2 mt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={comitesData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
@@ -185,12 +184,19 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                         <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
-                    {comRealizados > 0 && comMeta > 0 && renderNeedle(100, 55)}
+                    {comRealizados > 0 && comMeta > 0 && renderNeedle((comRealizados / comMeta) * 100, 55)}
                   </div>
                   
-                  <span className="text-sm font-bold text-gray-800">Meta comités</span>
-                  <span className="text-lg font-black text-gray-800 leading-none">{comMeta}</span>
-                  <span className="text-red-500 text-[10px] text-center mt-1 font-semibold">{comMeta} comités prog.</span>
+                  <div className="flex justify-around w-full mt-4">
+                     <div className="flex flex-col items-center">
+                        <span className="text-sm font-bold text-gray-800">Realizados</span>
+                        <span className="text-2xl font-black text-[#FFCD00] leading-none">{comRealizados}</span>
+                     </div>
+                     <div className="flex flex-col items-center">
+                        <span className="text-sm font-bold text-gray-800">Meta comités</span>
+                        <span className="text-2xl font-black text-gray-800 leading-none">{comMeta}</span>
+                     </div>
+                  </div>
                 </div>
                 {ultimaFicha.alertaComites && (
                   <div className="bg-gray-100 p-4 text-xs text-gray-800 m-2 rounded">
