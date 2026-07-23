@@ -181,7 +181,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                       <PieChart>
                         <Pie data={comitesData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
                           {comitesData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                        </PieChart>
+                        </Pie>
                         <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
