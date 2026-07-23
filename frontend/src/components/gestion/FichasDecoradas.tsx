@@ -99,9 +99,9 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             <div className="p-4">
               <div className="bg-transparent border border-white/40 rounded-xl p-4 mb-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col items-center">
-                    <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full mb-[-10px] z-10 border shadow-sm">Compromisos</span>
-                    <div className="h-32 w-full">
+                  <div className="flex flex-col items-center relative">
+                    <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full relative top-3 z-10 border shadow-sm text-center">Compromisos</span>
+                    <div className="relative h-32 w-full mt-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={compromisosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
@@ -109,13 +109,23 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
+                      {ultimaFicha.metaCompromisosPct !== undefined && ultimaFicha.metaCompromisosPct !== null && (
+                         <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                            <div className="absolute border-t-2 border-red-500 border-dashed w-[55px] origin-right" style={{
+                               top: '100%', left: 'calc(50% - 55px)', transform: `rotate(${180 - (ultimaFicha.metaCompromisosPct * 180 / 100)}deg)`
+                            }}></div>
+                         </div>
+                      )}
                     </div>
                     <span className="text-white font-bold text-xl mt-[-20px]">{compromisosVal}%</span>
+                    {ultimaFicha.metaCompromisosPct !== undefined && ultimaFicha.metaCompromisosPct !== null && (
+                       <span className="text-red-200 text-[10px] text-center mt-1 font-semibold leading-tight">{ultimaFicha.metaCompromisosPct}% programados</span>
+                    )}
                   </div>
                   
-                  <div className="flex flex-col items-center">
-                    <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full mb-[-10px] z-10 border shadow-sm">Giros</span>
-                    <div className="h-32 w-full">
+                  <div className="flex flex-col items-center relative">
+                    <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full relative top-3 z-10 border shadow-sm text-center">Giros</span>
+                    <div className="relative h-32 w-full mt-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={girosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
@@ -123,8 +133,18 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
+                      {ultimaFicha.metaGirosPct !== undefined && ultimaFicha.metaGirosPct !== null && (
+                         <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                            <div className="absolute border-t-2 border-red-500 border-dashed w-[55px] origin-right" style={{
+                               top: '100%', left: 'calc(50% - 55px)', transform: `rotate(${180 - (ultimaFicha.metaGirosPct * 180 / 100)}deg)`
+                            }}></div>
+                         </div>
+                      )}
                     </div>
                     <span className="text-white font-bold text-xl mt-[-20px]">{girosVal}%</span>
+                    {ultimaFicha.metaGirosPct !== undefined && ultimaFicha.metaGirosPct !== null && (
+                       <span className="text-red-200 text-[10px] text-center mt-1 font-semibold leading-tight">{ultimaFicha.metaGirosPct}% programados</span>
+                    )}
                   </div>
                 </div>
 
@@ -154,7 +174,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <span className="text-sm font-bold text-gray-800">Realizados</span>
                   <span className="text-2xl font-black text-gray-800 leading-none">{comRealizados}</span>
                   
-                  <div className="h-40 w-full mt-2">
+                  <div className="relative h-40 w-full mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={comitesData} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
@@ -163,10 +183,18 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                         <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
+                    {comRealizados > 0 && comMeta > 0 && (
+                      <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center">
+                         <div className="absolute w-[120px] h-0 border-t-2 border-red-500 border-dashed" style={{
+                            transform: `rotate(${-90 + ((comMeta / Math.max(comRealizados, comMeta)) * 360)}deg)`
+                         }}></div>
+                      </div>
+                    )}
                   </div>
                   
                   <span className="text-sm font-bold text-gray-800">Meta comités</span>
                   <span className="text-lg font-black text-gray-800 leading-none">{comMeta}</span>
+                  <span className="text-red-500 text-[10px] text-center mt-1 font-semibold">{comMeta} comités prog.</span>
                 </div>
                 {ultimaFicha.alertaComites && (
                   <div className="bg-gray-100 p-4 text-xs text-gray-800 m-2 rounded">
@@ -191,34 +219,73 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
                 Convivencia y seguridad
              </h3>
-             <div className="bg-white p-4 flex items-center">
-                <div className="flex-1 space-y-3">
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#dc2626] text-white px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosContratadas}</div>
-                      <span className="text-sm font-medium leading-tight">Motos<br/>Contratadas</span>
+             <div className="bg-white p-4 pb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
+                      <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center mb-4 text-gray-800">
+                        Motos Contratadas / Entregadas
+                      </div>
+                      <div className="flex flex-col items-center flex-1 justify-end">
+                         <div className="w-full h-32 mb-4">
+                           <ResponsiveContainer width="100%" height="100%">
+                             <PieChart>
+                               <Pie data={[
+                                 { name: 'Entregadas', value: ultimaFicha.motosEntregadas ?? 0, color: '#7f1d1d' },
+                                 { name: 'Faltantes', value: Math.max(0, (ultimaFicha.motosContratadas ?? 0) - (ultimaFicha.motosEntregadas ?? 0)), color: '#f3f4f6' }
+                               ]} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
+                                 {[
+                                 { name: 'Entregadas', value: ultimaFicha.motosEntregadas ?? 0, color: '#7f1d1d' },
+                                 { name: 'Faltantes', value: Math.max(0, (ultimaFicha.motosContratadas ?? 0) - (ultimaFicha.motosEntregadas ?? 0)), color: '#f3f4f6' }
+                                 ].map((e, i) => <Cell key={i} fill={e.color} />)}
+                               </Pie>
+                             </PieChart>
+                           </ResponsiveContainer>
+                         </div>
+                         <div className="flex justify-around w-full mt-2 gap-2 text-center">
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-500">Contratadas</span>
+                               <span className="text-xl font-black text-[#dc2626]">{ultimaFicha.motosContratadas}</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-500">Entregadas</span>
+                               <span className="text-xl font-black text-[#7f1d1d]">{ultimaFicha.motosEntregadas}</span>
+                            </div>
+                         </div>
+                      </div>
                    </div>
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#FFCD00] text-white px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosPendientesFdl}</div>
-                      <span className="text-sm font-medium leading-tight">Motos<br/>Pendientes FDL</span>
+
+                   <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
+                      <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center mb-4 text-gray-800">
+                        Motos en Proceso FDL
+                      </div>
+                      <div className="flex flex-col items-center flex-1 justify-end">
+                         <div className="w-full h-32 mb-4">
+                           <ResponsiveContainer width="100%" height="100%">
+                             <PieChart>
+                               <Pie data={[
+                                 { name: 'Pendientes', value: ultimaFicha.motosPendientesFdl ?? 0, color: '#FFCD00' },
+                                 { name: 'En almacén', value: ultimaFicha.motosAlmacenFdl ?? 0, color: '#9ca3af' }
+                               ]} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value" stroke="none">
+                                 {[
+                                 { name: 'Pendientes', value: ultimaFicha.motosPendientesFdl ?? 0, color: '#FFCD00' },
+                                 { name: 'En almacén', value: ultimaFicha.motosAlmacenFdl ?? 0, color: '#9ca3af' }
+                                 ].map((e, i) => <Cell key={i} fill={e.color} />)}
+                               </Pie>
+                             </PieChart>
+                           </ResponsiveContainer>
+                         </div>
+                         <div className="flex justify-around w-full mt-2 gap-2 text-center">
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-500 leading-tight">Pendientes<br/>FDL</span>
+                               <span className="text-xl font-black text-[#FFCD00]">{ultimaFicha.motosPendientesFdl}</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-500 leading-tight">En almacén<br/>FDL</span>
+                               <span className="text-xl font-black text-gray-500">{ultimaFicha.motosAlmacenFdl}</span>
+                            </div>
+                         </div>
+                      </div>
                    </div>
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#d1d5db] text-gray-700 px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosAlmacenFdl}</div>
-                      <span className="text-sm font-medium leading-tight">Motos en almacén<br/>FDL</span>
-                   </div>
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#7f1d1d] text-white px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosEntregadas}</div>
-                      <span className="text-sm font-medium leading-tight">Motos entregadas</span>
-                   </div>
-                </div>
-                <div className="w-48 h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={convivenciaData} innerRadius={40} outerRadius={70} paddingAngle={0} dataKey="value" stroke="none">
-                        {convivenciaData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
                 </div>
              </div>
              {ultimaFicha.alertaConvivencia && (
@@ -389,17 +456,17 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
                 Actuaciones
              </h3>
-             <div className="bg-[#facc15] p-4 m-4 rounded-xl shadow-inner border border-yellow-500">
+             <div className="bg-white p-4 m-4 rounded-xl shadow-sm border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    
                    {/* Columna Archivos */}
-                   <div className="flex flex-col bg-white/20 p-4 rounded-xl shadow-sm border border-yellow-400">
+                   <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center mb-4 text-gray-800">
                         Archivos
                       </div>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
-                         <div className="w-full h-24 mb-4">
+                         <div className="relative w-full h-24 mb-4">
                            <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
                                <Pie data={archData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
@@ -407,26 +474,36 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
+                           {ultimaFicha.metaArchivos !== undefined && ultimaFicha.metaArchivos !== null && (
+                             <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                                <div className="absolute border-t-2 border-red-500 border-dashed w-[60px] origin-right" style={{
+                                   top: '100%', left: 'calc(50% - 60px)', transform: `rotate(${180 - (Math.min(100, ultimaFicha.metaArchivos) * 180 / 100)}deg)`
+                                }}></div>
+                             </div>
+                           )}
                          </div>
                          <div className="relative w-full mt-2">
-                           <div className="text-xs text-white font-medium text-center bg-[#ca8a04] px-2 py-3 rounded-lg shadow-inner w-full border border-yellow-600 leading-tight">
+                           <div className="text-xs text-white font-medium text-center bg-[#dc2626] px-2 py-3 rounded-lg shadow-inner w-full border border-red-800 leading-tight">
                              Meta 11 anual:<br/><span className="text-sm font-bold">{ultimaFicha.metaArchivos?.toLocaleString('es-CO')}</span>
                            </div>
                            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                               <span className="text-white font-bold text-lg bg-[#dc2626] px-3 py-1 rounded-md shadow-md border border-red-800">{archVal}%</span>
                            </div>
                          </div>
+                         {ultimaFicha.metaArchivos !== undefined && ultimaFicha.metaArchivos !== null && (
+                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaArchivos}% programados</span>
+                         )}
                       </div>
                    </div>
 
                    {/* Columna Fallos */}
-                   <div className="flex flex-col bg-white/20 p-4 rounded-xl shadow-sm border border-yellow-400">
+                   <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center leading-tight mb-4 text-gray-800">
                         Fallos 1° estancia
                       </div>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
-                         <div className="w-full h-24 mb-4">
+                         <div className="relative w-full h-24 mb-4">
                            <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
                                <Pie data={fallosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
@@ -434,15 +511,25 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
+                           {ultimaFicha.metaFallos !== undefined && ultimaFicha.metaFallos !== null && (
+                             <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                                <div className="absolute border-t-2 border-red-500 border-dashed w-[60px] origin-right" style={{
+                                   top: '100%', left: 'calc(50% - 60px)', transform: `rotate(${180 - (Math.min(100, ultimaFicha.metaFallos) * 180 / 100)}deg)`
+                                }}></div>
+                             </div>
+                           )}
                          </div>
                          <div className="relative w-full mt-2">
-                           <div className="text-xs text-white font-medium text-center bg-[#ca8a04] px-2 py-3 rounded-lg shadow-inner w-full border border-yellow-600 leading-tight">
+                           <div className="text-xs text-gray-800 font-medium text-center bg-[#FFCD00] px-2 py-3 rounded-lg shadow-inner w-full border border-yellow-600 leading-tight">
                              Meta 12 anual:<br/><span className="text-sm font-bold">{ultimaFicha.metaFallos?.toLocaleString('es-CO')}</span>
                            </div>
                            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                               <span className="text-gray-900 font-bold text-lg bg-[#FFCD00] px-3 py-1 rounded-md shadow-md border border-yellow-600">{fallosVal}%</span>
                            </div>
                          </div>
+                         {ultimaFicha.metaFallos !== undefined && ultimaFicha.metaFallos !== null && (
+                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaFallos}% programados</span>
+                         )}
                       </div>
                    </div>
 

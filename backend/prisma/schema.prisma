@@ -326,7 +326,9 @@ model FichaResultados {
   periodo                  DateTime @unique // fecha de corte del reporte
   // Ejecución presupuestal
   compromisosPct           Float?
+  metaCompromisosPct       Float?
   girosPct                 Float?
+  metaGirosPct             Float?
   procesosMonitoreados     Int?
   procesosRequierenComite  Int?
   alertaEjecucion          String?  @db.Text

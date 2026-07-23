@@ -71,7 +71,9 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
     const fields = {
       periodo: periodoDate,
       compromisosPct: data.compromisosPct ?? null,
+      metaCompromisosPct: data.metaCompromisosPct ?? null,
       girosPct: data.girosPct ?? null,
+      metaGirosPct: data.metaGirosPct ?? null,
       procesosMonitoreados: data.procesosMonitoreados ?? null,
       procesosRequierenComite: data.procesosRequierenComite ?? null,
       alertaEjecucion: data.alertaEjecucion ?? null,

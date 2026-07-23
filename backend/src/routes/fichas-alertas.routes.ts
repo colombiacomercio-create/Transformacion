@@ -119,11 +119,16 @@ router.post('/:id/actualizaciones', azureADAuth, async (req: AuthRequest, res) =
   const { comentario, urlArchivo } = req.body;
   try {
      const alerta = await prisma.fichaAlerta.findUnique({ where: { id: req.params.id } });
-     if (!alerta) return res.status(404).json({ error: 'No encontrada' });
+     if (!alerta) return res.status(404).json({ message: 'No encontrada' });
 
      // Si es observador, validar que esté en correosResponsables
-     if (req.user!.rol === 'OBSERVADOR' && !alerta.correosResponsables.includes(req.user!.email)) {
-        return res.status(403).json({ error: 'No autorizado para actualizar esta alerta' });
+     if (req.user!.rol === 'OBSERVADOR') {
+        const emailUsuario = req.user!.email.toLowerCase();
+        const correosAutorizados = (alerta.correosResponsables || []).map((e: string) => e.toLowerCase());
+
+        if (!correosAutorizados.includes(emailUsuario)) {
+           return res.status(403).json({ message: 'No autorizado para actualizar esta alerta' });
+        }
      }
 
      const actualizacion = await prisma.actualizacionAlerta.create({
@@ -137,7 +142,8 @@ router.post('/:id/actualizaciones', azureADAuth, async (req: AuthRequest, res) =
      });
      res.json(actualizacion);
   } catch (error) {
-     res.status(500).json({ error: 'Error agregando actualización' });
+     console.error("Error agregando actualización:", error);
+     res.status(500).json({ message: 'Error agregando actualización' });
   }
 });
 

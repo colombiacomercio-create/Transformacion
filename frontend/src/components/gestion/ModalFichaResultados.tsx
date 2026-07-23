@@ -10,7 +10,9 @@ const SECCIONES = [
     id: 'ejecucion', titulo: 'Ejecución del Plan de Desarrollo',
     campos: [
       { key: 'compromisosPct', label: 'Avance Pct %', type: 'number', step: '0.1' },
+      { key: 'metaCompromisosPct', label: 'Meta Compromisos %', type: 'number', step: '0.1' },
       { key: 'girosPct', label: 'Giros Pct %', type: 'number', step: '0.1' },
+      { key: 'metaGirosPct', label: 'Meta Giros %', type: 'number', step: '0.1' },
       { key: 'procesosMonitoreados', label: 'Procesos Monitoreados', type: 'number' },
       { key: 'procesosRequierenComite', label: 'Procesos requieren comité', type: 'number' },
       { key: 'alertaEjecucion', label: 'Texto de alerta (opcional)', type: 'textarea' },
