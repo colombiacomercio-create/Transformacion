@@ -123,7 +123,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               <div className="bg-transparent border border-white/40 rounded-xl p-4 mb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col items-center relative">
-                    <div className="bg-white text-gray-800 text-sm font-bold rounded-full relative top-3 z-10 border shadow-sm" style={{ height: '30px', lineHeight: '28px', width: '130px', textAlign: 'center' }}>Compromisos</div>
+                    <div className="bg-white text-gray-800 font-bold rounded-full relative top-3 z-10 border shadow-sm w-36 h-10 text-center pt-2 text-base mx-auto">Compromisos</div>
                     <div className="relative h-48 w-full mt-4 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -147,7 +147,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   </div>
                   
                   <div className="flex flex-col items-center relative">
-                    <div className="bg-white text-gray-800 text-sm font-bold rounded-full relative top-3 z-10 border shadow-sm" style={{ height: '30px', lineHeight: '28px', width: '130px', textAlign: 'center' }}>Giros</div>
+                    <div className="bg-white text-gray-800 font-bold rounded-full relative top-3 z-10 border shadow-sm w-36 h-10 text-center pt-2 text-base mx-auto">Giros</div>
                     <div className="relative h-48 w-full mt-4 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -241,21 +241,21 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 Convivencia y seguridad
              </h3>
              <div className="bg-white p-4 flex items-center">
-                <div className="flex-1 space-y-3">
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#dc2626] text-white flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosContratadas}</div>
+                <div className="flex-1 space-y-4">
+                   <div className="flex gap-3 items-center">
+                      <div className="bg-[#dc2626] text-white font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosContratadas}</div>
                       <span className="text-sm font-medium leading-tight">Motos<br/>Contratadas</span>
                    </div>
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#FFCD00] text-white flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosPendientesFdl}</div>
+                   <div className="flex gap-3 items-center">
+                      <div className="bg-[#FFCD00] text-white font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosPendientesFdl}</div>
                       <span className="text-sm font-medium leading-tight">Motos<br/>Pendientes FDL</span>
                    </div>
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#d1d5db] text-gray-700 flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosAlmacenFdl}</div>
+                   <div className="flex gap-3 items-center">
+                      <div className="bg-[#d1d5db] text-gray-700 font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosAlmacenFdl}</div>
                       <span className="text-sm font-medium leading-tight">Motos en almacén<br/>FDL</span>
                    </div>
-                   <div className="flex gap-2 items-center">
-                      <div className="bg-[#7f1d1d] text-white flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosEntregadas}</div>
+                   <div className="flex gap-3 items-center">
+                      <div className="bg-[#7f1d1d] text-white font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosEntregadas}</div>
                       <span className="text-sm font-medium leading-tight">Motos entregadas</span>
                    </div>
                 </div>
@@ -443,7 +443,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                    
                    {/* Columna Archivos */}
                    <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded shadow-sm font-bold text-sm w-full mb-4 text-gray-800" style={{ height: '36px', lineHeight: '36px', textAlign: 'center' }}>
+                      <div className="bg-white rounded shadow-sm font-bold text-base w-full mb-4 text-gray-800 text-center h-10 pt-2 mx-auto">
                         Archivos
                       </div>
                       
@@ -478,7 +478,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
                    {/* Columna Fallos */}
                    <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded shadow-sm font-bold text-sm w-full mb-4 text-gray-800" style={{ height: '36px', lineHeight: '36px', textAlign: 'center' }}>
+                      <div className="bg-white rounded shadow-sm font-bold text-base w-full mb-4 text-gray-800 text-center h-10 pt-2 mx-auto">
                         Fallos 1ª estancia
                       </div>
                       
