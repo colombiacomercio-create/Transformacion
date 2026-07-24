@@ -10,16 +10,23 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   const renderNeedle = (pct: number, radius: number = 60) => {
     const safePct = Math.min(100, Math.max(0, pct));
     const angleDeg = 180 - (safePct * 180 / 100);
-    const angleRad = (angleDeg * Math.PI) / 180;
+    // CSS rotation: 0% = -90deg (left), 50% = 0deg (up), 100% = 90deg (right)
+    const rotateDeg = (safePct * 180 / 100) - 90;
     const length = radius + 5;
-    const dx = (Math.cos(angleRad) * length).toFixed(4);
-    const dy = (Math.sin(angleRad) * length).toFixed(4);
-    const x = `calc(50% + ${dx}px)`;
-    const y = `calc(100% - ${dy}px)`;
+    
     return (
-      <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-10">
-        <line x1="50%" y1="100%" x2={x} y2={y} stroke="red" strokeWidth="2" strokeDasharray="3 3" />
-      </svg>
+      <div 
+        className="absolute z-10"
+        style={{
+          bottom: 0,
+          left: '50%',
+          width: '2px',
+          height: `${length}px`,
+          transformOrigin: 'bottom center',
+          transform: `translateX(-50%) rotate(${rotateDeg}deg)`,
+          borderLeft: '2px dashed red'
+        }}
+      />
     );
   };
 
