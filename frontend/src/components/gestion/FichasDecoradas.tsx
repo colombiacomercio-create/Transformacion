@@ -233,149 +233,6 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             
           </div>
           
-          {/* CONVIVENCIA Y SEGURIDAD */}
-          <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
-             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
-                Convivencia y seguridad
-             </h3>
-             <div className="bg-white p-4 flex items-center">
-                <div className="flex-1 space-y-3">
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#dc2626]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">Contratadas</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosContratadas}</span>
-                     </div>
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#FFCD00]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">Pendientes FDL</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosPendientesFdl}</span>
-                     </div>
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#d1d5db]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">En almacén</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosAlmacenFdl}</span>
-                     </div>
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#7f1d1d]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">Entregadas</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosEntregadas}</span>
-                     </div>
-                  </div>
-                <div className="w-48 h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={convivenciaData} innerRadius={40} outerRadius={70} paddingAngle={0} dataKey="value" stroke="none">
-                        {convivenciaData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-             </div>
-             {ultimaFicha.alertaConvivencia && (
-                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
-                  <strong>Alertas:</strong> {ultimaFicha.alertaConvivencia}
-                </div>
-             )}
-             
-          </div>
-          
-          {/* ROLLOS LEGENDARIOS */}
-          <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
-             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
-                Rollos legendarios
-             </h3>
-             <div className="bg-white p-6 flex items-center justify-around">
-                <div className="w-40 h-40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={rollosData} innerRadius={35} outerRadius={65} paddingAngle={0} dataKey="value" stroke="none">
-                        {rollosData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex flex-col gap-4">
-                   <div>
-                     <span className="text-sm font-bold text-gray-800 block">Resueltos</span>
-                     <span className="text-5xl font-black text-[#e3182d]">{ultimaFicha.rollosResueltos}</span>
-                   </div>
-                   <div>
-                     <span className="text-sm font-bold text-gray-800 block">En curso</span>
-                     <span className="text-4xl font-black text-black">{ultimaFicha.rollosEnCurso}</span>
-                   </div>
-                </div>
-             </div>
-             {ultimaFicha.alertaRollos && (
-                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
-                  <strong>Alerta:</strong> {ultimaFicha.alertaRollos}
-                </div>
-             )}
-             
-          </div>
-        </div>
-
-        {/* COLUMNA DERECHA */}
-        <div className="space-y-6">
-          
-          {/* OBRAS LOCALES */}
-          <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
-             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
-                Obras locales
-             </h3>
-             <div className="bg-white p-6 pb-2">
-                <div className="flex flex-col gap-4">
-                   <div className="flex items-center justify-between border-b pb-3">
-                      <span className="text-lg text-gray-600 font-medium">Meta de<br/>obras</span>
-                      <div className="flex-1 mx-4 flex items-center">
-                         <div className="h-[2px] w-full bg-[#e3182d]"></div>
-                         <div className="w-3 h-3 bg-[#e3182d]"></div>
-                      </div>
-                      <span className="text-4xl font-black text-[#e3182d]">{ultimaFicha.metaObras?.toLocaleString('es-CO') ?? 0}</span>
-                   </div>
-                   <div className="flex items-center justify-between border-b pb-3">
-                      <span className="text-lg text-gray-600 font-medium">Intervenciones<br/>finalizadas</span>
-                      <div className="flex-1 mx-4 flex items-center">
-                         <div className="h-[2px] w-full bg-[#e3182d]"></div>
-                         <div className="w-3 h-3 bg-[#e3182d]"></div>
-                      </div>
-                      <span className="text-4xl font-black text-[#e3182d]">{ultimaFicha.intervencionesFinalizadas ?? 0}</span>
-                   </div>
-                   <div className="flex items-center justify-between border-b pb-3">
-                      <span className="text-lg text-gray-600 font-medium">Km carril<br/>intervenido</span>
-                      <div className="flex-1 mx-4 flex items-center">
-                         <div className="h-[2px] w-full bg-[#e3182d]"></div>
-                         <div className="w-3 h-3 bg-[#e3182d]"></div>
-                      </div>
-                      <span className="text-4xl font-black text-[#e3182d]">{ultimaFicha.kmCarrilIntervenido ?? 0}</span>
-                   </div>
-                   <div className="flex items-center justify-between pb-3">
-                      <span className="text-lg text-gray-600 font-medium">m²<br/>intervenidos</span>
-                      <div className="flex-1 mx-4 flex items-center">
-                         <div className="h-[4px] w-full bg-[#e3182d]"></div>
-                         <div className="w-4 h-4 bg-[#e3182d]"></div>
-                      </div>
-                      <span className="text-5xl font-black text-[#e3182d]">{ultimaFicha.kmIntervenidos?.toLocaleString('es-CO') ?? 0}</span>
-                   </div>
-                </div>
-             </div>
-             {ultimaFicha.alertaObras && (
-                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
-                  <strong>Alertas:</strong> {ultimaFicha.alertaObras}
-                </div>
-             )}
-             
-          </div>
-
           {/* ESPACIO PÚBLICO - RESIDUOS */}
           <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
@@ -400,44 +257,6 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               {ultimaFicha.alertaEspacioResiduos && (
                 <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
                   <strong>Alertas:</strong> {ultimaFicha.alertaEspacioResiduos}
-                </div>
-              )}
-              
-           </div>
-
-           <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
-             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
-                Organización y Recuperación Espacio Público
-             </h3>
-             <div className="bg-white p-6 flex items-center justify-between relative h-64">
-                <div className="absolute top-4 left-[40%] transform -translate-x-1/2 text-xs font-bold text-gray-800">Org parqueo <span className="block text-center">{orgParqueo}</span></div>
-                <div className="absolute bottom-4 left-[40%] transform -translate-x-1/2 text-xs font-bold text-gray-800">Venta informal <span className="block text-center">{ventaInformal}</span></div>
-                
-                <div className="w-48 h-48 absolute left-[15%]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={espacioData} innerRadius={0} outerRadius={70} paddingAngle={0} dataKey="value" stroke="none">
-                        {espacioData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="flex flex-col gap-6 items-end w-full pl-48 z-10">
-                   <div className="text-right">
-                      <span className="text-5xl font-black text-[#e3182d] block leading-none">{ultimaFicha.puntosIntervenidos ?? 0}</span>
-                      <span className="text-lg text-gray-600 leading-tight block">Intervenciones<br/>reportadas</span>
-                   </div>
-                   <div className="text-right mt-2">
-                      <span className="text-lg font-bold text-gray-700 block">{ultimaFicha.m2RecuperadosInformal?.toLocaleString('es-CO') ?? 0} m² recuperados</span>
-                      <span className="text-lg font-bold text-gray-700 block">{ultimaFicha.personasReubicadas?.toLocaleString('es-CO') ?? 0} personas reubicadas</span>
-                   </div>
-                </div>
-             </div>
-             {ultimaFicha.alertaEspacioVenta && (
-                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
-                  <strong>Alertas:</strong> {ultimaFicha.alertaEspacioVenta}
                 </div>
               )}
               
@@ -530,7 +349,6 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               )}
               
           </div>
-
           {/* ESTRATEGIAS DE MEMORIA */}
           <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
@@ -565,6 +383,188 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
              )}
              
           </div>
+
+        </div>
+
+        {/* COLUMNA DERECHA */}
+        <div className="space-y-6">
+
+          {/* OBRAS LOCALES */}
+          <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
+             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
+                Obras locales
+             </h3>
+             <div className="bg-white p-6 pb-2">
+                <div className="flex flex-col gap-4">
+                   <div className="flex items-center justify-between border-b pb-3">
+                      <span className="text-lg text-gray-600 font-medium">Meta de<br/>obras</span>
+                      <div className="flex-1 mx-4 flex items-center">
+                         <div className="h-[2px] w-full bg-[#e3182d]"></div>
+                         <div className="w-3 h-3 bg-[#e3182d]"></div>
+                      </div>
+                      <span className="text-4xl font-black text-[#e3182d]">{ultimaFicha.metaObras?.toLocaleString('es-CO') ?? 0}</span>
+                   </div>
+                   <div className="flex items-center justify-between border-b pb-3">
+                      <span className="text-lg text-gray-600 font-medium">Intervenciones<br/>finalizadas</span>
+                      <div className="flex-1 mx-4 flex items-center">
+                         <div className="h-[2px] w-full bg-[#e3182d]"></div>
+                         <div className="w-3 h-3 bg-[#e3182d]"></div>
+                      </div>
+                      <span className="text-4xl font-black text-[#e3182d]">{ultimaFicha.intervencionesFinalizadas ?? 0}</span>
+                   </div>
+                   <div className="flex items-center justify-between border-b pb-3">
+                      <span className="text-lg text-gray-600 font-medium">Km carril<br/>intervenido</span>
+                      <div className="flex-1 mx-4 flex items-center">
+                         <div className="h-[2px] w-full bg-[#e3182d]"></div>
+                         <div className="w-3 h-3 bg-[#e3182d]"></div>
+                      </div>
+                      <span className="text-4xl font-black text-[#e3182d]">{ultimaFicha.kmCarrilIntervenido ?? 0}</span>
+                   </div>
+                   <div className="flex items-center justify-between pb-3">
+                      <span className="text-lg text-gray-600 font-medium">m²<br/>intervenidos</span>
+                      <div className="flex-1 mx-4 flex items-center">
+                         <div className="h-[4px] w-full bg-[#e3182d]"></div>
+                         <div className="w-4 h-4 bg-[#e3182d]"></div>
+                      </div>
+                      <span className="text-5xl font-black text-[#e3182d]">{ultimaFicha.kmIntervenidos?.toLocaleString('es-CO') ?? 0}</span>
+                   </div>
+                </div>
+             </div>
+             {ultimaFicha.alertaObras && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alertas:</strong> {ultimaFicha.alertaObras}
+                </div>
+             )}
+             
+          </div>
+
+          {/* ROLLOS LEGENDARIOS */}
+          <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
+             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
+                Rollos legendarios
+             </h3>
+             <div className="bg-white p-6 flex items-center justify-around">
+                <div className="w-40 h-40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={rollosData} innerRadius={35} outerRadius={65} paddingAngle={0} dataKey="value" stroke="none">
+                        {rollosData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-col gap-4">
+                   <div>
+                     <span className="text-sm font-bold text-gray-800 block">Resueltos</span>
+                     <span className="text-5xl font-black text-[#e3182d]">{ultimaFicha.rollosResueltos}</span>
+                   </div>
+                   <div>
+                     <span className="text-sm font-bold text-gray-800 block">En curso</span>
+                     <span className="text-4xl font-black text-black">{ultimaFicha.rollosEnCurso}</span>
+                   </div>
+                </div>
+             </div>
+             {ultimaFicha.alertaRollos && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alerta:</strong> {ultimaFicha.alertaRollos}
+                </div>
+             )}
+             
+          </div>
+           <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
+             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
+                Organización y Recuperación Espacio Público
+             </h3>
+             <div className="bg-white p-6 flex items-center justify-between relative h-64">
+                <div className="absolute top-4 left-[40%] transform -translate-x-1/2 text-xs font-bold text-gray-800">Org parqueo <span className="block text-center">{orgParqueo}</span></div>
+                <div className="absolute bottom-4 left-[40%] transform -translate-x-1/2 text-xs font-bold text-gray-800">Venta informal <span className="block text-center">{ventaInformal}</span></div>
+                
+                <div className="w-48 h-48 absolute left-[15%]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={espacioData} innerRadius={0} outerRadius={70} paddingAngle={0} dataKey="value" stroke="none">
+                        {espacioData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="flex flex-col gap-6 items-end w-full pl-48 z-10">
+                   <div className="text-right">
+                      <span className="text-5xl font-black text-[#e3182d] block leading-none">{ultimaFicha.puntosIntervenidos ?? 0}</span>
+                      <span className="text-lg text-gray-600 leading-tight block">Intervenciones<br/>reportadas</span>
+                   </div>
+                   <div className="text-right mt-2">
+                      <span className="text-lg font-bold text-gray-700 block">{ultimaFicha.m2RecuperadosInformal?.toLocaleString('es-CO') ?? 0} m² recuperados</span>
+                      <span className="text-lg font-bold text-gray-700 block">{ultimaFicha.personasReubicadas?.toLocaleString('es-CO') ?? 0} personas reubicadas</span>
+                   </div>
+                </div>
+             </div>
+             {ultimaFicha.alertaEspacioVenta && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alertas:</strong> {ultimaFicha.alertaEspacioVenta}
+                </div>
+              )}
+              
+           </div>
+
+          {/* CONVIVENCIA Y SEGURIDAD */}
+          <div className="bg-[#e3182d] rounded-xl overflow-hidden shadow-sm">
+             <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
+                Convivencia y seguridad
+             </h3>
+             <div className="bg-white p-4 flex items-center">
+                <div className="flex-1 space-y-3">
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#dc2626]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">Contratadas</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosContratadas}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#FFCD00]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">Pendientes FDL</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosPendientesFdl}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#d1d5db]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">En almacén</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosAlmacenFdl}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#7f1d1d]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">Entregadas</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosEntregadas}</span>
+                     </div>
+                  </div>
+                <div className="w-48 h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={convivenciaData} innerRadius={40} outerRadius={70} paddingAngle={0} dataKey="value" stroke="none">
+                        {convivenciaData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+             </div>
+             {ultimaFicha.alertaConvivencia && (
+                <div className="bg-gray-100 p-3 text-xs text-gray-800 mx-4 mb-4 rounded border">
+                  <strong>Alertas:</strong> {ultimaFicha.alertaConvivencia}
+                </div>
+             )}
+             
+          </div>
+          
         </div>
       </div>
     </div>
