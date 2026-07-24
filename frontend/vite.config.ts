@@ -6,5 +6,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     minify: 'esbuild',
+    rollupOptions: {
+      external: [
+        /^core-js\/modules\/.*/
+      ]
+    }
   }
 })
