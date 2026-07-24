@@ -61,8 +61,11 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   ];
 
   // Convivencia
-    const convivenciaData = [
-    { name: 'Entregadas a la Policia (2025)', value: ultimaFicha.motosEntregadasPolicia ?? 0, color: '#16a34a' },
+    const motosPoliciaCalculado = (ultimaFicha.motosContratadas || 337) - ((ultimaFicha.motosEntregadas || 0) + (ultimaFicha.motosAlmacenFdl || 0) + (ultimaFicha.motosPendientesFdl || 0));
+  const finalMotosPolicia = ultimaFicha.motosEntregadasPolicia ?? motosPoliciaCalculado;
+
+  const convivenciaData = [
+    { name: 'Entregadas a la Policia (2025)', value: finalMotosPolicia, color: '#16a34a' },
     { name: 'Entregadas a SDSCJ (2026)', value: ultimaFicha.motosEntregadas ?? 0, color: '#facc15' },
     { name: 'En almacen FDL', value: ultimaFicha.motosAlmacenFdl ?? 0, color: '#ca8a04' },
     { name: 'Pendientes entrega FDL', value: ultimaFicha.motosPendientesFdl ?? 0, color: '#dc2626' },
@@ -526,7 +529,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                              <div className="w-3 h-3 rounded-full bg-[#16a34a]"></div>
                              <span className="text-xs font-medium leading-tight text-gray-700">Entregadas a la Policia (2025)</span>
                           </div>
-                          <span className="font-black text-sm text-gray-900">{ultimaFicha.motosEntregadasPolicia}</span>
+                          <span className="font-black text-sm text-gray-900">{finalMotosPolicia}</span>
                        </div>
                        <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
                           <div className="flex items-center gap-2">
