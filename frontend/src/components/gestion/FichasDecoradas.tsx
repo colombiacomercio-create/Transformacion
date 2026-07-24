@@ -140,7 +140,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                           <span className="text-xl font-black text-[#FFCD00] leading-none">{compromisosVal}%</span>
                        </div>
                        <div className="flex flex-col items-center">
-                          <span className="text-xs font-bold text-white mb-1">Meta</span>
+                          <span className="text-xs font-bold text-white mb-1">Programado</span>
                           <span className="text-xl font-black text-white leading-none">{ultimaFicha.metaCompromisosPct ?? 0}%</span>
                        </div>
                     </div>
@@ -164,7 +164,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                           <span className="text-xl font-black text-[#9ca3af] leading-none">{girosVal}%</span>
                        </div>
                        <div className="flex flex-col items-center">
-                          <span className="text-xs font-bold text-white mb-1">Meta</span>
+                          <span className="text-xs font-bold text-white mb-1">Programado</span>
                           <span className="text-xl font-black text-white leading-none">{ultimaFicha.metaGirosPct ?? 0}%</span>
                        </div>
                     </div>
@@ -475,7 +475,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                                <span className="text-xl font-black text-[#dc2626] leading-none">{archVal}%</span>
                             </div>
                             <div className="flex flex-col items-center">
-                               <span className="text-xs font-bold text-gray-800 mb-1">Meta</span>
+                               <span className="text-xs font-bold text-gray-800 mb-1">Programado</span>
                                <span className="text-xl font-black text-gray-800 leading-none">{ultimaFicha.metaArchivosPct ?? 0}%</span>
                             </div>
                          </div>
@@ -510,7 +510,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                                <span className="text-xl font-black text-[#FFCD00] leading-none">{fallosVal}%</span>
                             </div>
                             <div className="flex flex-col items-center">
-                               <span className="text-xs font-bold text-gray-800 mb-1">Meta</span>
+                               <span className="text-xs font-bold text-gray-800 mb-1">Programado</span>
                                <span className="text-xl font-black text-gray-800 leading-none">{ultimaFicha.metaFallosPct ?? 0}%</span>
                             </div>
                          </div>
