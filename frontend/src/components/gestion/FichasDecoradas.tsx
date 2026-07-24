@@ -123,8 +123,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               <div className="bg-transparent border border-white/40 rounded-xl p-4 mb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col items-center relative">
-                    <div className="bg-white text-gray-800 font-bold rounded-full relative top-3 z-10 border shadow-sm w-36 h-10 text-center pt-2 text-base mx-auto">Compromisos</div>
-                    <div className="relative h-48 w-full mt-4 mb-2">
+                    <div className="bg-white text-gray-800 font-bold rounded-full relative top-3 z-10 border shadow-sm w-36 py-2 text-center text-base mx-auto">Compromisos</div>
+                    <div className="relative h-28 w-full mt-2 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={compromisosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
@@ -147,8 +147,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   </div>
                   
                   <div className="flex flex-col items-center relative">
-                    <div className="bg-white text-gray-800 font-bold rounded-full relative top-3 z-10 border shadow-sm w-36 h-10 text-center pt-2 text-base mx-auto">Giros</div>
-                    <div className="relative h-48 w-full mt-4 mb-2">
+                    <div className="bg-white text-gray-800 font-bold rounded-full relative top-3 z-10 border shadow-sm w-36 py-2 text-center text-base mx-auto">Giros</div>
+                    <div className="relative h-28 w-full mt-2 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={girosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
@@ -194,7 +194,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   Comites de contratación
                 </h4>
                 <div className="p-4 flex flex-col items-center">
-                  <div className="relative h-48 w-full mb-2 mt-4">
+                  <div className="relative h-28 w-full mb-2 mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={comitesData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
@@ -243,19 +243,19 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
              <div className="bg-white p-4 flex items-center">
                 <div className="flex-1 space-y-4">
                    <div className="flex gap-3 items-center">
-                      <div className="bg-[#dc2626] text-white font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosContratadas}</div>
+                      <div className="bg-[#dc2626] text-white font-bold rounded w-14 py-1.5 text-center text-sm">{ultimaFicha.motosContratadas}</div>
                       <span className="text-sm font-medium leading-tight">Motos<br/>Contratadas</span>
                    </div>
                    <div className="flex gap-3 items-center">
-                      <div className="bg-[#FFCD00] text-white font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosPendientesFdl}</div>
+                      <div className="bg-[#FFCD00] text-white font-bold rounded w-14 py-1.5 text-center text-sm">{ultimaFicha.motosPendientesFdl}</div>
                       <span className="text-sm font-medium leading-tight">Motos<br/>Pendientes FDL</span>
                    </div>
                    <div className="flex gap-3 items-center">
-                      <div className="bg-[#d1d5db] text-gray-700 font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosAlmacenFdl}</div>
+                      <div className="bg-[#d1d5db] text-gray-700 font-bold rounded w-14 py-1.5 text-center text-sm">{ultimaFicha.motosAlmacenFdl}</div>
                       <span className="text-sm font-medium leading-tight">Motos en almacén<br/>FDL</span>
                    </div>
                    <div className="flex gap-3 items-center">
-                      <div className="bg-[#7f1d1d] text-white font-bold rounded w-14 h-8 text-center pt-1.5 text-sm">{ultimaFicha.motosEntregadas}</div>
+                      <div className="bg-[#7f1d1d] text-white font-bold rounded w-14 py-1.5 text-center text-sm">{ultimaFicha.motosEntregadas}</div>
                       <span className="text-sm font-medium leading-tight">Motos entregadas</span>
                    </div>
                 </div>
@@ -443,12 +443,12 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                    
                    {/* Columna Archivos */}
                    <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded shadow-sm font-bold text-base w-full mb-4 text-gray-800 text-center h-10 pt-2 mx-auto">
+                      <div className="bg-white rounded shadow-sm font-bold text-base w-full mb-4 text-gray-800 text-center py-2 mx-auto">
                         Archivos
                       </div>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
-                         <div className="relative w-full h-48 mt-4 mb-2">
+                         <div className="relative w-full h-28 mt-2 mb-2">
                            <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
                                <Pie data={archData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={0} dataKey="value" stroke="none">
@@ -478,12 +478,12 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
                    {/* Columna Fallos */}
                    <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded shadow-sm font-bold text-base w-full mb-4 text-gray-800 text-center h-10 pt-2 mx-auto">
+                      <div className="bg-white rounded shadow-sm font-bold text-base w-full mb-4 text-gray-800 text-center py-2 mx-auto">
                         Fallos 1ª estancia
                       </div>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
-                         <div className="relative w-full h-48 mt-4 mb-2">
+                         <div className="relative w-full h-28 mt-2 mb-2">
                            <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
                                <Pie data={fallosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={0} dataKey="value" stroke="none">
