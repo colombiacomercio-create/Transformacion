@@ -123,7 +123,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               <div className="bg-transparent border border-white/40 rounded-xl p-4 mb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col items-center relative">
-                    <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full relative top-3 z-10 border shadow-sm text-center">Compromisos</span>
+                    <div className="bg-white text-gray-800 text-sm font-bold rounded-full relative top-3 z-10 border shadow-sm" style={{ height: '30px', lineHeight: '28px', width: '130px', textAlign: 'center' }}>Compromisos</div>
                     <div className="relative h-48 w-full mt-4 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -147,7 +147,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   </div>
                   
                   <div className="flex flex-col items-center relative">
-                    <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full relative top-3 z-10 border shadow-sm text-center">Giros</span>
+                    <div className="bg-white text-gray-800 text-sm font-bold rounded-full relative top-3 z-10 border shadow-sm" style={{ height: '30px', lineHeight: '28px', width: '130px', textAlign: 'center' }}>Giros</div>
                     <div className="relative h-48 w-full mt-4 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -443,7 +443,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                    
                    {/* Columna Archivos */}
                    <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center mb-4 text-gray-800">
+                      <div className="bg-white rounded shadow-sm font-bold text-sm w-full mb-4 text-gray-800" style={{ height: '36px', lineHeight: '36px', textAlign: 'center' }}>
                         Archivos
                       </div>
                       
@@ -478,7 +478,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
                    {/* Columna Fallos */}
                    <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center leading-tight mb-4 text-gray-800">
+                      <div className="bg-white rounded shadow-sm font-bold text-sm w-full mb-4 text-gray-800" style={{ height: '36px', lineHeight: '36px', textAlign: 'center' }}>
                         Fallos 1ª estancia
                       </div>
                       
