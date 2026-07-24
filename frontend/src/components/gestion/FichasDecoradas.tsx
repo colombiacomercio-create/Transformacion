@@ -123,9 +123,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               <div className="bg-transparent border border-white/40 rounded-xl p-4 mb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col items-center relative">
-                    <div className="bg-white rounded-full relative top-3 z-10 border shadow-sm mx-auto overflow-hidden" style={{ display: 'table', width: '144px', height: '40px' }}>
-                      <span className="text-gray-800 font-bold text-base" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>Compromisos</span>
-                    </div>
+                    <h4 className="text-white font-black text-lg uppercase tracking-wider text-center drop-shadow-sm mt-2">Compromisos</h4>
                     <div className="relative h-28 w-full mt-2 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -149,9 +147,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   </div>
                   
                   <div className="flex flex-col items-center relative">
-                    <div className="bg-white rounded-full relative top-3 z-10 border shadow-sm mx-auto overflow-hidden" style={{ display: 'table', width: '144px', height: '40px' }}>
-                      <span className="text-gray-800 font-bold text-base" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>Giros</span>
-                    </div>
+                    <h4 className="text-white font-black text-lg uppercase tracking-wider text-center drop-shadow-sm mt-2">Giros</h4>
                     <div className="relative h-28 w-full mt-2 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -176,10 +172,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 </div>
 
                 <div className="border-t border-white/40 mt-6 pt-4 relative">
-                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full border shadow-sm text-center">
-                     Procesos contractuales
-                   </div>
-                   <div className="flex justify-between items-end mt-6 text-white text-center">
+                     <h4 className="text-white font-bold text-sm uppercase tracking-wider text-center mb-4">Procesos contractuales</h4>
+                     <div className="flex justify-between items-end text-white text-center">
                       <div className="flex-1">
                          <span className="text-xs font-bold block mb-1">Monitoreados</span>
                          <span className="text-4xl font-black">{ultimaFicha.procesosMonitoreados ?? 0}</span>
@@ -245,32 +239,36 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 Convivencia y seguridad
              </h3>
              <div className="bg-white p-4 flex items-center">
-                <div className="flex-1 space-y-4">
-                   <div className="flex gap-3 items-center">
-                      <div className="bg-[#dc2626] rounded overflow-hidden" style={{ display: 'table', width: '56px', height: '32px' }}>
-                        <span className="text-white font-bold text-sm" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>{ultimaFicha.motosContratadas}</span>
-                      </div>
-                      <span className="text-sm font-medium leading-tight">Motos<br/>Contratadas</span>
-                   </div>
-                   <div className="flex gap-3 items-center">
-                      <div className="bg-[#FFCD00] rounded overflow-hidden" style={{ display: 'table', width: '56px', height: '32px' }}>
-                        <span className="text-white font-bold text-sm" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>{ultimaFicha.motosPendientesFdl}</span>
-                      </div>
-                      <span className="text-sm font-medium leading-tight">Motos<br/>Pendientes FDL</span>
-                   </div>
-                   <div className="flex gap-3 items-center">
-                      <div className="bg-[#d1d5db] rounded overflow-hidden" style={{ display: 'table', width: '56px', height: '32px' }}>
-                        <span className="text-gray-700 font-bold text-sm" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>{ultimaFicha.motosAlmacenFdl}</span>
-                      </div>
-                      <span className="text-sm font-medium leading-tight">Motos en almacén<br/>FDL</span>
-                   </div>
-                   <div className="flex gap-3 items-center">
-                      <div className="bg-[#7f1d1d] rounded overflow-hidden" style={{ display: 'table', width: '56px', height: '32px' }}>
-                        <span className="text-white font-bold text-sm" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>{ultimaFicha.motosEntregadas}</span>
-                      </div>
-                      <span className="text-sm font-medium leading-tight">Motos entregadas</span>
-                   </div>
-                </div>
+                <div className="flex-1 space-y-3">
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#dc2626]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">Contratadas</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosContratadas}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#FFCD00]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">Pendientes FDL</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosPendientesFdl}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#d1d5db]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">En almacén</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosAlmacenFdl}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full bg-[#7f1d1d]"></div>
+                           <span className="text-sm font-medium leading-tight text-gray-700">Entregadas</span>
+                        </div>
+                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosEntregadas}</span>
+                     </div>
+                  </div>
                 <div className="w-48 h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -454,10 +452,10 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    
                    {/* Columna Archivos */}
-                   <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded shadow-sm w-full mb-4 mx-auto overflow-hidden" style={{ display: 'table', height: '40px' }}>
-                        <span className="text-gray-800 font-bold text-base" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>Archivos</span>
-                      </div>
+                     <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
+                        <h4 className="text-gray-800 font-black text-lg uppercase tracking-wide text-center mb-2 border-b-2 border-gray-200 pb-2">
+                          Archivos
+                        </h4>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
                          <div className="relative w-full h-28 mt-2 mb-2">
@@ -489,10 +487,10 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                    </div>
 
                    {/* Columna Fallos */}
-                   <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-white rounded shadow-sm w-full mb-4 mx-auto overflow-hidden" style={{ display: 'table', height: '40px' }}>
-                        <span className="text-gray-800 font-bold text-base" style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>Fallos 1ª estancia</span>
-                      </div>
+                     <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
+                        <h4 className="text-gray-800 font-black text-lg uppercase tracking-wide text-center mb-2 border-b-2 border-gray-200 pb-2">
+                          Fallos 1ª estancia
+                        </h4>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
                          <div className="relative w-full h-28 mt-2 mb-2">
