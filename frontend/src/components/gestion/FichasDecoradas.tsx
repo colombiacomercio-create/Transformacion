@@ -61,11 +61,11 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   ];
 
   // Convivencia
-  const convivenciaData = [
-    { name: 'Motos Contratadas', value: ultimaFicha.motosContratadas ?? 0, color: '#dc2626' },
-    { name: 'Pendientes FDL', value: ultimaFicha.motosPendientesFdl ?? 0, color: '#FFCD00' },
-    { name: 'En almacén FDL', value: ultimaFicha.motosAlmacenFdl ?? 0, color: '#d1d5db' },
-    { name: 'Motos entregadas', value: ultimaFicha.motosEntregadas ?? 0, color: '#7f1d1d' },
+    const convivenciaData = [
+    { name: 'Entregadas Policía (2025)', value: ultimaFicha.motosEntregadasPolicia ?? 0, color: '#16a34a' },
+    { name: 'Entregadas SSCJ (2026)', value: ultimaFicha.motosEntregadas ?? 0, color: '#facc15' },
+    { name: 'Entregadas FDL (Almacén)', value: ultimaFicha.motosAlmacenFdl ?? 0, color: '#ca8a04' },
+    { name: 'En proceso FDL', value: ultimaFicha.motosPendientesFdl ?? 0, color: '#dc2626' },
   ];
 
   // Rollos legendarios
@@ -515,38 +515,42 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
              <h3 className="bg-[#e3182d] text-white text-center font-bold text-xl py-3 uppercase tracking-wide">
                 Convivencia y seguridad
              </h3>
-             <div className="bg-white p-4 flex items-center">
-                <div className="flex-1 space-y-3">
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#dc2626]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">Contratadas</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosContratadas}</span>
-                     </div>
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#FFCD00]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">Pendientes FDL</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosPendientesFdl}</span>
-                     </div>
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#d1d5db]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">En almacén</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosAlmacenFdl}</span>
-                     </div>
-                     <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#7f1d1d]"></div>
-                           <span className="text-sm font-medium leading-tight text-gray-700">Entregadas</span>
-                        </div>
-                        <span className="font-black text-lg text-gray-900">{ultimaFicha.motosEntregadas}</span>
-                     </div>
-                  </div>
-                <div className="w-48 h-48">
+                            <div className="bg-white p-4 flex items-center">
+                  <div className="flex-1 space-y-2">
+                       <div className="flex justify-between items-center px-2 py-1 mb-2 border-b-2 border-gray-100">
+                          <span className="font-bold text-gray-700">Total Motos Contratadas</span>
+                          <span className="font-black text-xl text-[#e3182d]">{ultimaFicha.motosContratadas}</span>
+                       </div>
+                       <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+                          <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 rounded-full bg-[#16a34a]"></div>
+                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas Policía (25)</span>
+                          </div>
+                          <span className="font-black text-sm text-gray-900">{ultimaFicha.motosEntregadasPolicia}</span>
+                       </div>
+                       <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+                          <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 rounded-full bg-[#facc15]"></div>
+                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas SSCJ (26)</span>
+                          </div>
+                          <span className="font-black text-sm text-gray-900">{ultimaFicha.motosEntregadas}</span>
+                       </div>
+                       <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+                          <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 rounded-full bg-[#ca8a04]"></div>
+                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas FDL</span>
+                          </div>
+                          <span className="font-black text-sm text-gray-900">{ultimaFicha.motosAlmacenFdl}</span>
+                       </div>
+                       <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+                          <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 rounded-full bg-[#dc2626]"></div>
+                             <span className="text-xs font-medium leading-tight text-gray-700">En proceso FDL</span>
+                          </div>
+                          <span className="font-black text-sm text-gray-900">{ultimaFicha.motosPendientesFdl}</span>
+                       </div>
+                    </div>
+                  <div className="w-48 h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={convivenciaData} innerRadius={40} outerRadius={70} paddingAngle={0} dataKey="value" stroke="none">

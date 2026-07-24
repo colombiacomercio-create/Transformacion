@@ -357,6 +357,7 @@ model FichaResultados {
   motosPendientesFdl       Int?
   motosAlmacenFdl          Int?
   motosEntregadas          Int?
+    motosEntregadasPolicia   Int?
   alertaConvivencia        String?  @db.Text
   // Actuaciones
   archivosPct              Float?
