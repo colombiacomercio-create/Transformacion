@@ -243,19 +243,19 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
              <div className="bg-white p-4 flex items-center">
                 <div className="flex-1 space-y-3">
                    <div className="flex gap-2 items-center">
-                      <div className="bg-[#dc2626] text-white px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosContratadas}</div>
+                      <div className="bg-[#dc2626] text-white flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosContratadas}</div>
                       <span className="text-sm font-medium leading-tight">Motos<br/>Contratadas</span>
                    </div>
                    <div className="flex gap-2 items-center">
-                      <div className="bg-[#FFCD00] text-white px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosPendientesFdl}</div>
+                      <div className="bg-[#FFCD00] text-white flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosPendientesFdl}</div>
                       <span className="text-sm font-medium leading-tight">Motos<br/>Pendientes FDL</span>
                    </div>
                    <div className="flex gap-2 items-center">
-                      <div className="bg-[#d1d5db] text-gray-700 px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosAlmacenFdl}</div>
+                      <div className="bg-[#d1d5db] text-gray-700 flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosAlmacenFdl}</div>
                       <span className="text-sm font-medium leading-tight">Motos en almacén<br/>FDL</span>
                    </div>
                    <div className="flex gap-2 items-center">
-                      <div className="bg-[#7f1d1d] text-white px-2 py-1 font-bold rounded text-xs w-10 text-center">{ultimaFicha.motosEntregadas}</div>
+                      <div className="bg-[#7f1d1d] text-white flex justify-center items-center font-bold rounded text-xs w-10 h-6 leading-none">{ultimaFicha.motosEntregadas}</div>
                       <span className="text-sm font-medium leading-tight">Motos entregadas</span>
                    </div>
                 </div>
