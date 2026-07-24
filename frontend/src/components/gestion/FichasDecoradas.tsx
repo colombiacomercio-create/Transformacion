@@ -62,10 +62,10 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
   // Convivencia
     const convivenciaData = [
-    { name: 'Entregadas Policía (2025)', value: ultimaFicha.motosEntregadasPolicia ?? 0, color: '#16a34a' },
-    { name: 'Entregadas SSCJ (2026)', value: ultimaFicha.motosEntregadas ?? 0, color: '#facc15' },
-    { name: 'Entregadas FDL (Almacén)', value: ultimaFicha.motosAlmacenFdl ?? 0, color: '#ca8a04' },
-    { name: 'En proceso FDL', value: ultimaFicha.motosPendientesFdl ?? 0, color: '#dc2626' },
+    { name: 'Entregadas a la Policia (2025)', value: ultimaFicha.motosEntregadasPolicia ?? 0, color: '#16a34a' },
+    { name: 'Entregadas a SDSCJ (2026)', value: ultimaFicha.motosEntregadas ?? 0, color: '#facc15' },
+    { name: 'En almacen FDL', value: ultimaFicha.motosAlmacenFdl ?? 0, color: '#ca8a04' },
+    { name: 'Pendientes entrega FDL', value: ultimaFicha.motosPendientesFdl ?? 0, color: '#dc2626' },
   ];
 
   // Rollos legendarios
@@ -524,28 +524,28 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                        <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
                           <div className="flex items-center gap-2">
                              <div className="w-3 h-3 rounded-full bg-[#16a34a]"></div>
-                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas Policía (25)</span>
+                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas a la Policia (2025)</span>
                           </div>
                           <span className="font-black text-sm text-gray-900">{ultimaFicha.motosEntregadasPolicia}</span>
                        </div>
                        <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
                           <div className="flex items-center gap-2">
                              <div className="w-3 h-3 rounded-full bg-[#facc15]"></div>
-                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas SSCJ (26)</span>
+                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas a SDSCJ (2026)</span>
                           </div>
                           <span className="font-black text-sm text-gray-900">{ultimaFicha.motosEntregadas}</span>
                        </div>
                        <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
                           <div className="flex items-center gap-2">
                              <div className="w-3 h-3 rounded-full bg-[#ca8a04]"></div>
-                             <span className="text-xs font-medium leading-tight text-gray-700">Entregadas FDL</span>
+                             <span className="text-xs font-medium leading-tight text-gray-700">En almacen FDL</span>
                           </div>
                           <span className="font-black text-sm text-gray-900">{ultimaFicha.motosAlmacenFdl}</span>
                        </div>
                        <div className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
                           <div className="flex items-center gap-2">
                              <div className="w-3 h-3 rounded-full bg-[#dc2626]"></div>
-                             <span className="text-xs font-medium leading-tight text-gray-700">En proceso FDL</span>
+                             <span className="text-xs font-medium leading-tight text-gray-700">Pendientes entrega FDL</span>
                           </div>
                           <span className="font-black text-sm text-gray-900">{ultimaFicha.motosPendientesFdl}</span>
                        </div>
