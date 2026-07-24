@@ -124,38 +124,50 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col items-center relative">
                     <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full relative top-3 z-10 border shadow-sm text-center">Compromisos</span>
-                    <div className="relative h-32 w-full mt-2">
+                    <div className="relative h-48 w-full mt-4 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={compromisosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
+                          <Pie data={compromisosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
                             {compromisosData.map((e, i) => <Cell key={i} fill={e.color} />)}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      {ultimaFicha.metaCompromisosPct !== undefined && ultimaFicha.metaCompromisosPct !== null && renderNeedle(ultimaFicha.metaCompromisosPct, 55)}
+                      {ultimaFicha.metaCompromisosPct !== undefined && ultimaFicha.metaCompromisosPct !== null && renderNeedle(ultimaFicha.metaCompromisosPct, 85)}
                     </div>
-                    <span className="text-white font-bold text-xl mt-[-20px]">{compromisosVal}%</span>
-                    {ultimaFicha.metaCompromisosPct !== undefined && ultimaFicha.metaCompromisosPct !== null && (
-                       <span className="text-red-200 text-[10px] text-center mt-1 font-semibold leading-tight">{ultimaFicha.metaCompromisosPct}% programados</span>
-                    )}
+                    <div className="flex justify-around w-full pb-2">
+                       <div className="flex flex-col items-center">
+                          <span className="text-xs font-bold text-white mb-1">Avance</span>
+                          <span className="text-xl font-black text-[#FFCD00] leading-none">{compromisosVal}%</span>
+                       </div>
+                       <div className="flex flex-col items-center">
+                          <span className="text-xs font-bold text-white mb-1">Meta</span>
+                          <span className="text-xl font-black text-white leading-none">{ultimaFicha.metaCompromisosPct ?? 0}%</span>
+                       </div>
+                    </div>
                   </div>
                   
                   <div className="flex flex-col items-center relative">
                     <span className="bg-white text-gray-800 text-sm font-bold px-4 py-1 rounded-full relative top-3 z-10 border shadow-sm text-center">Giros</span>
-                    <div className="relative h-32 w-full mt-2">
+                    <div className="relative h-48 w-full mt-4 mb-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={girosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
+                          <Pie data={girosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
                             {girosData.map((e, i) => <Cell key={i} fill={e.color} />)}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      {ultimaFicha.metaGirosPct !== undefined && ultimaFicha.metaGirosPct !== null && renderNeedle(ultimaFicha.metaGirosPct, 55)}
+                      {ultimaFicha.metaGirosPct !== undefined && ultimaFicha.metaGirosPct !== null && renderNeedle(ultimaFicha.metaGirosPct, 85)}
                     </div>
-                    <span className="text-white font-bold text-xl mt-[-20px]">{girosVal}%</span>
-                    {ultimaFicha.metaGirosPct !== undefined && ultimaFicha.metaGirosPct !== null && (
-                       <span className="text-red-200 text-[10px] text-center mt-1 font-semibold leading-tight">{ultimaFicha.metaGirosPct}% programados</span>
-                    )}
+                    <div className="flex justify-around w-full pb-2">
+                       <div className="flex flex-col items-center">
+                          <span className="text-xs font-bold text-white mb-1">Avance</span>
+                          <span className="text-xl font-black text-[#9ca3af] leading-none">{girosVal}%</span>
+                       </div>
+                       <div className="flex flex-col items-center">
+                          <span className="text-xs font-bold text-white mb-1">Meta</span>
+                          <span className="text-xl font-black text-white leading-none">{ultimaFicha.metaGirosPct ?? 0}%</span>
+                       </div>
+                    </div>
                   </div>
                 </div>
 
@@ -436,58 +448,66 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                       </div>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
-                         <div className="relative w-full h-24 mb-4">
+                         <div className="relative w-full h-48 mt-4 mb-2">
                            <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
-                               <Pie data={archData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
+                               <Pie data={archData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={0} dataKey="value" stroke="none">
                                  {archData.map((e, i) => <Cell key={i} fill={e.color} />)}
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
-                           {ultimaFicha.metaArchivosPct !== undefined && ultimaFicha.metaArchivosPct !== null && renderNeedle(ultimaFicha.metaArchivosPct, 60)}
+                           {ultimaFicha.metaArchivosPct !== undefined && ultimaFicha.metaArchivosPct !== null && renderNeedle(ultimaFicha.metaArchivosPct, 85)}
                          </div>
-                         <div className="relative w-full mt-2">
-                           <div className="text-xs text-white font-medium text-center bg-[#dc2626] px-2 py-3 rounded-lg shadow-inner w-full border border-red-800 leading-tight">
-                             Meta 11 anual:<br/><span className="text-sm font-bold">{ultimaFicha.metaArchivos?.toLocaleString('es-CO')}</span>
-                           </div>
-                           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                              <span className="text-white font-bold text-lg bg-[#dc2626] px-3 py-1 rounded-md shadow-md border border-red-800">{archVal}%</span>
-                           </div>
+                         
+                         <div className="flex justify-around w-full pb-2">
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-800 mb-1">Avance</span>
+                               <span className="text-xl font-black text-[#dc2626] leading-none">{archVal}%</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-800 mb-1">Meta</span>
+                               <span className="text-xl font-black text-gray-800 leading-none">{ultimaFicha.metaArchivosPct ?? 0}%</span>
+                            </div>
                          </div>
-                         {ultimaFicha.metaArchivosPct !== undefined && ultimaFicha.metaArchivosPct !== null && (
-                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaArchivosPct}% programados</span>
-                         )}
+                         
+                         <div className="text-xs text-gray-700 font-medium text-center bg-white px-2 py-2 rounded-lg shadow-sm border border-gray-200 w-full mt-2">
+                           Meta anual: <strong className="text-sm">{ultimaFicha.metaArchivos?.toLocaleString('es-CO')}</strong>
+                         </div>
                       </div>
                    </div>
 
                    {/* Columna Fallos */}
                    <div className="flex flex-col bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-white rounded py-2 shadow-sm font-bold text-sm w-full text-center leading-tight mb-4 text-gray-800">
-                        Fallos 1° estancia
+                        Fallos 1ª estancia
                       </div>
                       
                       <div className="flex flex-col items-center relative flex-1 justify-end">
-                         <div className="relative w-full h-24 mb-4">
+                         <div className="relative w-full h-48 mt-4 mb-2">
                            <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
-                               <Pie data={fallosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={40} outerRadius={60} paddingAngle={0} dataKey="value" stroke="none">
+                               <Pie data={fallosData} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={55} outerRadius={85} paddingAngle={0} dataKey="value" stroke="none">
                                  {fallosData.map((e, i) => <Cell key={i} fill={e.color} />)}
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
-                           {ultimaFicha.metaFallosPct !== undefined && ultimaFicha.metaFallosPct !== null && renderNeedle(ultimaFicha.metaFallosPct, 60)}
+                           {ultimaFicha.metaFallosPct !== undefined && ultimaFicha.metaFallosPct !== null && renderNeedle(ultimaFicha.metaFallosPct, 85)}
                          </div>
-                         <div className="relative w-full mt-2">
-                           <div className="text-xs text-gray-800 font-medium text-center bg-[#FFCD00] px-2 py-3 rounded-lg shadow-inner w-full border border-yellow-600 leading-tight">
-                             Meta 12 anual:<br/><span className="text-sm font-bold">{ultimaFicha.metaFallos?.toLocaleString('es-CO')}</span>
-                           </div>
-                           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                              <span className="text-gray-900 font-bold text-lg bg-[#FFCD00] px-3 py-1 rounded-md shadow-md border border-yellow-600">{fallosVal}%</span>
-                           </div>
+                         
+                         <div className="flex justify-around w-full pb-2">
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-800 mb-1">Avance</span>
+                               <span className="text-xl font-black text-[#FFCD00] leading-none">{fallosVal}%</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                               <span className="text-xs font-bold text-gray-800 mb-1">Meta</span>
+                               <span className="text-xl font-black text-gray-800 leading-none">{ultimaFicha.metaFallosPct ?? 0}%</span>
+                            </div>
                          </div>
-                         {ultimaFicha.metaFallosPct !== undefined && ultimaFicha.metaFallosPct !== null && (
-                            <span className="text-red-500 text-[10px] text-center mt-2 font-semibold leading-tight">{ultimaFicha.metaFallosPct}% programados</span>
-                         )}
+                         
+                         <div className="text-xs text-gray-700 font-medium text-center bg-white px-2 py-2 rounded-lg shadow-sm border border-gray-200 w-full mt-2">
+                           Meta anual: <strong className="text-sm">{ultimaFicha.metaFallos?.toLocaleString('es-CO')}</strong>
+                         </div>
                       </div>
                    </div>
 
