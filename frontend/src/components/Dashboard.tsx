@@ -206,7 +206,19 @@ export default function Dashboard({ userData }: { userData?: any }) {
     fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
       .then(res => res.json())
       .then(data => {
-         if (data.length > 0) setObjetivosAPI(data[0].objetivos || []);
+         if (data.length > 0) {
+            const raw = data[0].objetivos || [];
+            const ordenCodigos = ['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'OV1', 'OV2', 'Alertas'];
+            const sorted = [...raw].sort((a: any, b: any) => {
+               const idxA = ordenCodigos.indexOf(a.codigo);
+               const idxB = ordenCodigos.indexOf(b.codigo);
+               if (idxA === -1 && idxB === -1) return 0;
+               if (idxA === -1) return 1;
+               if (idxB === -1) return -1;
+               return idxA - idxB;
+            });
+            setObjetivosAPI(sorted);
+         }
       }).catch(err => console.error(err));
 
     fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ficha-resultados/ultima`)

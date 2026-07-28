@@ -70,10 +70,13 @@ export const generarBorradorReporte = async (
     localidadNombre: string,
     objetivoNombre: string,
     cifrasActividades: Array<{ codigo: string; nombre: string; avance: number; estado: string }>,
-    alertasActivas: Array<{ tipo: string; descripcion: string; nivel: string }>
+    alertasActivas: Array<{ tipo: string; descripcion: string; nivel: string }>,
+    comentarios: string[],
+    actividadesRezagadas: Array<{ codigo: string; nombre: string; diasRetraso: number }>,
+    alertasFichaResultados: string
 ): Promise<{ avancesDraft: string; alertasDraft: string }> => {
     const totalAvance = cifrasActividades.reduce((sum, act) => sum + act.avance, 0) / (cifrasActividades.length || 1);
-    const fallbackAvances = `En la localidad de ${localidadNombre}, el objetivo "${objetivoNombre}" presenta un avance consolidado promedio del ${totalAvance.toFixed(1)}%. Se destaca la ejecución de ${cifrasActividades.filter(a => a.estado === 'COMPLETADA').length} actividades completadas de un total de ${cifrasActividades.length} programadas.`;
+    const fallbackAvances = `En la localidad de ${localidadNombre}, el objetivo "${objetivoNombre}" presenta un avance consolidado promedio del ${totalAvance.toFixed(1)}%. Se destaca la ejecución de ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} actividades completadas de un total de ${cifrasActividades.length} programadas.`;
     const fallbackAlertas = `Se registran ${alertasActivas.length} cuellos de botella activos en el periodo. Se sugiere priorizar la revisión de evidencias pendientes y la articulación con los responsables asignados.`;
 
     const client = obtenerClienteGemini();
@@ -88,19 +91,28 @@ export const generarBorradorReporte = async (
         });
 
         const prompt = `
-        Actúa como un analista experto en políticas públicas para SITRA.
-        Genera un reporte cualitativo mensual para la localidad de "${localidadNombre}" en relación al objetivo estratégico "${objetivoNombre}".
+        Actúa como un analista experto en políticas públicas para el sistema SITRA.
+        Genera un borrador de reporte cualitativo mensual para la localidad de "${localidadNombre}" sobre el objetivo estratégico: "${objetivoNombre}".
 
-        Datos de Actividades (programado vs ejecutado):
+        1. Cifras de Actividades (programado vs ejecutado):
         ${JSON.stringify(cifrasActividades, null, 2)}
 
-        Alertas y Bloqueos registrados en el periodo:
+        2. Comentarios / Reportes registrados en las actividades:
+        ${comentarios.length > 0 ? comentarios.map(c => `- ${c}`).join('\n') : 'No hay comentarios registrados.'}
+
+        3. Actividades Vencidas / Rezagadas (Con retraso acumulado):
+        ${actividadesRezagadas.length > 0 ? actividadesRezagadas.map(a => `- Actividad ${a.codigo}: "${a.nombre}" (Retraso acumulado de ${a.diasRetraso} días)`).join('\n') : 'No hay actividades rezagadas.'}
+
+        4. Alertas del panel de alertas (FichaAlerta):
         ${JSON.stringify(alertasActivas, null, 2)}
+
+        5. Observaciones/alertas de la Ficha de Resultados para este objetivo:
+        ${alertasFichaResultados || 'No hay alertas registradas en la Ficha de Resultados.'}
 
         Genera dos secciones estructuradas en formato JSON plano:
         {
-          "avances": "Redacción clara, formal y ejecutiva de los principales logros (máximo 150 palabras). Basada ESTRICTAMENTE en los porcentajes de avance provistos. No inventes cifras.",
-          "alertas": "Identificación analítica de los cuellos de botella y recomendaciones (máximo 150 palabras) relacionando las alertas activas."
+          "avances": "Redacción clara, formal y ejecutiva de los principales logros (máximo 150 palabras). Sintetiza los avances numéricos y analiza cualitativamente los comentarios de las actividades para resaltar lo ejecutado.",
+          "alertas": "Identificación analítica de los cuellos de botella y recomendaciones específicas de mitigación (máximo 150 palabras). Relaciona las actividades rezagadas, las alertas del panel y las observaciones de la Ficha de Resultados."
         }
         `;
 
@@ -398,5 +410,41 @@ export const generarRespuestaFinalChat = async (
     } catch (error) {
         console.error("[AIService] Error sintetizando respuesta final de chat:", error);
         return `Resumen Cuantitativo:\nAspiración Líder: ${stats.liderNombre} (${stats.liderPorcentaje}%).\nEstado: ${stats.completas} completas, ${stats.enCurso} en curso, ${stats.noIniciadas} no iniciadas.\nAlertas: ${stats.totalAlertas}.`;
+    }
+};
+
+/**
+ * 4c. GENERAR RESPUESTA DIRECTA Y CONCISA PARA CONSULTAS ESPECÍFICAS
+ */
+export const generarRespuestaDirectaChat = async (
+    pregunta: string,
+    datosReales: string
+): Promise<string> => {
+    const client = obtenerClienteGemini();
+    if (!client) {
+        return "Modo local activo. No se pudo sintetizar con Gemini.";
+    }
+
+    try {
+        const model = client.getGenerativeModel({ 
+            model: 'gemini-flash-latest'
+        });
+
+        const prompt = `
+        Eres el Asistente Inteligente de SITRA. El usuario hizo una pregunta específica: "${pregunta}"
+        Hemos consultado la base de datos de SITRA y obtuvimos los siguientes registros reales vinculados a su pregunta:
+        
+        ${datosReales}
+        
+        Por favor genera una respuesta directa, concisa y ejecutiva en español (máximo 80-100 palabras) respondiendo puntualmente a la pregunta del usuario utilizando los datos provistos.
+        No uses plantillas de tablero general (no menciones "Aspiración Líder" ni estadísticas globales de la localidad a menos que el usuario lo haya solicitado).
+        Usa negritas y viñetas cortas para mayor claridad.
+        `;
+
+        const response = await ejecutarConReintentos(() => model.generateContent(prompt));
+        return response.response.text() || "Sin respuesta generada por el asistente.";
+    } catch (error) {
+        console.error("[AIService] Error en respuesta directa de chat:", error);
+        return `Detalle de datos obtenidos para su consulta:\n${datosReales}`;
     }
 };
