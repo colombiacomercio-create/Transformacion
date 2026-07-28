@@ -423,13 +423,15 @@ router.post('/chat/mensaje', azureADAuth, async (req: AuthRequest, res) => {
         }
 
         let liderNombre = "Ninguna";
-        let liderPorcentaje = 0;
+        let liderPorcentaje = -1;
+        let liderObjId = "";
 
         for (const key in objProgress) {
           const avg = objProgress[key].sum / objProgress[key].total;
           if (avg > liderPorcentaje) {
             liderPorcentaje = Math.round(avg);
             liderNombre = objProgress[key].nombre;
+            liderObjId = key;
           }
         }
 
@@ -437,6 +439,89 @@ router.post('/chat/mensaje', azureADAuth, async (req: AuthRequest, res) => {
           const firstKey = Object.keys(objProgress)[0];
           liderNombre = objProgress[firstKey].nombre;
           liderPorcentaje = 0;
+          liderObjId = firstKey;
+        }
+
+        // 1. Detectar si la pregunta está orientada a una aspiración específica o a la líder
+        const queryLower = query.toLowerCase();
+        const esConsultaAspiracion = queryLower.includes('aspiracion') || 
+                                     queryLower.includes('aspiración') || 
+                                     queryLower.includes('objetivo') || 
+                                     queryLower.includes('mayor avance') || 
+                                     queryLower.includes('lider') || 
+                                     queryLower.includes('líder') ||
+                                     queryLower.includes('mejor') ||
+                                     queryLower.includes('rollos legendarios') ||
+                                     queryLower.includes('rolos legendarios');
+
+        let targetObjetivoId: string | null = null;
+        let targetObjetivoNombre = "";
+
+        // Encontrar objetivo mencionado en la consulta (ej. "Rollos Legendarios" o su código "O5")
+        for (const key in objProgress) {
+          const nombreObj = objProgress[key].nombre.toLowerCase();
+          const codigoObj = (objProgress[key].nombre.split('.')[0] || '').trim().toLowerCase();
+          const nombreNormalizado = nombreObj.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const queryNormalizado = queryLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          
+          if (queryNormalizado.includes(nombreNormalizado) || 
+              (codigoObj && queryNormalizado.includes(codigoObj)) ||
+              (queryNormalizado.includes('rolos') && nombreNormalizado.includes('rollos'))) {
+            targetObjetivoId = key;
+            targetObjetivoNombre = objProgress[key].nombre;
+            break;
+          }
+        }
+
+        // Si es consulta de aspiración general / líder y no detectó una específica, usar la líder
+        if (esConsultaAspiracion && !targetObjetivoId && liderObjId) {
+          targetObjetivoId = liderObjId;
+          targetObjetivoNombre = liderNombre;
+        }
+
+        // Si tenemos un objetivo objetivo (target), calculamos las métricas específicas de ese objetivo
+        let objetivoEspecifico: any = undefined;
+        if (targetObjetivoId) {
+          let totalObj = 0;
+          let completasObj = 0;
+          let enCursoObj = 0;
+          let noIniciadasObj = 0;
+          const ejemplosCompletasObj: string[] = [];
+
+          for (const a of asignaciones) {
+            const objetivo = a.actividad.hito?.programa?.objetivo;
+            if (objetivo && objetivo.id === targetObjetivoId) {
+              totalObj++;
+              const estado = a.estadoLocal || 'NO_INICIADA';
+              if (estado === 'COMPLETA_SIN_VALIDAR' || a.porcentajeAvance === 100) {
+                completasObj++;
+                if (ejemplosCompletasObj.length < 3) {
+                  ejemplosCompletasObj.push(a.actividad.nombre);
+                }
+              } else if (estado === 'EN_CURSO_SIN_VALIDAR' || a.porcentajeAvance === 50) {
+                enCursoObj++;
+              } else {
+                noIniciadasObj++;
+              }
+            }
+          }
+
+          // Filtrar alertas vinculadas a este objetivo
+          const alSub = alertas.filter(al => al.objetivoId === targetObjetivoId);
+          const alertasTextoObj = alSub.length > 0 
+            ? alSub.map(al => `- [${al.tipo}] ${al.descripcion} (Responsable: ${al.responsable}, Estado: ${al.estado})`).join('\n')
+            : "No hay alertas activas para esta aspiración.";
+
+          objetivoEspecifico = {
+            nombre: targetObjetivoNombre,
+            total: totalObj,
+            completas: completasObj,
+            enCurso: enCursoObj,
+            noIniciadas: noIniciadasObj,
+            alertasCount: alSub.length,
+            ejemplosCompletas: ejemplosCompletasObj,
+            alertasTexto: alertasTextoObj
+          };
         }
 
         const alertasTexto = alertas.map(al => `- [${al.tipo}] ${al.descripcion} (Localidad: ${al.localidad?.nombre || 'Global'}, Responsable: ${al.responsable}, Estado: ${al.estado})`).join('\n');
@@ -450,7 +535,8 @@ router.post('/chat/mensaje', azureADAuth, async (req: AuthRequest, res) => {
           totalAsignaciones: asignaciones.length,
           totalAlertas: alertas.length,
           ejemplosCompletas,
-          alertasTexto
+          alertasTexto,
+          objetivoEspecifico
         });
       } else {
         respuestaFinal = `He consultado los datos de SITRA aplicando el filtro para la localidad de "${targetLocalidad || 'especificada'}" pero actualmente no existen registros de actividades asignadas o alertas creadas en esta sección.`;

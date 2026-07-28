@@ -315,6 +315,16 @@ export const generarRespuestaFinalChat = async (
       totalAlertas: number;
       ejemplosCompletas: string[];
       alertasTexto: string;
+      objetivoEspecifico?: {
+        nombre: string;
+        total: number;
+        completas: number;
+        enCurso: number;
+        noIniciadas: number;
+        alertasCount: number;
+        ejemplosCompletas: string[];
+        alertasTexto: string;
+      }
     }
 ): Promise<string> => {
     const client = obtenerClienteGemini();
@@ -327,29 +337,61 @@ export const generarRespuestaFinalChat = async (
             model: 'gemini-flash-latest'
         });
 
-        const prompt = `
-        Eres el Asistente Inteligente de SITRA. El usuario preguntó: "${pregunta}"
-        Hemos calculado las estadísticas reales de la base de datos para la localidad de Suba:
-        - Total de asignaciones: ${stats.totalAsignaciones}
-        - Estado de Actividades: ${stats.completas} en COMPLETA_SIN_VALIDAR, ${stats.enCurso} en EN_CURSO_SIN_VALIDAR y ${stats.noIniciadas} en NO_INICIADA.
-        - Aspiración líder: "${stats.liderNombre}" con ${stats.liderPorcentaje}% de ejecución.
-        - Alertas activas: ${stats.totalAlertas}.
-        - Ejemplos de actividades completadas: ${stats.ejemplosCompletas.join(', ')}.
-        - Detalle de alertas: ${stats.alertasTexto}.
+        let prompt = "";
         
-        Por favor genera la respuesta final en español con el siguiente formato ejecutivo EXACTO (utiliza viñetas muy cortas, negritas y cursivas según el ejemplo):
-        
-        Resumen Cuantitativo:
-        * **Aspiración Líder**: ${stats.liderNombre} (${stats.liderPorcentaje}% de ejecución).
-        * **Estado de Actividades (Suba)**: ${stats.completas} en **COMPLETA_SIN_VALIDAR**, ${stats.enCurso} en **EN_CURSO_SIN_VALIDAR** y ${stats.noIniciadas} en **NO_INICIADA**.
-        * **Alertas Activas**: **${stats.totalAlertas}** registradas en el sistema.
-        
-        Aspecto Cualitativo:
-        * **Impulsores**: Cumplimiento total en acciones clave como ${stats.ejemplosCompletas.slice(0, 3).map(e => `*${e}*`).join(', ')}.
-        * **Obstáculo Principal**: [Describir muy brevemente en una sola frase el obstáculo principal basándose en el detalle de las alertas, por ejemplo: dificultades con PONAL para comparendos de residuos o falta de IDs actualizadas].
-        
-        No agregues introducciones, introducciones de formato ni conclusiones innecesarias, ve directo a los dos bloques (Resumen Cuantitativo y Aspecto Cualitativo).
-        `;
+        if (stats.objetivoEspecifico) {
+          const obj = stats.objetivoEspecifico;
+          prompt = `
+          Eres el Asistente Inteligente de SITRA. El usuario preguntó: "${pregunta}"
+          Estamos respondiendo específicamente sobre la aspiración/objetivo: "${obj.nombre}"
+          
+          Datos reales de la base de datos para esta aspiración:
+          - Total de actividades programadas: ${obj.total}
+          - Actividades logradas (completadas): ${obj.completas}
+          - Actividades en curso: ${obj.enCurso}
+          - Actividades no iniciadas: ${obj.noIniciadas}
+          - Alertas activas asociadas: ${obj.alertasCount}
+          - Ejemplos de actividades logradas: ${obj.ejemplosCompletas.join(', ')}
+          - Alertas asociadas en detalle: ${obj.alertasTexto}
+          
+          Por favor genera la respuesta final en español enfocándote ÚNICAMENTE en esta aspiración. Utiliza el siguiente formato ejecutivo EXACTO (viñetas cortas, negritas y cursivas):
+          
+          Resumen Cuantitativo:
+          * **Aspiración**: ${obj.nombre} (con ${obj.total} actividades programadas, de las cuales se han logrado **${obj.completas}**).
+          * **Estado de Actividades**: ${obj.completas} en **COMPLETA_SIN_VALIDAR**, ${obj.enCurso} en **EN_CURSO_SIN_VALIDAR** y ${obj.noIniciadas} en **NO_INICIADA**.
+          * **Alertas Activas**: **${obj.alertasCount}** alertas directamente vinculadas a esta aspiración.
+          
+          Aspecto Cualitativo:
+          * **Impulsores**: Cumplimiento total en acciones clave de esta aspiración como ${obj.ejemplosCompletas.map(e => `*${e}*`).join(', ')}.
+          * **Obstáculo Principal**: [Describir muy brevemente en una sola frase el obstáculo principal basándose únicamente en las alertas activas asociadas. Si no hay alertas asociadas, indicar textualmente que la aspiración avanza sin novedades de bloqueo].
+          
+          No agregues introducciones ni conclusiones innecesarias, ve directo a los dos bloques.
+          `;
+        } else {
+          prompt = `
+          Eres el Asistente Inteligente de SITRA. El usuario preguntó: "${pregunta}"
+          Hemos calculado las estadísticas reales globales de la base de datos para la localidad de Suba:
+          - Total de asignaciones: ${stats.totalAsignaciones}
+          - Estado de Actividades: ${stats.completas} en COMPLETA_SIN_VALIDAR, ${stats.enCurso} en EN_CURSO_SIN_VALIDAR y ${stats.noIniciadas} en NO_INICIADA.
+          - Aspiración líder: "${stats.liderNombre}" con ${stats.liderPorcentaje}% de ejecución.
+          - Alertas activas totales: ${stats.totalAlertas}.
+          - Ejemplos de actividades completadas: ${stats.ejemplosCompletas.join(', ')}.
+          - Detalle de alertas: ${stats.alertasTexto}.
+          
+          Por favor genera la respuesta final en español con el siguiente formato ejecutivo EXACTO (viñetas cortas, negritas y cursivas):
+          
+          Resumen Cuantitativo:
+          * **Aspiración Líder**: ${stats.liderNombre} (${stats.liderPorcentaje}% de ejecución).
+          * **Estado de Actividades (Suba)**: ${stats.completas} en **COMPLETA_SIN_VALIDAR**, ${stats.enCurso} en **EN_CURSO_SIN_VALIDAR** y ${stats.noIniciadas} en **NO_INICIADA**.
+          * **Alertas Activas**: **${stats.totalAlertas}** registradas en el sistema.
+          
+          Aspecto Cualitativo:
+          * **Impulsores**: Cumplimiento total en acciones clave como ${stats.ejemplosCompletas.map(e => `*${e}*`).join(', ')}.
+          * **Obstáculo Principal**: [Describir muy brevemente en una sola frase el obstáculo principal basándose en las alertas activas, por ejemplo: dificultades con PONAL para comparendos de residuos o falta de IDs actualizadas].
+          
+          No agregues introducciones ni conclusiones innecesarias, ve directo a los dos bloques (Resumen Cuantitativo y Aspecto Cualitativo).
+          `;
+        }
 
         const response = await ejecutarConReintentos(() => model.generateContent(prompt));
         return response.response.text() || "Sin respuesta generada por el asistente.";
