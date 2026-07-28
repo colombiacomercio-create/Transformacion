@@ -43,6 +43,19 @@ app.use('/api/normativo', normativoRoutes);
 app.use('/api/otros-espacios', otrosEspaciosRoutes);
 app.use('/api/ia', aiRoutes);
 
+import { PrismaClient } from '@prisma/client';
+const prismaClient = new PrismaClient();
+
+app.get('/api/localidades', async (req, res) => {
+  try {
+    const list = await prismaClient.localidad.findMany();
+    res.json(list);
+  } catch (err) {
+    console.error('Error in /api/localidades:', err);
+    res.status(500).json({ error: 'Error interno obteniendo localidades' });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });

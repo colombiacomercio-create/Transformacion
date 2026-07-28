@@ -208,8 +208,19 @@ export default function Dashboard({ userData }: { userData?: any }) {
       .then(data => {
          if (data.length > 0) {
             const raw = data[0].objetivos || [];
-            const ordenCodigos = ['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'OV1', 'OV2', 'Alertas'];
-            const sorted = [...raw].sort((a: any, b: any) => {
+            
+            // 1. Filtrar duplicados, O_BASE y Alertas
+            const seen = new Set();
+            const filtered = raw.filter((obj: any) => {
+               if (obj.codigo === 'O_BASE' || obj.codigo === 'Alertas') return false;
+               if (seen.has(obj.codigo)) return false;
+               seen.add(obj.codigo);
+               return true;
+            });
+
+            // 2. Ordenar de O1 a OV2
+            const ordenCodigos = ['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'OV1', 'OV2'];
+            const sorted = [...filtered].sort((a: any, b: any) => {
                const idxA = ordenCodigos.indexOf(a.codigo);
                const idxB = ordenCodigos.indexOf(b.codigo);
                if (idxA === -1 && idxB === -1) return 0;

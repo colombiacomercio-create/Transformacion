@@ -63,20 +63,18 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
 
   useEffect(() => {
     fetchAlertas();
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/localidades`)
       .then(res => res.json())
       .then(data => {
-         const locs = new Map();
-         data.forEach((a:any) => a.asignaciones?.forEach((asig:any) => locs.set(asig.localidadId, asig.localidad)));
          const ORDEN_DANE = ["usaquén", "usaquen", "chapinero", "santa fe", "san cristóbal", "san cristobal", "usme", "tunjuelito", "bosa", "kennedy", "fontibón", "fontibon", "engativá", "engativa", "suba", "barrios unidos", "teusaquillo", "los mártires", "los martires", "antonio nariño", "antonio narino", "puente aranda", "la candelaria", "rafael uribe uribe", "ciudad bolívar", "ciudad bolivar", "sumapaz"];
-         const locsRaw = Array.from(locs.values()).filter(Boolean) as any[];
+         const locsRaw = (data || []) as any[];
          locsRaw.sort((a, b) => {
             const iA = ORDEN_DANE.findIndex(x => a.nombre.toLowerCase().includes(x));
             const iB = ORDEN_DANE.findIndex(x => b.nombre.toLowerCase().includes(x));
             return (iA === -1 ? 99 : iA) - (iB === -1 ? 99 : iB);
          });
          setLocalidades(locsRaw);
-      });
+      }).catch(err => console.error(err));
       
     fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
       .then(res => res.json())

@@ -85,18 +85,20 @@ router.post('/reportes/generar-borrador', azureADAuth, requireRole(['ADMIN']), a
         };
       });
 
-    // 3. Obtener alertas activas desde FichaAlerta (las reales de Panel de Alertas)
+    // 3. Obtener alertas activas desde FichaAlerta (las reales de Panel de Alertas) para todas las localidades
     const alertasFicha = await prisma.fichaAlerta.findMany({
       where: {
-        localidadId,
         objetivoId,
         estado: { in: ['ABIERTA', 'ESCALADA_DESPACHO'] }
+      },
+      include: {
+        localidad: true
       }
     });
 
     const alertasSimplificadas = alertasFicha.map(a => ({
       tipo: a.tipo,
-      descripcion: a.descripcion,
+      descripcion: `${a.descripcion} (Localidad: ${a.localidad?.nombre || 'Global'})`,
       nivel: a.tipo === 'BLOQUEO_ALTO_NIVEL' ? 'CRITICA' : 'MODERADA'
     }));
 
