@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, Plus, X, Search, ShieldAlert, Edit, Save } from 'lucide-react';
+import { AlertCircle, Plus, X, Search, ShieldAlert, Edit, Save, Sparkles } from 'lucide-react';
 import { fetchApi } from '../utils/api';
 
 export default function PanelAlertas({ userData }: { userData?: any }) {
@@ -13,6 +13,44 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
   const [form, setForm] = useState({
      localidadId: '', objetivoId: '', tipo: 'BLOQUEO_GESTION', desc: '', responsable: '', fecha: '', correosResponsables: ''
   });
+  
+  const [analizandoAlerta, setAnalizandoAlerta] = useState(false);
+  const [sugerenciasIA, setSugerenciasIA] = useState<any>(null);
+
+  const handleAnalizarIA = async () => {
+    if (!form.desc.trim()) {
+      alert("Por favor escribe una descripción del bloqueo primero para poder clasificarlo.");
+      return;
+    }
+    setAnalizandoAlerta(true);
+    try {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ia/alertas/analizar-preliminar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descripcion: form.desc,
+          localidadId: form.localidadId === 'GLOBAL' || !form.localidadId ? 'todos' : form.localidadId
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSugerenciasIA(data);
+        
+        // Autorellenar responsable si es sugerido y el campo está vacío
+        if (data.responsableSugeridoId && !form.responsable) {
+          setForm((prev: any) => ({
+            ...prev,
+            responsable: `Gestor sugerido por IA (${data.responsableSugeridoId})`
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("Error analizando alerta con IA:", err);
+    } finally {
+      setAnalizandoAlerta(false);
+    }
+  };
   
   const [formGestion, setFormGestion] = useState({ estado: 'ABIERTA', ultimaAccion: '', expectativa: '' });
 
@@ -58,6 +96,8 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
       try {
        const correos = form.correosResponsables.split(',').map(e => e.trim()).filter(Boolean);
        
+       const severidadFinal = sugerenciasIA?.severidadSugerida || 'MODERADA';
+
        const response = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
@@ -68,7 +108,8 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
             descripcion: form.desc,
             responsable: form.responsable,
             correosResponsables: correos,
-            fechaCompromiso: form.fecha || null
+            fechaCompromiso: form.fecha || null,
+            sugerenciaSeveridad: severidadFinal
          })
        });
        
@@ -99,7 +140,8 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
        }
 
        setMostrandoModal(false);
-       setForm({ ...form, desc: '', correosResponsables: '' });
+       setSugerenciasIA(null);
+       setForm({ ...form, desc: '', correosResponsables: '', localidadId: '', objetivoId: '', responsable: '', fecha: '', tipo: 'BLOQUEO_GESTION' });
        fetchAlertas();
      } catch(err) { console.error(err); }
   };
@@ -322,9 +364,40 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
                </div>
 
                <div>
-                 <label className="block text-sm font-bold text-gray-700 mb-1">Descripción del Bloqueo / Causa Estructural</label>
-                 <textarea required className="w-full p-2 border rounded h-24" value={form.desc} onChange={e => setForm({...form, desc: e.target.value})} placeholder="Describe el obstáculo concreto que detiene el avance..."/>
-               </div>
+                  <div className="flex justify-between items-center mb-1">
+                     <label className="block text-sm font-bold text-gray-700">Descripción del Bloqueo / Causa Estructural</label>
+                     <button
+                       type="button"
+                       onClick={handleAnalizarIA}
+                       disabled={analizandoAlerta}
+                       className="text-xs bg-purple-700 hover:bg-purple-800 text-white font-bold px-2 py-1 rounded flex items-center gap-1 disabled:opacity-50 transition-colors shadow-sm"
+                     >
+                       <Sparkles className="w-3.5 h-3.5"/>
+                       {analizandoAlerta ? 'Analizando...' : 'Clasificar con IA'}
+                     </button>
+                  </div>
+                  <textarea required className="w-full p-2 border rounded h-24" value={form.desc} onChange={e => setForm({...form, desc: e.target.value})} placeholder="Describe el obstáculo concreto que detiene el avance..."/>
+                </div>
+
+                {sugerenciasIA && (
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-950 space-y-1">
+                    <p className="font-bold flex items-center gap-1 text-purple-900"><Sparkles className="w-3.5 h-3.5 text-purple-700"/> Clasificación de Asistencia de IA:</p>
+                    <p>• <strong>Severidad Sugerida:</strong> <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${sugerenciasIA.severidadSugerida === 'CRITICA' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{sugerenciasIA.severidadSugerida || 'MODERADA'}</span></p>
+                    <p>• <strong>Enrutamiento Sugerido:</strong> {form.responsable || 'Responsable detectado en base a contexto'}</p>
+                    {sugerenciasIA.alertasRelacionadas && sugerenciasIA.alertasRelacionadas.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-purple-200">
+                        <p className="font-bold text-red-800 flex items-center gap-1">⚠️ Posibles Alertas Duplicadas en la Localidad:</p>
+                        <ul className="list-disc list-inside space-y-1 mt-1 text-red-700">
+                          {sugerenciasIA.alertasRelacionadas.map((r: any) => (
+                            <li key={r.alertaId}>
+                              "{r.descripcion.substring(0, 50)}..." (Similitud: {Math.round(r.scoreSimilitud * 100)}%)
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
             <div className="bg-gray-50 p-4 border-t flex justify-end gap-3">
                <button type="button" onClick={() => setMostrandoModal(false)} className="px-4 py-2 text-gray-600 font-bold">Cancelar</button>

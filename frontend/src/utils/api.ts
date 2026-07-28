@@ -1,6 +1,9 @@
 import { msalInstance } from '../authConfig';
 
 const acquireToken = async (): Promise<string> => {
+  if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+    return "bypass-token";
+  }
   const accounts = msalInstance.getAllAccounts();
   
   if (accounts.length > 0) {

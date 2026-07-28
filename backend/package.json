@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@azure/msal-node": "^2.6.0",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.10.2",
     "@sparticuz/chromium-min": "^149.0.0",
     "@supabase/supabase-js": "^2.104.1",

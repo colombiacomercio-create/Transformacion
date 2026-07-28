@@ -49,6 +49,19 @@ enum EstadoValidacion {
   VALIDADA_SIN_AVANCE
 }
 
+enum EstadoRevisionDraft {
+  SIN_BORRADOR
+  BORRADOR_GENERADO
+  EN_REVISION
+  APROBADO_PUBLICADO
+}
+
+enum CalidadPrechequeo {
+  APTO
+  DUDOSO
+  NO_APTO
+}
+
 enum NivelAlerta {
   CRITICA
   MODERADA
@@ -82,6 +95,9 @@ model Usuario {
   eventos                Evento[]
   seguimientosNormativos SeguimientoNormativo[]
   otrosEspacios          OtroEspacioArticulacion[]
+
+  reportesEditados       ReporteCualitativo[]  @relation("EditorReporte")
+  historialChat          HistorialChat[]
 
   // Ficha Resultados - Tracking por sección
   fichasEjecucionAct     FichaResultados[] @relation("EjecucionAct")
@@ -168,6 +184,7 @@ model Actividad {
   comentarios  Comentario[]
   alertas      Alerta[]
   FichaAlerta  FichaAlerta[]
+  historialCambios HistorialCambios[]
 }
 
 model Localidad {
@@ -183,6 +200,7 @@ model Localidad {
   comentarios          Comentario[]
   alertas              Alerta[]
   FichaAlerta          FichaAlerta[]
+  historialCambios     HistorialCambios[]
 }
 
 model AsignacionLocalidad {
@@ -226,6 +244,12 @@ model Evidencia {
   comentarioAdjunto  String?
   verificadaPorAdmin Boolean   @default(false)
   fechaVerificacion  DateTime?
+
+  // Nuevos campos de pre-chequeo inteligente
+  prechequeoEstado   CalidadPrechequeo  @default(DUDOSO)
+  prechequeoPuntaje  Float              @default(0.0)
+  prechequeoFeedback String?            @db.Text
+  fechaAnalisisIA    DateTime?
 
   actividad Actividad @relation(fields: [actividadId], references: [id])
   localidad Localidad @relation(fields: [localidadId], references: [id])
@@ -273,14 +297,28 @@ model CorteMensual {
 }
 
 model ReporteCualitativo {
-  id                     String  @id @default(uuid())
-  objetivoId             String
-  corteId                String
-  principalesAvances     String? @db.Text
-  alertasRecomendaciones String? @db.Text
+  id                          String              @id @default(uuid())
+  objetivoId                  String
+  corteId                     String
+  // Textos Publicados (Consumidos por el Tablero de Control Ejecutivo)
+  principalesAvances          String?             @db.Text
+  alertasRecomendaciones      String?             @db.Text
+  
+  // Textos Borrador Generados por IA / Editados por el Administrador
+  principalesAvancesDraft     String?             @db.Text
+  alertasRecomendacionesDraft String?             @db.Text
+  
+  // Metadatos de Trazabilidad e IA
+  estadoRevisionAvances       EstadoRevisionDraft @default(SIN_BORRADOR)
+  estadoRevisionAlertas       EstadoRevisionDraft @default(SIN_BORRADOR)
+  generadoPorIA               Boolean             @default(false)
+  fechaGeneracionIA           DateTime?
+  editadoPorId                String?             // Administrador de la Unidad de Transformación que revisa
+  fechaUltimaEdicion          DateTime?
 
-  objetivo ObjetivoEstrategico @relation(fields: [objetivoId], references: [id])
-  corte    CorteMensual        @relation(fields: [corteId], references: [id])
+  objetivo                    ObjetivoEstrategico @relation(fields: [objetivoId], references: [id])
+  corte                       CorteMensual        @relation(fields: [corteId], references: [id])
+  editor                      Usuario?            @relation("EditorReporte", fields: [editadoPorId], references: [id])
 
   @@unique([objetivoId, corteId])
 }
@@ -299,6 +337,12 @@ model FichaAlerta {
   creadoPorId     String
   fechaCreacion   DateTime  @default(now())
   correosResponsables String[]
+
+  // Nuevos campos para enrutamiento e inteligencia de alertas
+  sugerenciaSeveridad     NivelAlerta?
+  confianzaClasificacion  Float?
+  alertasRelacionadas     Json?
+  procesadoPorIA          Boolean               @default(false)
 
   objetivo  ObjetivoEstrategico? @relation(fields: [objetivoId], references: [id])
   actividad Actividad?           @relation(fields: [actividadId], references: [id])
@@ -522,4 +566,45 @@ model OtroEspacioArticulacion {
   fechaCreacion DateTime @default(now())
 
   creadoPor Usuario @relation(fields: [creadoPorId], references: [id])
+}
+
+// ─── NUEVOS MODELOS PARA IA Y MIGRACIÓN ──────────────────────────────────────
+
+model HistorialChat {
+  id            String   @id @default(uuid())
+  usuarioId     String
+  consulta      String   @db.Text
+  respuesta     String   @db.Text
+  exitoSQL      Boolean  @default(true)
+  sentenciaSQL  String?  @db.Text
+  feedbackUtiles Int?    // Calificación de utilidad
+  fechaConsulta DateTime @default(now())
+
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id])
+}
+
+model MigracionPlannERLog {
+  id                   String   @id @default(uuid())
+  fechaMigracion       DateTime @default(now())
+  registrosProcesados  Int
+  registrosExitosos    Int
+  registrosFallidos    Int
+  detallesErrores      Json?    // Errores en la validación lógica
+  ejecutadoPor         String
+}
+
+model HistorialCambios {
+  id                 String   @id @default(uuid())
+  actividadId        String
+  localidadId        String
+  campoModificado    String   // ej: "estadoValidacion", "porcentajeAvance", "fechaLimite"
+  valorAnterior      String?
+  valorNuevo         String
+  justificacion      String?  @db.Text // Razón del cambio (motivo de rechazo, etc.)
+  usuarioResponsable String   // Correo o nombre del autor del cambio
+  fechaCambio        DateTime
+  origen             String   @default("SITRA") // "SITRA", "PLANNER_IMPORT_DEDUCIDO", "PLANNER_IMPORT_LIGERO"
+
+  actividad          Actividad @relation(fields: [actividadId], references: [id], onDelete: Cascade)
+  localidad          Localidad @relation(fields: [localidadId], references: [id], onDelete: Cascade)
 }

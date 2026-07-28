@@ -14,6 +14,7 @@ import informesRoutes from './routes/informes.routes';
 import eventosRoutes from './routes/eventos.routes';
 import normativoRoutes from './routes/normativo.routes';
 import otrosEspaciosRoutes from './routes/otros-espacios.routes';
+import aiRoutes from './routes/ai.routes';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 
@@ -40,6 +41,7 @@ app.use('/api/informes', informesRoutes);
 app.use('/api/eventos', eventosRoutes);
 app.use('/api/normativo', normativoRoutes);
 app.use('/api/otros-espacios', otrosEspaciosRoutes);
+app.use('/api/ia', aiRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

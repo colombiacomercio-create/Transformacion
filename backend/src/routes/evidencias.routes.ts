@@ -56,6 +56,38 @@ router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']
       }
     });
 
+    // Disparar prechequeo de IA de forma asíncrona en segundo plano sin bloquear respuesta HTTP
+    import('../services/ai.service').then(async (aiService) => {
+      try {
+        const actividad = await prisma.actividad.findUnique({ where: { id: actividadId } });
+        if (actividad) {
+          const fileBase64 = req.file?.buffer.toString('base64') || null;
+          const mimeType = req.file?.mimetype || null;
+          
+          const prechequeo = await aiService.prechequearEvidencia(
+            actividad.descripcion || actividad.nombre,
+            actividad.tiposEvidenciaRequeridos,
+            fileBase64,
+            mimeType,
+            comentarioAdjunto
+          );
+          
+          await prisma.evidencia.update({
+            where: { id: evidencia.id },
+            data: {
+              prechequeoEstado: prechequeo.prechequeoEstado as any,
+              prechequeoPuntaje: prechequeo.prechequeoPuntaje,
+              prechequeoFeedback: prechequeo.prechequeoFeedback,
+              fechaAnalisisIA: new Date()
+            }
+          });
+          console.log(`[IA Prechequeo] Evidencia ${evidencia.id} procesada. Resultado: ${prechequeo.prechequeoEstado}`);
+        }
+      } catch (err) {
+        console.error("⚠️ Error disparando pre-chequeo automático de IA:", err);
+      }
+    }).catch(err => console.error("⚠️ Error importando servicio de IA para prechequeo:", err));
+
     // Crear en el hilo de comentarios para que sea visible de inmediato
     await prisma.comentario.create({
       data: {

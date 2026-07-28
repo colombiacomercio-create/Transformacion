@@ -8,13 +8,84 @@ import ModalInstrucciones from "./components/ModalInstrucciones";
 import PanelAlertas from "./components/PanelAlertas";
 import PanelGestionResultados from "./components/PanelGestionResultados";
 import VistaAlertaAsignada from "./pages/VistaAlertaAsignada";
+import { Sparkles, MessageSquare, Send, X } from "lucide-react";
+
+const renderMarkdown = (text: string) => {
+  if (!text) return null;
+  
+  // Escape HTML tags to prevent XSS
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+    
+  // Bold **text**
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  
+  // Italics *text*
+  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+  
+  // Parse lines for bullet lists and line breaks
+  const lines = html.split('\n');
+  const processedLines = lines.map(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('* ')) {
+      return `<li class="ml-4 list-disc my-0.5">${trimmed.substring(2)}</li>`;
+    }
+    if (trimmed.startsWith('- ')) {
+      return `<li class="ml-4 list-disc my-0.5">${trimmed.substring(2)}</li>`;
+    }
+    return line;
+  });
+  
+  html = processedLines.join('<br/>');
+  
+  return <div dangerouslySetInnerHTML={{ __html: html }} className="leading-relaxed" />;
+};
 
 function App() {
   const { instance, accounts } = useMsal();
-  const isAuthenticated = useIsAuthenticated();
+  const isAuthenticated = import.meta.env.VITE_BYPASS_AUTH === 'true' ? true : useIsAuthenticated();
   const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas' | 'gestion'>('kanban');
   const [showHelp, setShowHelp] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  
+  // Asistente de IA Chat State
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string }>>([
+    { sender: 'bot', text: '¡Hola! Soy tu Asistente SITRA. ¿En qué te puedo ayudar hoy? Puedes preguntarme por el avance de obras, alertas activas o tareas vencidas.' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    const userMsg = chatInput;
+    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setChatInput('');
+    setChatLoading(true);
+    
+    try {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ia/chat/mensaje`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userMsg })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChatMessages(prev => [...prev, { sender: 'bot', text: data.respuesta }]);
+      } else {
+        setChatMessages(prev => [...prev, { sender: 'bot', text: 'Lo siento, no pude procesar tu consulta en este momento. Verifica tu conexión.' }]);
+      }
+    } catch(err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Error de red al comunicarse con el asistente.' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -37,7 +108,7 @@ function App() {
     });
   }
 
-  const userName = accounts[0]?.name || '';
+  const userName = import.meta.env.VITE_BYPASS_AUTH === 'true' ? 'Administrador de Pruebas' : (accounts[0]?.name || '');
   const isAlertaRoute = window.location.hash.startsWith('#/alerta/');
 
   if (!isAuthenticated) {
@@ -147,6 +218,63 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Botón flotante del Asistente */}
+      {userData && (
+        <>
+          <button 
+            onClick={() => setChatOpen(!chatOpen)}
+            className="fixed bottom-6 right-6 bg-purple-700 hover:bg-purple-800 text-white p-4 rounded-full shadow-2xl flex items-center justify-center gap-2 hover:scale-105 transition-all z-40"
+          >
+            <Sparkles className="w-6 h-6 animate-pulse"/>
+            <span className="font-bold text-sm pr-1">Asistente IA</span>
+          </button>
+
+          {/* Panel del Chat (Drawer) */}
+          {chatOpen && (
+            <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
+              <div className="bg-purple-700 p-4 flex justify-between items-center text-white border-b border-purple-800">
+                 <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-yellow-300"/>
+                    <div>
+                       <h3 className="font-bold text-sm leading-tight">Asistente SITRA</h3>
+                       <p className="text-[10px] text-purple-200">Impulsado por Gemini 3.5</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setChatOpen(false)} className="hover:bg-purple-800 p-1 rounded"><X className="w-4 h-4"/></button>
+              </div>
+              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
+                 {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                       <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs ${msg.sender === 'user' ? 'bg-purple-700 text-white rounded-br-none shadow' : 'bg-white text-gray-800 border rounded-bl-none shadow-sm'}`}>
+                          {renderMarkdown(msg.text)}
+                       </div>
+                    </div>
+                 ))}
+                 {chatLoading && (
+                    <div className="flex justify-start">
+                       <div className="bg-white border rounded-2xl rounded-bl-none px-4 py-2.5 text-xs text-gray-400 shadow-sm flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                       </div>
+                    </div>
+                 )}
+              </div>
+              <form onSubmit={handleSendChat} className="p-3 border-t bg-white flex gap-2">
+                 <input 
+                   type="text" 
+                   value={chatInput}
+                   onChange={e => setChatInput(e.target.value)}
+                   placeholder="Pregunta por tareas, avances, alertas..."
+                   className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+                 />
+                 <button type="submit" className="bg-purple-700 hover:bg-purple-800 text-white p-2 rounded-full flex items-center justify-center shadow transition-colors"><Send className="w-3.5 h-3.5"/></button>
+              </form>
+            </div>
+          )}
+        </>
+      )}
 
       {showHelp && <ModalInstrucciones onClose={() => setShowHelp(false)} />}
     </div>

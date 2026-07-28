@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, X, MessageSquare, Paperclip, CheckCircle2, Clock, Calendar, FileText, Send } from 'lucide-react';
+import { AlertCircle, X, MessageSquare, Paperclip, CheckCircle2, Clock, Calendar, FileText, Send, Sparkles } from 'lucide-react';
 import { fetchApi } from '../utils/api';
 
 interface Props {
@@ -443,18 +443,64 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                  {evidenciasAMostrar.length === 0 && (
                    <p className="text-sm text-gray-400">Sin archivos adjuntos en el expediente local.</p>
                  )}
-                 {evidenciasAMostrar.map((ev: any) => (
-                   <div key={ev.id} className="flex items-center justify-between p-4 border rounded-xl hover:bg-gray-50">
-                     <div className="flex items-center gap-3">
-                       <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Paperclip className="w-5 h-5"/></div>
-                       <div>
-                         <p className="font-medium text-sm text-gray-800">{ev.nombreArchivo}</p>
-                         <p className="text-xs text-gray-400">Subido el {new Date(ev.fechaSubida).toLocaleDateString()}</p>
-                       </div>
-                     </div>
-                     <a href={ev.urlArchivo?.startsWith('http') ? ev.urlArchivo : `${(import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace('/api', '')}${ev.urlArchivo}`} target="_blank" rel="noreferrer" className="text-bogota-primary text-sm font-bold hover:underline">Ver</a>
-                   </div>
-                 ))}
+                 {evidenciasAMostrar.map((ev: any) => {
+                    const statusColor = 
+                      ev.prechequeoEstado === 'APTO' ? 'bg-green-100 text-green-800 border-green-200' :
+                      ev.prechequeoEstado === 'NO_APTO' ? 'bg-red-100 text-red-800 border-red-200' :
+                      ev.prechequeoEstado === 'DUDOSO' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                      'bg-gray-100 text-gray-800 border-gray-200';
+                      
+                    return (
+                      <div key={ev.id} className="flex flex-col p-4 border rounded-xl hover:bg-gray-50 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Paperclip className="w-5 h-5"/></div>
+                            <div>
+                              <p className="font-medium text-sm text-gray-800">{ev.nombreArchivo}</p>
+                              <p className="text-xs text-gray-400">Subido el {new Date(ev.fechaSubida).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusColor}`}>
+                              Pre-chequeo IA: {ev.prechequeoEstado || 'PENDIENTE'}
+                            </span>
+                            <a href={ev.urlArchivo?.startsWith('http') ? ev.urlArchivo : `${(import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace('/api', '')}${ev.urlArchivo}`} target="_blank" rel="noreferrer" className="text-bogota-primary text-sm font-bold hover:underline">Ver</a>
+                          </div>
+                        </div>
+                        {ev.prechequeoFeedback && (
+                          <div className="text-xs text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-200 mt-1 flex flex-col gap-0.5">
+                            <p className="font-bold flex items-center gap-1 text-gray-800"><Sparkles className="w-3.5 h-3.5 text-purple-700"/> Diagnóstico IA ({ev.prechequeoPuntaje || 0}% de coherencia):</p>
+                            <p>{ev.prechequeoFeedback}</p>
+                          </div>
+                        )}
+                        {!ev.prechequeoEstado && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ia/evidencias/prechequear`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ evidenciaId: ev.id })
+                                });
+                                if (res.ok) {
+                                  alert("Análisis de evidencia completado. Por favor recarga el detalle para ver los resultados.");
+                                  onRefresh();
+                                } else {
+                                  alert("No se pudo iniciar el pre-chequeo. Asegúrate de configurar la clave de API.");
+                                }
+                              } catch(e) {
+                                console.error(e);
+                              }
+                            }}
+                            className="text-[10px] bg-purple-700 hover:bg-purple-800 text-white font-bold py-1 px-2.5 rounded self-start mt-1 transition-colors flex items-center gap-1 shadow-sm"
+                          >
+                            <Sparkles className="w-3 h-3"/>
+                            Correr Pre-chequeo IA
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}

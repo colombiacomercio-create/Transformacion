@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
-import { CheckCircle, Save, Edit2, Info, Flag } from 'lucide-react';
+import { CheckCircle, Save, Edit2, Info, Flag, Sparkles } from 'lucide-react';
 import { fetchApi } from '../utils/api';
 import FichasDecoradas from './gestion/FichasDecoradas';
 
@@ -218,6 +218,42 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
   const [editandoCualitativo, setEditandoCualitativo] = useState<string | null>(null);
   const [formCualitativo, setFormCualitativo] = useState({ principalesAvances: '', alertasRecomendaciones: '' });
+  const [generandoIA, setGenerandoIA] = useState<string | null>(null);
+
+  const handleGenerateIA = async (objId: string) => {
+    setGenerandoIA(objId);
+    try {
+      // Determinar localidad objetivo para el reporte
+      const targetLocalidadId = (localidadFiltro === 'TODAS' || !localidadFiltro) && localidades.length > 0 
+        ? localidades[0].id 
+        : localidadFiltro;
+
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ia/reportes/generar-borrador`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          objetivoId: objId,
+          localidadId: targetLocalidadId,
+          corteId: corteActivo.id
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al generar borrador');
+      }
+
+      const data = await res.json();
+      setFormCualitativo({
+        principalesAvances: data.principalesAvancesDraft || '',
+        alertasRecomendaciones: data.alertasRecomendacionesDraft || ''
+      });
+    } catch (err) {
+      console.error('Error generating report with IA:', err);
+      alert('Error conectando al servicio de IA de SITRA. Verifica que el servidor de desarrollo esté activo.');
+    } finally {
+      setGenerandoIA(null);
+    }
+  };
 
   const handleEdit = (objId: string) => {
      const asig = corteActivo?.reportes?.find((r:any) => r.objetivoId === objId);
@@ -476,7 +512,17 @@ export default function Dashboard({ userData }: { userData?: any }) {
                  <h2 className="text-xl font-bold font-serif">{obj.nombre}</h2>
                  {isAdmin ? (
                     isEditing ? (
-                       <button onClick={() => handleSave(obj.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold shadow flex items-center gap-2"><Save className="w-4 h-4"/> Guardar</button>
+                       <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleGenerateIA(obj.id)}
+                            disabled={generandoIA !== null}
+                            className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded font-bold shadow flex items-center gap-2 disabled:opacity-50 transition-colors"
+                          >
+                            <Sparkles className="w-4 h-4 animate-pulse"/>
+                            {generandoIA === obj.id ? 'Redactando borrador...' : 'Sugerir con IA'}
+                          </button>
+                          <button onClick={() => handleSave(obj.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold shadow flex items-center gap-2"><Save className="w-4 h-4"/> Guardar</button>
+                       </div>
                     ) : (
                        <button onClick={() => handleEdit(obj.id)} className="bg-gray-800 hover:bg-gray-700 text-yellow-500 border border-yellow-600 px-4 py-2 rounded font-bold shadow flex items-center gap-2"><Edit2 className="w-4 h-4"/> Editar Reporte</button>
                     )

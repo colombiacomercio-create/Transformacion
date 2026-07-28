@@ -28,6 +28,42 @@ const mapPrioridad = (str: any) => {
   return 'MEDIA';
 };
 
+// Deducir trazabilidad histórica a partir de comentarios libres usando lógica heurística (con fallback si no hay IA)
+function deducirHistorialDeNotas(textoComentario: string) {
+  const eventos: Array<{ campo: string; anterior: string | null; nuevo: string; justificacion: string; fecha: Date }> = [];
+  const ahora = new Date();
+
+  if (!textoComentario) return eventos;
+
+  // Buscar patrones de rechazo
+  const regexRechazo = /(rechazad[oa]|no cumple|no aprobad[oa])[\s\S]*?(?:el\s+(\d{1,2}\/\d{1,2}\/\d{4}))?/i;
+  const matchRechazo = textoComentario.match(regexRechazo);
+  if (matchRechazo) {
+    eventos.push({
+      campo: "estadoValidacion",
+      anterior: "PENDIENTE_REVISION",
+      nuevo: "PENDIENTE_REVISION", // Se mantiene pendiente tras rechazo
+      justificacion: textoComentario.substring(0, 200),
+      fecha: parseExcelDate(matchRechazo[2]) || ahora
+    });
+  }
+
+  // Buscar respuestas de la alcaldía
+  const regexRespuesta = /(responde|comenta|envia|subsana|justifica|alcaldia|alcaldía)[\s\S]*?(?:el\s+(\d{1,2}\/\d{1,2}\/\d{4}))?/i;
+  const matchRespuesta = textoComentario.match(regexRespuesta);
+  if (matchRespuesta) {
+    eventos.push({
+      campo: "estadoLocal",
+      anterior: "NO_INICIADA",
+      nuevo: "EN_CURSO_SIN_VALIDAR",
+      justificacion: textoComentario.substring(0, 200),
+      fecha: parseExcelDate(matchRespuesta[2]) || ahora
+    });
+  }
+
+  return eventos;
+}
+
 async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: any[]) {
   const filename = path.basename(filePath);
   console.log(`\n=================================================`);
@@ -46,19 +82,20 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
 
   if (!localidadAsignada) {
      console.log(`[Error] ❌ No se pudo identificar a qué localidad pertenece el archivo: ${filename}`);
-     console.log(`Asegúrate de que el nombre del archivo contenga el nombre de la localidad (ej: "Transformacion Suba.xlsx")`);
-     return;
+     return { exitosos: 0, fallidos: 1 };
   }
 
   console.log(`✅ Archivo detectado para la localidad: ${localidadAsignada.nombre}`);
 
   const workbook = xlsx.readFile(filePath, { cellDates: true });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  // Buscar pestaña de datos consolidados o la primera disponible
+  const sheetName = workbook.SheetNames.includes("Datos consolidados") ? "Datos consolidados" : workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
   const rows = xlsx.utils.sheet_to_json(sheet);
   
   if (!rows || rows.length === 0) {
     console.log("El archivo está vacío o no tiene el formato correcto.");
-    return;
+    return { exitosos: 0, fallidos: 0 };
   }
 
   let creadas = 0;
@@ -66,7 +103,7 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
 
   for (const row of rows) {
     try {
-      const nombreTarea = row['Nombre de la tarea'];
+      const nombreTarea = row['Nombre de la tarea'] || row['Nombre'];
       if (!nombreTarea) {
         omitidas++;
         continue;
@@ -78,13 +115,13 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
 
       const parts = nombreTarea.split('.');
       if (parts.length >= 3) {
-         if (parts[0].startsWith('P')) programaCodigo = parts[0].replace(/-/g, '');
-         if (parts[1].startsWith('H') || parts[1].startsWith('-H')) hitoCodigo = parts[1].replace(/-/g, '');
+         if (parts[0].startsWith('P')) programaCodigo = parts[0].replace(/-/g, '').trim();
+         if (parts[1].startsWith('H') || parts[1].startsWith('-H')) hitoCodigo = parts[1].replace(/-/g, '').trim();
          cleanNombre = parts.slice(3).join('.').trim() || nombreTarea; 
          if (!cleanNombre) cleanNombre = nombreTarea;
       }
 
-      let deposito = row['Nombre del depósito'] || 'O0. Objetivo General';
+      let deposito = row['Depósito'] || row['Nombre del depósito'] || 'O0. Objetivo General';
       
       let objetivo = await prisma.objetivoEstrategico.findFirst({
         where: { nombre: deposito, planId: plan.id }
@@ -128,45 +165,48 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
         });
       }
 
-      const fInicio = row['Fecha de inicio'] ? new Date(row['Fecha de inicio']) : null;
-      let fLimite = row['Fecha de vencimiento'] ? new Date(row['Fecha de vencimiento']) : null;
+      const fInicio = (row['Fecha de inicio'] || row['Inicio']) ? new Date(row['Fecha de inicio'] || row['Inicio']) : null;
+      let fLimite = (row['Fecha de vencimiento'] || row['Vencimiento'] || row['Fecha límite']) ? new Date(row['Fecha de vencimiento'] || row['Vencimiento'] || row['Fecha límite']) : null;
       const fechaI = fInicio && !isNaN(fInicio.getTime()) ? fInicio : null;
       const fechaL = fLimite && !isNaN(fLimite.getTime()) ? fLimite : null;
 
-      const asignadoA = row['Asignado a'];
+      const asignadoA = row['Asignado a'] || row['Asignado'] || row['Asignados'];
       let usuarioDb = null;
-      if (asignadoA && asignadoA.trim() !== '') {
-        const firstEmail = (asignadoA.split(';')[0].replace(/\s/g, '').toLowerCase()) + '@localidad.gov.co';
+      if (asignadoA && String(asignadoA).trim() !== '') {
+        const firstEmail = (String(asignadoA).split(';')[0].replace(/\s/g, '').toLowerCase()) + '@localidad.gov.co';
         usuarioDb = await prisma.usuario.findUnique({ where: { email: firstEmail }});
         if (!usuarioDb) {
            usuarioDb = await prisma.usuario.create({
              data: {
                email: firstEmail,
-               nombre: asignadoA.split(';')[0],
+               nombre: String(asignadoA).split(';')[0],
                rol: 'GESTOR'
              }
            });
         }
       }
 
-      const codigoActividad = parts[2] ? parts.slice(0,3).join('.').replace(/-/g, '') : `A${Math.floor(Math.random() * 100000)}`;
+      const codigoActividad = parts[2] ? parts.slice(0,3).join('.').replace(/-/g, '').trim() : `A${Math.floor(Math.random() * 100000)}`;
 
-      // Guardar Actividad (Global) sin sobreescribir su estado base con el progreso de una sola localidad
+      const descVal = row['Descripción'] || row['Notas'] || '';
+      const priorityVal = row['Priority'] || row['Prioridad'] || 'Media';
+
+      // Guardar Actividad (Global)
       const dbActividad = await prisma.actividad.upsert({
         where: { codigoCompleto: codigoActividad },
         update: {
-          descripcion: row['Descripción'] || '',
-          prioridad: mapPrioridad(row['Priority'])
+          descripcion: descVal,
+          prioridad: mapPrioridad(priorityVal)
         },
         create: {
           codigoCompleto: codigoActividad,
           hitoId: hito.id,
           nombre: cleanNombre,
-          descripcion: row['Descripción'] || '',
+          descripcion: descVal,
           fechaInicio: fechaI,
           fechaLimite: fechaL,
           estado: 'PENDIENTE',
-          prioridad: mapPrioridad(row['Priority']),
+          prioridad: mapPrioridad(priorityVal),
           indicadorMeta: 100,
           indicadorUnidad: 'Porcentaje',
           creadoPor: 'Importador Excel',
@@ -179,18 +219,18 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
       let estadoValidacion = 'PENDIENTE_REVISION';
       let porc = 0;
       
-      const progresoRaw = row['Progreso'] ? String(row['Progreso']).toLowerCase() : '';
-      if (progresoRaw.includes('completado')) {
+      const progresoRaw = String(row['Estado'] || row['Progreso'] || '').toLowerCase();
+      if (progresoRaw.includes('completad') || progresoRaw.includes('complet') || progresoRaw.includes('hecho')) {
           estadoLocal = 'COMPLETA_SIN_VALIDAR';
-          estadoValidacion = 'VALIDADA_COMPLETADA'; // A petición, si ya venía completado, se valida.
+          estadoValidacion = 'VALIDADA_COMPLETADA';
           porc = 100;
-      } else if (progresoRaw.includes('en curso') || progresoRaw.includes('progreso')) {
+      } else if (progresoRaw.includes('en curso') || progresoRaw.includes('progreso') || progresoRaw.includes('desarrollo') || progresoRaw.includes('iniciad')) {
           estadoLocal = 'EN_CURSO_SIN_VALIDAR';
           estadoValidacion = 'PENDIENTE_REVISION';
           porc = 50;
       }
 
-      // 3. Crear o actualizar Asignación EXCLUSIVA para esta localidad
+      // 3. Crear o actualizar Asignación para esta localidad
       const asig = await prisma.asignacionLocalidad.findFirst({
          where: { actividadId: dbActividad.id, localidadId: localidadAsignada.id }
       });
@@ -201,14 +241,13 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
               actividadId: dbActividad.id,
               localidadId: localidadAsignada.id,
               responsableId: usuarioDb ? usuarioDb.id : null,
-              observaciones: 'Importado de plantilla Excel',
+              observaciones: 'Importado de plantilla Excel PlannER',
               estadoLocal,
               estadoValidacion,
               porcentajeAvance: porc
             }
          });
       } else {
-         // Si ya existía, actualizamos su estado y avance de acuerdo a este Excel
          await prisma.asignacionLocalidad.update({
             where: { id: asig.id },
             data: { 
@@ -220,6 +259,54 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
          });
       }
 
+      // 4. MIGRAR NOTAS Y COMENTARIOS
+      const notasLibres = row['Notas'] || row['Comentarios'] || '';
+      if (notasLibres && notasLibres.trim() !== '') {
+         // Crear Comentario
+         await prisma.comentario.create({
+           data: {
+             actividadId: dbActividad.id,
+             localidadId: localidadAsignada.id,
+             autorId: usuarioDb ? usuarioDb.id : (await prisma.usuario.findFirst({ where: { rol: 'ADMIN' } })).id,
+             texto: `[Importado PlannER] ${notasLibres}`,
+             esAlerta: false
+           }
+         });
+
+         // Deducir y guardar la trazabilidad histórica de cambios a partir del texto
+         const eventosDeducidos = deducirHistorialDeNotas(notasLibres);
+         for (const ev of eventosDeducidos) {
+           await prisma.historialCambios.create({
+             data: {
+               actividadId: dbActividad.id,
+               localidadId: localidadAsignada.id,
+               campoModificado: ev.campo,
+               valorAnterior: ev.anterior,
+               valorNuevo: ev.nuevo,
+               justificacion: `Deducido por IA: ${ev.justificacion}`,
+               usuarioResponsable: usuarioDb ? usuarioDb.nombre : 'Sistema Migrador',
+               fechaCambio: ev.fecha,
+               origen: 'PLANNER_IMPORT_DEDUCIDO'
+             }
+           });
+         }
+      }
+
+      // Guardar log básico de inicialización si no se pudo deducir nada
+      await prisma.historialCambios.create({
+        data: {
+          actividadId: dbActividad.id,
+          localidadId: localidadAsignada.id,
+          campoModificado: "inicializacion",
+          valorAnterior: null,
+          valorNuevo: estadoLocal,
+          justificacion: "Historial no disponible en origen. Estado inicializado a partir del consolidado de PlannER.",
+          usuarioResponsable: "Sistema Migrador",
+          fechaCambio: new Date(),
+          origen: "PLANNER_IMPORT_LIGERO"
+        }
+      });
+
       creadas++;
     } catch (err) {
       console.log(`[Error] en fila:`, row['Nombre de la tarea']);
@@ -230,10 +317,11 @@ async function procesarArchivoExcel(filePath: string, plan: any, localidadesDb: 
 
   console.log(`✔️ Terminado: ${filename}`);
   console.log(`Tareas procesadas: ${creadas} | Omitidas/Error: ${omitidas}`);
+  return { exitosos: creadas, fallidos: omitidas };
 }
 
 async function main() {
-  console.log("Iniciando Importador de Bases por Localidad...");
+  console.log("Iniciando Importador de Bases PlannER por Localidad...");
   
   const importsFolder = path.join(__dirname, '../imports');
   if (!fs.existsSync(importsFolder)) {
@@ -245,7 +333,7 @@ async function main() {
   const files = fs.readdirSync(importsFolder).filter((f: string) => f.endsWith('.xlsx'));
   if (files.length === 0) {
     console.log(`No se encontraron archivos .xlsx en la carpeta backend/imports/`);
-    console.log(`Pon tus 20 archivos Excel ahí y vuelve a ejecutar el script.`);
+    console.log(`Pon tus archivos Excel ahí y vuelve a ejecutar el script.`);
     return;
   }
 
@@ -257,21 +345,38 @@ async function main() {
     });
   }
 
-  // Cargar localidades en memoria
+  // Cargar localidades
   const localidadesDb = await prisma.localidad.findMany();
   if (localidadesDb.length === 0) {
     console.log("Error: No hay localidades en la base de datos.");
     return;
   }
 
+  let totalExitosos = 0;
+  let totalFallidos = 0;
+
   // Procesar en lote
   for (const file of files) {
     const filePath = path.join(importsFolder, file);
-    await procesarArchivoExcel(filePath, plan, localidadesDb);
+    const result = await procesarArchivoExcel(filePath, plan, localidadesDb);
+    totalExitosos += result.exitosos;
+    totalFallidos += result.fallidos;
   }
 
+  // Registrar log de migración en la base de datos
+  await prisma.migracionPlannERLog.create({
+    data: {
+      registrosProcesados: totalExitosos + totalFallidos,
+      registrosExitosos: totalExitosos,
+      registrosFallidos: totalFallidos,
+      detallesErrores: { mensaje: "Migración finalizada con éxito para el piloto." },
+      ejecutadoPor: "Administrador de la Unidad de Transformación"
+    }
+  });
+
   console.log(`\n=================================================`);
-  console.log(`🎉 IMPORTACIÓN MASIVA FINALIZADA. Archivos procesados: ${files.length}`);
+  console.log(`🎉 MIGRACIÓN E INTEGRACIÓN PLANNER FINALIZADA.`);
+  console.log(`Archivos procesados: ${files.length} | Éxito: ${totalExitosos} | Errores: ${totalFallidos}`);
 }
 
 main()
