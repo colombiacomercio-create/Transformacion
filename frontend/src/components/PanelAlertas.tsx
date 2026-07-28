@@ -278,6 +278,43 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
                   <button onClick={() => { setMostrandoGestion(a.id); setFormGestion({estado: a.estado, ultimaAccion: '', expectativa: ''})}} className="bg-white border-2 border-bogota-primary text-bogota-primary hover:bg-red-50 px-4 py-2 rounded font-bold flex items-center gap-2 transition w-full justify-center">
                      <Edit className="w-4 h-4"/> Gestionar / Actualizar
                   </button>
+                  {a.correosResponsables && a.correosResponsables.length > 0 && (
+                      <button 
+                         type="button"
+                         onClick={async () => {
+                            const bypass = import.meta.env.VITE_BYPASS_AUTH === 'true';
+                            if (bypass) {
+                               alert("Debes iniciar sesión con tu cuenta oficial de Microsoft (modo login) para poder enviar los correos de notificación.");
+                               return;
+                            }
+                            try {
+                               const { sendEmailGraphAPI } = await import('../utils/api');
+                               const subject = "Recordatorio: Alerta Asignada en SITRA";
+                               const link = `${window.location.origin}/#/alerta/${a.id}`;
+                               const body = `
+                                 <h2>Recordatorio de Alerta Asignada</h2>
+                                 <p>Se te ha notificado de la siguiente alerta en el sistema SITRA:</p>
+                                 <p><strong>Descripción:</strong> ${a.descripcion}</p>
+                                 <p><strong>Nivel / Tipo:</strong> ${a.tipo}</p>
+                                 <p><strong>Localidad:</strong> ${a.localidad?.nombre || 'General'}</p>
+                                 <p>Para ver los detalles, subir un reporte de actualización o adjuntar archivos, haz clic en el siguiente enlace:</p>
+                                 <br/>
+                                 <a href="${link}" style="background-color: #e3002b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acceder a la Alerta</a>
+                                 <br/><br/>
+                                 <p>Nota: Al ingresar, se te pedirá iniciar sesión con tu cuenta de Office 365.</p>
+                               `;
+                               await sendEmailGraphAPI(a.correosResponsables, subject, body);
+                               alert("Correos de notificación enviados con éxito.");
+                            } catch (err: any) {
+                               console.error(err);
+                               alert(`Error enviando correos: ${err.message || err}`);
+                            }
+                         }}
+                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition w-full justify-center text-sm"
+                      >
+                         ✉️ Notificar por Correo
+                      </button>
+                   )}
                   <span className="text-xs text-gray-400 font-medium tracking-wide">Reportado: {new Date(a.fechaCreacion).toLocaleDateString()}</span>
                </div>
             </div>
