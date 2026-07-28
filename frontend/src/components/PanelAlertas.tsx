@@ -115,25 +115,30 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
        
        // Send email if emails provided
        if (correos.length > 0) {
-          const { sendEmailGraphAPI } = await import('../utils/api');
-          const subject = "La Unidad de Transformación te ha asignado una ALERTA";
-          const link = `${window.location.origin}/#/alerta/${nuevaAlerta.id}`;
-          const body = `
-            <h2>Nueva Alerta Asignada</h2>
-            <p>Se te ha asignado como responsable o notificado de la siguiente alerta en SITRA:</p>
-            <p><strong>Descripción:</strong> ${form.desc}</p>
-            <p><strong>Nivel / Tipo:</strong> ${form.tipo}</p>
-            <p>Para ver los detalles, subir un reporte de actualización o adjuntar archivos, haz clic en el siguiente enlace:</p>
-            <br/>
-            <a href="${link}" style="background-color: #e3002b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acceder a la Alerta</a>
-            <br/><br/>
-            <p>Nota: Al ingresar, se te pedirá iniciar sesión con tu cuenta de Office 365.</p>
-          `;
-          try {
-             await sendEmailGraphAPI(correos, subject, body);
-          } catch (mailErr) {
-             console.error("Error enviando correo, la alerta se guardó de todos modos", mailErr);
-             alert("Alerta creada, pero hubo un error enviando los correos a los responsables.");
+          const bypass = import.meta.env.VITE_BYPASS_AUTH === 'true';
+          if (bypass) {
+             console.log("Modo Bypass Activo. Se omite el envío de correo por Microsoft Graph API.");
+          } else {
+             const { sendEmailGraphAPI } = await import('../utils/api');
+             const subject = "La Unidad de Transformación te ha asignado una ALERTA";
+             const link = `${window.location.origin}/#/alerta/${nuevaAlerta.id}`;
+             const body = `
+               <h2>Nueva Alerta Asignada</h2>
+               <p>Se te ha asignado como responsable o notificado de la siguiente alerta en SITRA:</p>
+               <p><strong>Descripción:</strong> ${form.desc}</p>
+               <p><strong>Nivel / Tipo:</strong> ${form.tipo}</p>
+               <p>Para ver los detalles, subir un reporte de actualización o adjuntar archivos, haz clic en el siguiente enlace:</p>
+               <br/>
+               <a href="${link}" style="background-color: #e3002b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acceder a la Alerta</a>
+               <br/><br/>
+               <p>Nota: Al ingresar, se te pedirá iniciar sesión con tu cuenta de Office 365.</p>
+             `;
+             try {
+                await sendEmailGraphAPI(correos, subject, body);
+             } catch (mailErr) {
+                console.error("Error enviando correo, la alerta se guardó de todos modos", mailErr);
+                alert("Alerta creada, pero hubo un error enviando los correos a los responsables.");
+             }
           }
        }
 
