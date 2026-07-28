@@ -352,15 +352,36 @@ router.post('/chat/mensaje', azureADAuth, async (req: AuthRequest, res) => {
       asignaciones = await prisma.asignacionLocalidad.findMany({
         where: whereAsig,
         include: {
-          actividad: true,
+          actividad: {
+            include: {
+              hito: {
+                include: {
+                  programa: {
+                    include: {
+                      objetivo: true
+                    }
+                  }
+                }
+              }
+            }
+          },
           localidad: true
         }
       });
 
       // 3. Query Alertas
       const whereAlerta: any = {};
-      if (localidadId) whereAlerta.localidadId = localidadId;
-      if (filtros.estadoAlerta) whereAlerta.estado = filtros.estadoAlerta;
+      if (localidadId) {
+        whereAlerta.OR = [
+          { localidadId: localidadId },
+          { localidadId: null }
+        ];
+      }
+      if (filtros.estadoAlerta) {
+        whereAlerta.estado = filtros.estadoAlerta;
+      } else {
+        whereAlerta.estado = { in: ['ABIERTA', 'ESCALADA_DESPACHO'] };
+      }
 
       alertas = await prisma.fichaAlerta.findMany({
         where: whereAlerta,
@@ -370,17 +391,67 @@ router.post('/chat/mensaje', azureADAuth, async (req: AuthRequest, res) => {
       });
 
       if (asignaciones.length > 0 || alertas.length > 0) {
-        datosReales = `
-          DATOS REALES OBTENIDOS DE LA BASE DE DATOS:
-          Asignaciones/Actividades de la localidad (${asignaciones.length} encontradas):
-          ${asignaciones.map(a => `- Actividad ${a.actividad.codigoCompleto || a.actividad.id}: "${a.actividad.nombre}" en la localidad "${a.localidad.nombre}" tiene un avance del ${a.porcentajeAvance}% y estado local "${a.estadoLocal || 'PENDIENTE'}".`).join('\n')}
-          
-          Alertas activas (${alertas.length} encontradas):
-          ${alertas.map(al => `- Alerta [${al.tipo}]: "${al.descripcion}" en localidad "${al.localidad?.nombre || 'Global'}" (Responsable: ${al.responsable}, Estado: ${al.estado}).`).join('\n')}
-        `;
+        let completas = 0;
+        let enCurso = 0;
+        let noIniciadas = 0;
+        const ejemplosCompletas: string[] = [];
 
-        // Generamos la respuesta sintetizada final en base a la información real
-        respuestaFinal = await aiService.generarRespuestaFinalChat(query, datosReales);
+        const objProgress: { [key: string]: { total: number; sum: number; nombre: string } } = {};
+
+        for (const a of asignaciones) {
+          const estado = a.estadoLocal || 'NO_INICIADA';
+          if (estado === 'COMPLETA_SIN_VALIDAR' || a.porcentajeAvance === 100) {
+            completas++;
+            if (ejemplosCompletas.length < 3) {
+              ejemplosCompletas.push(a.actividad.nombre);
+            }
+          } else if (estado === 'EN_CURSO_SIN_VALIDAR' || a.porcentajeAvance === 50) {
+            enCurso++;
+          } else {
+            noIniciadas++;
+          }
+
+          const objetivo = a.actividad.hito?.programa?.objetivo;
+          if (objetivo) {
+            const objId = objetivo.id;
+            if (!objProgress[objId]) {
+              objProgress[objId] = { total: 0, sum: 0, nombre: objetivo.nombre };
+            }
+            objProgress[objId].total++;
+            objProgress[objId].sum += a.porcentajeAvance || 0;
+          }
+        }
+
+        let liderNombre = "Ninguna";
+        let liderPorcentaje = 0;
+
+        for (const key in objProgress) {
+          const avg = objProgress[key].sum / objProgress[key].total;
+          if (avg > liderPorcentaje) {
+            liderPorcentaje = Math.round(avg);
+            liderNombre = objProgress[key].nombre;
+          }
+        }
+
+        if (liderNombre === "Ninguna" && Object.keys(objProgress).length > 0) {
+          const firstKey = Object.keys(objProgress)[0];
+          liderNombre = objProgress[firstKey].nombre;
+          liderPorcentaje = 0;
+        }
+
+        const alertasTexto = alertas.map(al => `- [${al.tipo}] ${al.descripcion} (Localidad: ${al.localidad?.nombre || 'Global'}, Responsable: ${al.responsable}, Estado: ${al.estado})`).join('\n');
+
+        respuestaFinal = await aiService.generarRespuestaFinalChat(query, {
+          liderNombre,
+          liderPorcentaje,
+          completas,
+          enCurso,
+          noIniciadas,
+          totalAsignaciones: asignaciones.length,
+          totalAlertas: alertas.length,
+          ejemplosCompletas,
+          alertasTexto
+        });
       } else {
         respuestaFinal = `He consultado los datos de SITRA aplicando el filtro para la localidad de "${targetLocalidad || 'especificada'}" pero actualmente no existen registros de actividades asignadas o alertas creadas en esta sección.`;
       }

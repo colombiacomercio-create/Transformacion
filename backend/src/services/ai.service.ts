@@ -305,7 +305,17 @@ export const responderConsultaChat = async (
  */
 export const generarRespuestaFinalChat = async (
     pregunta: string,
-    datosReales: string
+    stats: {
+      liderNombre: string;
+      liderPorcentaje: number;
+      completas: number;
+      enCurso: number;
+      noIniciadas: number;
+      totalAsignaciones: number;
+      totalAlertas: number;
+      ejemplosCompletas: string[];
+      alertasTexto: string;
+    }
 ): Promise<string> => {
     const client = obtenerClienteGemini();
     if (!client) {
@@ -319,21 +329,32 @@ export const generarRespuestaFinalChat = async (
 
         const prompt = `
         Eres el Asistente Inteligente de SITRA. El usuario preguntó: "${pregunta}"
-        Hemos consultado la base de datos de SITRA y obtuvimos los siguientes registros reales:
+        Hemos calculado las estadísticas reales de la base de datos para la localidad de Suba:
+        - Total de asignaciones: ${stats.totalAsignaciones}
+        - Estado de Actividades: ${stats.completas} en COMPLETA_SIN_VALIDAR, ${stats.enCurso} en EN_CURSO_SIN_VALIDAR y ${stats.noIniciadas} en NO_INICIADA.
+        - Aspiración líder: "${stats.liderNombre}" con ${stats.liderPorcentaje}% de ejecución.
+        - Alertas activas: ${stats.totalAlertas}.
+        - Ejemplos de actividades completadas: ${stats.ejemplosCompletas.join(', ')}.
+        - Detalle de alertas: ${stats.alertasTexto}.
         
-        ${datosReales}
+        Por favor genera la respuesta final en español con el siguiente formato ejecutivo EXACTO (utiliza viñetas muy cortas, negritas y cursivas según el ejemplo):
         
-        Genera una respuesta en español que cumpla ESTRICTAMENTE con estas pautas de diseño:
-        1. **Brevedad Ejecutiva**: El texto debe ser extremadamente sintético y conciso (máximo 80-100 palabras en total). No generes respuestas largas ni listas interminables.
-        2. **Enfoque Cuantitativo (Cifras)**: Provee resúmenes numéricos directos (ej: avance promedio, cantidad total de actividades en cada estado y número de alertas).
-        3. **Enfoque Cualitativo**: Menciona solo causas clave o ejemplos puntuales (máximo 1 o 2) en lugar de listar decenas de registros.
-        4. **Formato**: Utiliza un formato limpio con viñetas muy cortas y negrita para destacar números y estados.
+        Resumen Cuantitativo:
+        * **Aspiración Líder**: ${stats.liderNombre} (${stats.liderPorcentaje}% de ejecución).
+        * **Estado de Actividades (Suba)**: ${stats.completas} en **COMPLETA_SIN_VALIDAR**, ${stats.enCurso} en **EN_CURSO_SIN_VALIDAR** y ${stats.noIniciadas} en **NO_INICIADA**.
+        * **Alertas Activas**: **${stats.totalAlertas}** registradas en el sistema.
+        
+        Aspecto Cualitativo:
+        * **Impulsores**: Cumplimiento total en acciones clave como ${stats.ejemplosCompletas.slice(0, 3).map(e => `*${e}*`).join(', ')}.
+        * **Obstáculo Principal**: [Describir muy brevemente en una sola frase el obstáculo principal basándose en el detalle de las alertas, por ejemplo: dificultades con PONAL para comparendos de residuos o falta de IDs actualizadas].
+        
+        No agregues introducciones, introducciones de formato ni conclusiones innecesarias, ve directo a los dos bloques (Resumen Cuantitativo y Aspecto Cualitativo).
         `;
 
         const response = await ejecutarConReintentos(() => model.generateContent(prompt));
         return response.response.text() || "Sin respuesta generada por el asistente.";
     } catch (error) {
         console.error("[AIService] Error sintetizando respuesta final de chat:", error);
-        return `Hubo un inconveniente al analizar los resultados en tiempo real. Datos crudos obtenidos:\n${datosReales}`;
+        return `Resumen Cuantitativo:\nAspiración Líder: ${stats.liderNombre} (${stats.liderPorcentaje}%).\nEstado: ${stats.completas} completas, ${stats.enCurso} en curso, ${stats.noIniciadas} no iniciadas.\nAlertas: ${stats.totalAlertas}.`;
     }
 };
