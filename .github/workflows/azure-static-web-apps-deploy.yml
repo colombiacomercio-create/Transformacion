@@ -18,12 +18,10 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        working-directory: ./frontend
         run: npm ci --no-audit
 
       - name: Build Frontend
-        working-directory: ./frontend
-        run: npx vite build
+        run: npm run build -w frontend
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api-transformacion-sdg.azurewebsites.net' }}
           VITE_TENANT_ID: ${{ vars.VITE_TENANT_ID }}
