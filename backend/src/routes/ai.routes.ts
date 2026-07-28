@@ -563,15 +563,29 @@ router.post('/chat/mensaje', azureADAuth, async (req: AuthRequest, res) => {
           let targetObjetivoId: string | null = null;
           let targetObjetivoNombre = "";
 
+          const keyWordsMap: { [key: string]: string[] } = {
+            'O1': ['presupuestal', 'presupuesto', 'presupuesta', 'o1', 'gasto', 'inversion'],
+            'O2': ['obras', 'locales', 'construccion', 'obra', 'o2', 'infraestructura'],
+            'O3': ['espacio', 'publico', 'residuos', 'ventas', 'basura', 'vendedores', 'o3'],
+            'O4': ['seguridad', 'convivencia', 'policia', 'ponal', 'delito', 'o4'],
+            'O5': ['rollos', 'rolos', 'legendarios', 'o5'],
+            'O6': ['bogotaneidad', 'cultura', 'ciudadania', 'o6'],
+            'OV1': ['estrategias', 'memoria', 'paz', 'victimas', 'ov1'],
+            'OV2': ['canales', 'atencion', 'ov2']
+          };
+
           for (const key in objProgress) {
             const nombreObj = objProgress[key].nombre.toLowerCase();
-            const codigoObj = (objProgress[key].nombre.split('.')[0] || '').trim().toLowerCase();
+            const codeParts = objProgress[key].nombre.split('.');
+            const codeRaw = (codeParts[0] || '').trim().toUpperCase();
+            
             const nombreNormalizado = nombreObj.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const queryNormalizado = queryLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             
-            if (queryNormalizado.includes(nombreNormalizado) || 
-                (codigoObj && queryNormalizado.includes(codigoObj)) ||
-                (queryNormalizado.includes('rolos') && nombreNormalizado.includes('rollos'))) {
+            const keywords = keyWordsMap[codeRaw] || [];
+            const matchesKeyword = keywords.some(kw => queryNormalizado.includes(kw));
+
+            if (queryNormalizado.includes(nombreNormalizado) || matchesKeyword) {
               targetObjetivoId = key;
               targetObjetivoNombre = objProgress[key].nombre;
               break;
