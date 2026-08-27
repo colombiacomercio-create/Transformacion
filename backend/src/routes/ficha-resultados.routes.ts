@@ -115,6 +115,45 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
       rollosEnCurso: data.rollosEnCurso ?? null,
       alertaRollos: data.alertaRollos ?? null,
       observaciones: data.observaciones ?? null,
+
+      avancesEjecucion: data.avancesEjecucion ?? null,
+      avancesObras: data.avancesObras ?? null,
+      avancesRollos: data.avancesRollos ?? null,
+      avancesResiduos: data.avancesResiduos ?? null,
+      avancesVenta: data.avancesVenta ?? null,
+      avancesActuaciones: data.avancesActuaciones ?? null,
+      avancesConvivencia: data.avancesConvivencia ?? null,
+      avancesEstrategias: data.avancesEstrategias ?? null,
+
+      obrasProgramadasAlCorte: data.obrasProgramadasAlCorte ?? null,
+
+      totalRollos: data.totalRollos ?? null,
+      rollosAvancesSignificativos: data.rollosAvancesSignificativos ?? null,
+      rollosProgramadosAlCorte: data.rollosProgramadosAlCorte ?? null,
+
+      puntosCriticosPriorizados: data.puntosCriticosPriorizados ?? null,
+      puntosSostenidos: data.puntosSostenidos ?? null,
+      puntosSostenidosProgramados: data.puntosSostenidosProgramados ?? null,
+      personasSensibilizadas: data.personasSensibilizadas ?? null,
+      personasSensibilizadasProgramadas: data.personasSensibilizadasProgramadas ?? null,
+      operativosIVC: data.operativosIVC ?? null,
+      operativosIVCProgramados: data.operativosIVCProgramados ?? null,
+
+      puntosVerificados: data.puntosVerificados ?? null,
+      puntosProgramadosSostenibilidad: data.puntosProgramadosSostenibilidad ?? null,
+      puntosSostenibilidadEfectiva: data.puntosSostenibilidadEfectiva ?? null,
+
+      archivosProgramadosCorte: data.archivosProgramadosCorte ?? null,
+      fallosProgramadosCorte: data.fallosProgramadosCorte ?? null,
+
+      motosMetaTotal: data.motosMetaTotal ?? null,
+      motosProgramadasCorte: data.motosProgramadasCorte ?? null,
+
+      estrategiasTotal: data.estrategiasTotal ?? null,
+      estrategiasAjustes: data.estrategiasAjustes ?? null,
+      estrategiasValidacionTecnica: data.estrategiasValidacionTecnica ?? null,
+      estrategiasProgramadasCorte: data.estrategiasProgramadasCorte ?? null,
+
       reportadoPorId: userId,
       
       ejecucionActPorId: data.ejecucionActPorId ?? null,
