@@ -156,9 +156,9 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
           
           {/* 1. EJECUCION */}
           {renderCard('1. EJECUCIÓN PRESUPUESTAL', ejecucionColor, (
-            <div className="flex justify-around items-end h-32">
+            <div className="flex justify-around items-end h-32 mt-4">
                <div className="text-center">
-                  <span className="font-bold text-[10px] block mb-1 text-gray-500">COMPROMISOS</span>
+                  <span className="font-bold text-xs block mb-3 text-gray-700">COMPROMISOS</span>
                   {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, c1Color)}
                   <div className="mt-4 text-xs font-bold text-gray-700">
                     {ultimaFicha.metaCompromisosPct === undefined || ultimaFicha.metaCompromisosPct === null ? (
@@ -169,7 +169,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   </div>
                </div>
                <div className="text-center">
-                  <span className="font-bold text-[10px] block mb-1 text-gray-500">GIROS</span>
+                  <span className="font-bold text-xs block mb-3 text-gray-700">GIROS</span>
                   {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, c2Color)}
                   <div className="mt-4 text-xs font-bold text-gray-700">
                     {ultimaFicha.metaGirosPct === undefined || ultimaFicha.metaGirosPct === null ? (
@@ -189,7 +189,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   <div><span className="text-[10px] text-gray-500 font-bold block leading-tight">META<br/>ANUAL</span><span className="text-xl font-black">{ultimaFicha.metaObras || 0}</span></div>
                   <div className="border-l border-r"><span className="text-[10px] text-gray-500 font-bold block leading-tight">PROG. AL<br/>CORTE</span>
                      {ultimaFicha.obrasProgramadasAlCorte === undefined || ultimaFicha.obrasProgramadasAlCorte === null ? (
-                        <span className="block text-red-500 text-[8px] leading-none mt-1 font-normal">No reportado</span>
+                        <span className="block text-red-500 text-[10px] leading-none mt-1 font-bold">No reportado</span>
                      ) : <span className="text-xl font-black">{ultimaFicha.obrasProgramadasAlCorte}</span>}
                   </div>
                   <div><span className="text-[10px] text-gray-500 font-bold block leading-tight">FINALIZ.<br/>(REAL)</span><span className="text-xl font-black">{ultimaFicha.intervencionesFinalizadas || 0}</span></div>
