@@ -60,7 +60,7 @@ export default function SeccionResultados({ userData }: Props) {
     try {
       const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
       for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+        const canvas = await html2canvas(pages[i] as HTMLElement, { scale: 2, useCORS: true });
         const imgData = canvas.toDataURL('image/png');
         if (i > 0) pdf.addPage();
         const pdfWidth = pdf.internal.pageSize.getWidth();
