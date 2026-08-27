@@ -40,19 +40,33 @@ export default function SeccionResultados({ userData }: Props) {
   useEffect(() => { cargar(); }, []);
 
   const exportPDF = async () => {
-    const el = document.getElementById('ficha-pdf-container');
-    if (!el) return;
+    const pages = document.querySelectorAll('.pdf-page');
+    if (!pages || pages.length === 0) {
+      // Fallback
+      const el = document.getElementById('ficha-pdf-container');
+      if (!el) return;
+      setExporting(true);
+      try {
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [canvas.width, canvas.height] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Ficha_Resultados_${new Date().toISOString().slice(0, 10)}.pdf`);
+      } catch (err) { console.error(err); } finally { setExporting(false); }
+      return;
+    }
+
     setExporting(true);
     try {
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: canvas.width > canvas.height ? 'l' : 'p',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
-      });
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        if (i > 0) pdf.addPage();
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      }
       pdf.save(`Ficha_Resultados_${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (error) {
       console.error("Error exporting PDF:", error);

@@ -15,6 +15,7 @@ import eventosRoutes from './routes/eventos.routes';
 import normativoRoutes from './routes/normativo.routes';
 import otrosEspaciosRoutes from './routes/otros-espacios.routes';
 import aiRoutes from './routes/ai.routes';
+import obrasRoutes from './routes/obras.routes';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 
@@ -42,6 +43,7 @@ app.use('/api/eventos', eventosRoutes);
 app.use('/api/normativo', normativoRoutes);
 app.use('/api/otros-espacios', otrosEspaciosRoutes);
 app.use('/api/ia', aiRoutes);
+app.use('/api/obras', obrasRoutes);
 
 import { PrismaClient } from '@prisma/client';
 const prismaClient = new PrismaClient();

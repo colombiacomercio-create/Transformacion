@@ -150,7 +150,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   return (
     <div className="w-full bg-gray-100 font-sans p-4 flex flex-col gap-4">
       {/* PAGE 1 */}
-      <div className="bg-white w-[210mm] min-h-[297mm] mx-auto p-8 shadow-md relative page-break-after-always">
+      <div className="pdf-page bg-white w-[210mm] min-h-[297mm] mx-auto p-8 shadow-md relative">
         {renderHeader()}
         <div className="grid grid-cols-2 gap-6">
           
