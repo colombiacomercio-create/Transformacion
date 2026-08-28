@@ -48,11 +48,11 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
   };
 
   const renderCard = (title: string, color: string, children: React.ReactNode, avances: string, alertas: string) => (
-    <div className="rounded-xl overflow-hidden shadow-sm border-2 mb-6" style={{ borderColor: color, breakInside: 'avoid' }}>
-      <h3 className="text-white text-center font-bold text-lg py-2 uppercase tracking-wide flex items-center justify-center gap-2" style={{ backgroundColor: color }}>
+    <div className="rounded-xl overflow-hidden shadow-sm border-2 mb-6 flex flex-col h-full min-h-[280px]" style={{ borderColor: color, breakInside: 'avoid' }}>
+      <h3 className="text-white text-center font-bold text-lg py-2 uppercase tracking-wide flex items-center justify-center gap-2 shrink-0" style={{ backgroundColor: color }}>
         {title}
       </h3>
-      <div className="bg-white p-4 flex flex-col h-full">
+      <div className="bg-white p-4 flex flex-col flex-1">
         <div className="flex-1">
           {children}
         </div>
