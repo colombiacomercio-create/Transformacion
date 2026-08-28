@@ -9,11 +9,9 @@ const SECCIONES = [
   {
     id: 'ejecucion', titulo: '1. Ejecución del Plan de Desarrollo',
     campos: [
-      { key: 'metaAnualCompromisos', label: 'Compromisos - Meta global anual %', type: 'number', step: '0.1' },
-        { key: 'compromisosPct', label: 'Compromisos - Avance Real %', type: 'number', step: '0.1' },
+      { key: 'compromisosPct', label: 'Compromisos - Avance Real %', type: 'number', step: '0.1' },
       { key: 'metaCompromisosPct', label: 'Compromisos - Programado al corte %', type: 'number', step: '0.1' },
-      { key: 'metaAnualGiros', label: 'Giros - Meta global anual %', type: 'number', step: '0.1' },
-        { key: 'girosPct', label: 'Giros - Avance Real %', type: 'number', step: '0.1' },
+      { key: 'girosPct', label: 'Giros - Avance Real %', type: 'number', step: '0.1' },
       { key: 'metaGirosPct', label: 'Giros - Programado al corte %', type: 'number', step: '0.1' },
       { key: 'procesosMonitoreados', label: 'Procesos Monitoreados', type: 'number' },
       { key: 'procesosRequierenComite', label: 'Procesos requieren comité', type: 'number' },

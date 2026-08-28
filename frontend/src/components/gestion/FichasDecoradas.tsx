@@ -178,7 +178,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             <div className="flex justify-around items-end h-32 mt-4">
                <div className="text-center">
                   <span className="font-bold text-xs block mb-3 text-gray-700">COMPROMISOS</span>
-                  {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, ultimaFicha.metaAnualCompromisos, c1Color)}
+                  {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, 100, c1Color)}
                   <div className="mt-4 text-xs font-bold text-gray-700">
                     {ultimaFicha.metaCompromisosPct === undefined || ultimaFicha.metaCompromisosPct === null ? (
                        <span className="block text-red-500 text-[10px]">Programado al corte no reportado</span>
@@ -189,7 +189,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                </div>
                <div className="text-center">
                   <span className="font-bold text-xs block mb-3 text-gray-700">GIROS</span>
-                  {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, ultimaFicha.metaAnualGiros, c2Color)}
+                  {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, 100, c2Color)}
                   <div className="mt-4 text-xs font-bold text-gray-700">
                     {ultimaFicha.metaGirosPct === undefined || ultimaFicha.metaGirosPct === null ? (
                        <span className="block text-red-500 text-[10px]">Programado al corte no reportado</span>
