@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+﻿import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 interface Props {
   ultimaFicha: any;
@@ -7,132 +7,86 @@ interface Props {
 export default function FichasDecoradas({ ultimaFicha }: Props) {
   if (!ultimaFicha) return null;
 
-  // Helpers
-  const getColor = (real: number | undefined, prog: number | undefined) => {
-    if (!prog || prog === 0) return '#e5e7eb';
-    const pct = (real || 0) / prog * 100;
-    if (pct < 50) return '#e3182d'; // Rojo
-    if (pct < 80) return '#f59e0b'; // Amarillo
-    return '#16a34a'; // Verde
-  };
+  // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  const getAvancePct = (real: number | undefined, prog: number | undefined) => {
+  const getAvancePct = (real: number | undefined, prog: number | undefined): number => {
     if (!prog || prog === 0) return 0;
     return Math.round(((real || 0) / prog) * 100);
   };
 
-  const renderNeedle = (pct = 0, radius = 60) => {
-    const safePct = Math.min(100, Math.max(0, pct));
-    const rotateDeg = (safePct * 180 / 100) - 90;
-    const length = radius + 5;
-    return (
-      <div 
-        className="absolute z-10"
-        style={{
-          bottom: 0, left: '50%', width: '2px', height: `${length}px`,
-          transformOrigin: 'bottom center', transform: `translateX(-50%) rotate(${rotateDeg}deg)`,
-          borderLeft: '2px dashed #000'
-        }}
-      />
-    );
+  const getStatusColor = (real: number | undefined, prog: number | undefined): string => {
+    if (!prog || prog === 0) return '#6b7280';
+    const pct = getAvancePct(real, prog);
+    if (pct < 50) return '#dc2626';
+    if (pct < 80) return '#d97706';
+    return '#16a34a';
   };
 
-  const parseVinetas = (texto: string) => {
-    if (!texto) return null;
+  const parseVinetas = (texto: string | null | undefined) => {
+    if (!texto || texto.trim().length === 0) return null;
     const lineas = texto.split('\n').filter(l => l.trim().length > 0);
     return (
       <ul className="list-disc pl-5 text-xs text-gray-700 space-y-1">
-        {lineas.map((l, i) => <li key={i}>{l.replace(/^[-*•]\s*/, '')}</li>)}
+        {lineas.map((l, i) => <li key={i}>{l.replace(/^[-*â€¢]\s*/, '')}</li>)}
       </ul>
     );
   };
 
-  const renderCard = (title: string, color: string, children: React.ReactNode, avances: string, alertas: string) => (
-    <div className="rounded-xl overflow-hidden shadow-sm border-2 mb-6 flex flex-col h-full min-h-[280px]" style={{ borderColor: color, breakInside: 'avoid' }}>
-      <h3 className="text-white text-center font-bold text-lg py-2 uppercase tracking-wide flex items-center justify-center gap-2 shrink-0" style={{ backgroundColor: color }}>
-        {title}
-      </h3>
-      <div className="bg-white p-4 flex flex-col flex-1">
-        <div className="flex-1">
-          {children}
-        </div>
-        
-        {/* Avances */}
-        {avances && (
-          <div className="mt-4 border border-green-500 rounded-lg overflow-hidden shrink-0">
-             <div className="bg-green-50 text-green-800 text-xs font-bold px-3 py-1 flex items-center gap-2">
-                ✅ PRINCIPALES AVANCES DEL CORTE
-             </div>
-             <div className="p-3 bg-white">
-                {parseVinetas(avances)}
-             </div>
-          </div>
-        )}
+  // â”€â”€â”€ Gauge (semicircular) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        {/* Alertas */}
-        {alertas && (
-          <div className="mt-3 border border-red-400 rounded-lg overflow-hidden shrink-0">
-             <div className="bg-red-50 text-red-700 text-xs font-bold px-3 py-1 flex items-center gap-2">
-                ⚠️ ALERTAS
-             </div>
-             <div className="p-3 bg-white text-xs text-gray-700 font-medium">
-                {alertas}
-             </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const renderGauge = (
+    real: number | undefined,
+    prog: number | undefined,
+    meta: number | undefined,
+    color: string,
+    unit: string = ''
+  ) => {
+    const safeReal = real ?? 0;
+    const safeProg = prog ?? 0;
+    const safeMeta = meta ?? 0;
 
-  const renderGauge = (real: number | undefined, prog: number | undefined, meta: number | undefined, color: string, unit: string = '') => {
-    const safeReal = real || 0;
-    const safeProg = prog || 0;
-    const safeMeta = meta || 0;
-    
     let fillPct = 0;
     let needlePct = 0;
-    
+
     if (safeMeta > 0) {
-      fillPct = Math.min(100, (safeReal / safeMeta) * 100);
+      fillPct   = Math.min(100, (safeReal / safeMeta) * 100);
       needlePct = Math.min(100, (safeProg / safeMeta) * 100);
     } else if (safeProg > 0) {
-      fillPct = Math.min(100, (safeReal / safeProg) * 100);
+      fillPct   = Math.min(100, (safeReal / safeProg) * 100);
       needlePct = 100;
     }
-    
+
     const data = [
-      { value: fillPct, color },
-      { value: Math.max(0, 100 - fillPct), color: '#e5e7eb' }
+      { value: fillPct,              color },
+      { value: Math.max(0, 100 - fillPct), color: '#e5e7eb' },
     ];
 
-    const renderNeedle = (pct: number) => {
+    const GaugeNeedle = ({ pct }: { pct: number }) => {
       const rotateDeg = (pct * 180 / 100) - 90;
-      
       const theta = rotateDeg * Math.PI / 180;
-      const tx = Math.sin(theta) * 65; 
-      const ty = -Math.cos(theta) * 65;
-      
+      const radius = 52;
+      const tx = Math.sin(theta) * radius;
+      const ty = -Math.cos(theta) * radius;
       return (
         <div className="absolute z-10 w-full h-full pointer-events-none" style={{ bottom: 0, left: 0 }}>
-          <div 
-            style={{
-              position: 'absolute',
-              bottom: 0, left: '50%', width: '2px', height: '65px',
-              transformOrigin: 'bottom center', transform: `translateX(-50%) rotate(${rotateDeg}deg)`,
-              borderLeft: '2px dashed #374151'
-            }}
-          />
+          <div style={{
+            position: 'absolute', bottom: 0, left: '50%',
+            width: '2px', height: '58px',
+            transformOrigin: 'bottom center',
+            transform: `translateX(-50%) rotate(${rotateDeg}deg)`,
+            borderLeft: '2px dashed #374151',
+          }} />
           {prog !== undefined && prog !== null && (
-             <div 
-               className="absolute whitespace-nowrap bg-gray-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm"
-               style={{
-                 left: `calc(50% + ${tx}px)`,
-                 bottom: `calc(0px + ${-ty}px)`,
-                 transform: 'translate(-50%, -50%)'
-               }}
-             >
-               {prog}{unit} Prog.
-             </div>
+            <div
+              className="absolute whitespace-nowrap bg-gray-700 text-white text-[9px] font-bold px-1 py-0.5 rounded shadow"
+              style={{
+                left:   `calc(50% + ${tx}px)`,
+                bottom: `calc(${-ty}px)`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              {prog}{unit} Prog.
+            </div>
           )}
         </div>
       );
@@ -143,350 +97,405 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
         <div className="relative h-20 w-32 mx-auto mt-2">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={0} dataKey="value" stroke="none">
+              <Pie data={data} cx="50%" cy="100%" startAngle={180} endAngle={0}
+                innerRadius={35} outerRadius={55} paddingAngle={0} dataKey="value" stroke="none">
                 {data.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
-          {(safeMeta > 0 || safeProg > 0) && renderNeedle(needlePct)}
-          <div className="absolute bottom-0 left-0 w-full text-center mb-[-8px]">
-             <span className="text-xl font-black" style={{ color }}>{Math.round(fillPct)}%</span>
+          {(safeMeta > 0 || safeProg > 0) && <GaugeNeedle pct={needlePct} />}
+          <div className="absolute bottom-0 left-0 w-full text-center" style={{ marginBottom: '-8px' }}>
+            <span className="text-xl font-black" style={{ color }}>{Math.round(fillPct)}%</span>
           </div>
         </div>
         <div className="mt-5">
-           {meta !== undefined && meta !== null ? (
-             <span className="inline-block bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">
-               Meta anual: {meta}{unit}
-             </span>
-           ) : (
-             <span className="inline-block bg-red-50 border border-red-200 text-red-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">
-               Meta anual no reportada
-             </span>
-           )}
+          {meta !== undefined && meta !== null ? (
+            <span className="inline-block bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">
+              Meta anual: {meta}{unit}
+            </span>
+          ) : (
+            <span className="inline-block bg-red-50 border border-red-200 text-red-500 text-[10px] font-bold px-2 py-1 rounded shadow-sm">
+              Meta anual no reportada
+            </span>
+          )}
         </div>
       </div>
     );
   };
 
-  const c1Color = getColor(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct);
-  const c2Color = getColor(ultimaFicha.girosPct, ultimaFicha.metaGirosPct);
-  const ejecucionColor = c1Color === '#e3182d' || c2Color === '#e3182d' ? '#e3182d' : c1Color === '#f59e0b' || c2Color === '#f59e0b' ? '#f59e0b' : '#16a34a';
-  
-  const obrasColor = getColor(ultimaFicha.intervencionesFinalizadas, ultimaFicha.obrasProgramadasAlCorte);
-  const rollosColor = getColor(ultimaFicha.rollosResueltos, ultimaFicha.rollosProgramadosAlCorte);
-  
-  // Residuos: Puntos Sostenidos programados vs reales
-  const residColor = getColor(ultimaFicha.puntosSostenidos, ultimaFicha.puntosSostenidosProgramados);
-  const orgColor = getColor(ultimaFicha.puntosSostenibilidadEfectiva, ultimaFicha.puntosProgramadosSostenibilidad);
-  
-  const archColor = getColor(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte);
-  const fallosColor = getColor(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte);
-  const actColor = archColor === '#e3182d' || fallosColor === '#e3182d' ? '#e3182d' : archColor === '#f59e0b' || fallosColor === '#f59e0b' ? '#f59e0b' : '#16a34a';
+  // â”€â”€â”€ Tri-segment bar (Obras Locales) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  const motosReal = (ultimaFicha.motosEntregadasPolicia || 0) + (ultimaFicha.motosEntregadas || 0);
-  const convColor = getColor(motosReal, ultimaFicha.motosProgramadasCorte);
+  const renderObrasBar = (
+    meta: number | undefined,
+    prog: number | undefined,
+    real: number | undefined,
+  ) => {
+    const safeMeta = meta ?? 0;
+    const safeProg = prog ?? 0;
+    const safeReal = real ?? 0;
+    const realPct  = safeMeta > 0 ? Math.min(100, (safeReal / safeMeta) * 100) : 0;
+    const progPct  = safeMeta > 0 ? Math.min(100, (safeProg / safeMeta) * 100) : 0;
+    const gapPct   = Math.max(0, progPct - realPct);
+    const color    = getStatusColor(safeReal, safeProg);
 
-  const memColor = getColor(ultimaFicha.estrategiasResueltas, ultimaFicha.estrategiasProgramadasCorte);
+    return (
+      <div className="w-full mt-2">
+        <div className="flex justify-between text-[9px] font-bold text-gray-500 mb-1 px-0.5">
+          <span style={{ color: '#16a34a' }}>âœ” Ejecutado: {safeReal.toLocaleString('es-CO')}</span>
+          {safeProg > 0 && <span style={{ color: '#d97706' }}>â¬¥ Prog. corte: {safeProg.toLocaleString('es-CO')}</span>}
+          <span className="text-gray-400">Meta: {safeMeta.toLocaleString('es-CO')}</span>
+        </div>
+        <div className="w-full h-4 rounded-full overflow-hidden flex bg-gray-200 relative">
+          <div className="h-full transition-all" style={{ width: `${realPct}%`, backgroundColor: '#16a34a', minWidth: realPct > 0 ? '2px' : '0' }} />
+          <div className="h-full transition-all" style={{ width: `${gapPct}%`, backgroundColor: '#fbbf24', minWidth: gapPct > 0 ? '2px' : '0' }} />
+          <div className="h-full flex-1" style={{ backgroundColor: '#e5e7eb' }} />
+          {safeProg > 0 && safeMeta > 0 && (
+            <div className="absolute top-0 h-full w-0.5 bg-gray-600" style={{ left: `${progPct}%` }} />
+          )}
+        </div>
+        <div className="flex justify-between text-[9px] mt-1 px-0.5">
+          <span style={{ color }}>
+            {safeProg > 0 ? `${getAvancePct(safeReal, safeProg)}% vs programado` : 'Prog. al corte no reportado'}
+          </span>
+          <span className="text-gray-400">{safeMeta > 0 ? `${Math.round(realPct)}% de meta anual` : ''}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // â”€â”€â”€ Card wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  const renderCard = (
+    title: string,
+    headerColor: string,
+    children: React.ReactNode,
+    avances: string | null | undefined,
+    alertas: string | null | undefined
+  ) => (
+    <div
+      className="rounded-xl overflow-hidden shadow-sm border-2 flex flex-col"
+      style={{ borderColor: headerColor, breakInside: 'avoid', marginBottom: '1.5rem' }}
+    >
+      <h3
+        className="text-white text-center font-bold text-base py-2 uppercase tracking-wide flex items-center justify-center gap-2 shrink-0"
+        style={{ backgroundColor: headerColor }}
+      >
+        {title}
+      </h3>
+      <div className="bg-white p-4 flex flex-col flex-1">
+        <div className="flex-1 pb-2">{children}</div>
+
+        {/* Avances â€” always visible */}
+        <div className="mt-3 border border-green-400 rounded-lg overflow-hidden shrink-0">
+          <div className="bg-green-50 text-green-800 text-[10px] font-bold px-3 py-1 flex items-center gap-1 border-b border-green-200">
+            âœ… PRINCIPALES AVANCES DEL CORTE
+          </div>
+          <div className="p-2 bg-white min-h-[44px]">
+            {avances && avances.trim().length > 0
+              ? parseVinetas(avances)
+              : <p className="text-[10px] text-gray-300 italic">No reportado aÃºn</p>}
+          </div>
+        </div>
+
+        {/* Alertas â€” always visible */}
+        <div className="mt-2 border border-red-300 rounded-lg overflow-hidden shrink-0">
+          <div className="bg-red-50 text-red-700 text-[10px] font-bold px-3 py-1 flex items-center gap-1 border-b border-red-200">
+            âš ï¸ ALERTAS
+          </div>
+          <div className="p-2 bg-white min-h-[44px]">
+            {alertas && alertas.trim().length > 0
+              ? <p className="text-xs text-gray-700 font-medium whitespace-pre-wrap">{alertas}</p>
+              : <p className="text-[10px] text-gray-300 italic">No reportado aÃºn</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // â”€â”€â”€ Section colors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  const c1Color        = getStatusColor(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct);
+  const c2Color        = getStatusColor(ultimaFicha.girosPct, ultimaFicha.metaGirosPct);
+  const ejecucionColor = c1Color === '#dc2626' || c2Color === '#dc2626' ? '#dc2626'
+                       : c1Color === '#d97706' || c2Color === '#d97706' ? '#d97706'
+                       : '#16a34a';
+
+  const obrasColor  = getStatusColor(ultimaFicha.intervencionesFinalizadas, ultimaFicha.obrasProgramadasAlCorte);
+  const rollosColor = getStatusColor(ultimaFicha.rollosResueltos, ultimaFicha.rollosProgramadosAlCorte);
+  const residColor  = getStatusColor(ultimaFicha.puntosSostenidos, ultimaFicha.puntosSostenidosProgramados);
+  const orgColor    = getStatusColor(ultimaFicha.puntosSostenibilidadEfectiva, ultimaFicha.puntosProgramadosSostenibilidad);
+  const archColor   = getStatusColor(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte);
+  const fallosColor = getStatusColor(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte);
+  const actColor    = archColor === '#dc2626' || fallosColor === '#dc2626' ? '#dc2626'
+                    : archColor === '#d97706' || fallosColor === '#d97706' ? '#d97706'
+                    : '#16a34a';
+  const motosReal   = (ultimaFicha.motosEntregadasPolicia || 0) + (ultimaFicha.motosEntregadas || 0);
+  const convColor   = getStatusColor(motosReal, ultimaFicha.motosProgramadasCorte);
+  const memColor    = getStatusColor(ultimaFicha.estrategiasResueltas, ultimaFicha.estrategiasProgramadasCorte);
+
+  // â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const renderHeader = () => (
     <div className="flex justify-between items-start mb-6 border-b-4 border-red-600 pb-2">
       <div>
-        <h1 className="text-4xl font-extrabold text-[#1a3622] tracking-tighter uppercase">Transformación Local</h1>
-        <h2 className="text-2xl font-light text-gray-500">Unidad de Transformación</h2>
+        <h1 className="text-4xl font-extrabold text-[#1a3622] tracking-tighter uppercase">TransformaciÃ³n Local</h1>
+        <h2 className="text-2xl font-light text-gray-500">Unidad de TransformaciÃ³n</h2>
       </div>
-      <img src="/Logo_sede_electronica_SDG.png" alt="Alcaldía de Bogotá" className="h-10 object-contain" />
+      <img src="/Logo_sede_electronica_SDG.png" alt="AlcaldÃ­a de BogotÃ¡" className="h-10 object-contain" />
     </div>
   );
 
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   return (
     <div className="w-full bg-gray-100 font-sans p-4 flex flex-col gap-4">
-      {/* PAGE 1 */}
+
+      {/* â•â•â• PAGE 1 â•â•â• */}
       <div className="pdf-page bg-white w-[210mm] min-h-[297mm] mx-auto p-8 shadow-md relative">
         {renderHeader()}
         <div className="grid grid-cols-2 gap-6">
-          
-          {/* 1. EJECUCION */}
-          {renderCard('1. EJECUCIÓN PRESUPUESTAL', ejecucionColor, (
-            <div className="flex justify-around items-end h-32 mt-4">
-               <div className="text-center">
-                  <span className="font-bold text-xs block mb-3 text-gray-700">COMPROMISOS</span>
-                  {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, 100, c1Color, '%')}
-               </div>
-               <div className="text-center">
-                  <span className="font-bold text-xs block mb-3 text-gray-700">GIROS</span>
-                  {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, 100, c2Color, '%')}
-               </div>
+
+          {/* 1. EJECUCIÃ“N */}
+          {renderCard('1. EJECUCIÃ“N PRESUPUESTAL', ejecucionColor, (
+            <div className="flex justify-around items-start mt-2 gap-2">
+              <div className="text-center flex-1">
+                <span className="font-bold text-xs block mb-1 text-gray-700">COMPROMISOS</span>
+                {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, 100, c1Color, '%')}
+              </div>
+              <div className="text-center flex-1">
+                <span className="font-bold text-xs block mb-1 text-gray-700">GIROS</span>
+                {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, 100, c2Color, '%')}
+              </div>
             </div>
           ), ultimaFicha.avancesEjecucion, ultimaFicha.alertaEjecucion)}
 
-          {/* 2. OBRAS */}
+          {/* 2. OBRAS LOCALES */}
           {renderCard('2. OBRAS LOCALES', obrasColor, (
             <div>
-               <div className="grid grid-cols-3 gap-2 text-center border-b pb-2 mb-2">
-                  <div><span className="text-[10px] text-gray-500 font-bold block leading-tight">META<br/>ANUAL</span><span className="text-xl font-black">{ultimaFicha.metaObras || 0}</span></div>
-                  <div className="border-l border-r"><span className="text-[10px] text-gray-500 font-bold block leading-tight">PROG. AL<br/>CORTE</span>
-                     {ultimaFicha.obrasProgramadasAlCorte === undefined || ultimaFicha.obrasProgramadasAlCorte === null ? (
-                        <span className="block text-red-500 text-[10px] leading-none mt-1 font-bold">No reportado</span>
-                     ) : <span className="text-xl font-black">{ultimaFicha.obrasProgramadasAlCorte}</span>}
-                  </div>
-                  <div><span className="text-[10px] text-gray-500 font-bold block leading-tight">FINALIZ.<br/>(REAL)</span><span className="text-xl font-black">{ultimaFicha.intervencionesFinalizadas || 0}</span></div>
-               </div>
-               <div className="flex justify-between items-center mb-1 px-2 mt-4">
-                  <span className="text-[10px] font-bold text-gray-500">AVANCE RESPECTO A PROGRAMADO</span>
-                  <span className="text-xl font-black" style={{ color: obrasColor }}>{getAvancePct(ultimaFicha.intervencionesFinalizadas, ultimaFicha.obrasProgramadasAlCorte)}%</span>
-               </div>
-               <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-4">
-                  <div className="h-full" style={{ width: `${Math.min(100, getAvancePct(ultimaFicha.intervencionesFinalizadas, ultimaFicha.obrasProgramadasAlCorte))}%`, backgroundColor: obrasColor }}></div>
-               </div>
-               <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="border border-gray-100 bg-gray-50 rounded-lg p-2">
-                     <span className="text-[10px] text-gray-500 font-bold block">KM CARRIL INTERVENIDO</span>
-                     <span className="text-xl font-black">{ultimaFicha.kmCarrilIntervenido || 0}</span>
-                  </div>
-                  <div className="border border-gray-100 bg-gray-50 rounded-lg p-2">
-                     <span className="text-[10px] text-gray-500 font-bold block">M² INTERVENIDOS</span>
-                     <span className="text-xl font-black">{ultimaFicha.kmIntervenidos?.toLocaleString('es-CO') || 0}</span>
-                  </div>
-               </div>
+              <div className="grid grid-cols-3 gap-2 text-center border-b pb-2 mb-1">
+                <div>
+                  <span className="text-[10px] text-gray-500 font-bold block leading-tight">META<br/>ANUAL</span>
+                  <span className="text-xl font-black">{(ultimaFicha.metaObras || 0).toLocaleString('es-CO')}</span>
+                </div>
+                <div className="border-x border-gray-100">
+                  <span className="text-[10px] text-gray-500 font-bold block leading-tight">PROG. AL<br/>CORTE</span>
+                  {ultimaFicha.obrasProgramadasAlCorte == null
+                    ? <span className="block text-red-500 text-[10px] font-bold mt-1">No reportado</span>
+                    : <span className="text-xl font-black">{(ultimaFicha.obrasProgramadasAlCorte).toLocaleString('es-CO')}</span>}
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 font-bold block leading-tight">FINALIZ.<br/>(REAL)</span>
+                  <span className="text-xl font-black" style={{ color: obrasColor }}>
+                    {(ultimaFicha.intervencionesFinalizadas || 0).toLocaleString('es-CO')}
+                  </span>
+                </div>
+              </div>
+              {renderObrasBar(ultimaFicha.metaObras, ultimaFicha.obrasProgramadasAlCorte, ultimaFicha.intervencionesFinalizadas)}
+              <div className="grid grid-cols-2 gap-3 text-center mt-3">
+                <div className="border border-gray-100 bg-gray-50 rounded-lg p-2">
+                  <span className="text-[10px] text-gray-500 font-bold block">KM CARRIL INTERVENIDO</span>
+                  <span className="text-xl font-black">{ultimaFicha.kmCarrilIntervenido || 0}</span>
+                </div>
+                <div className="border border-gray-100 bg-gray-50 rounded-lg p-2">
+                  <span className="text-[10px] text-gray-500 font-bold block">MÂ² INTERVENIDOS</span>
+                  <span className="text-xl font-black">{ultimaFicha.kmIntervenidos?.toLocaleString('es-CO') || 0}</span>
+                </div>
+              </div>
             </div>
           ), ultimaFicha.avancesObras, ultimaFicha.alertaObras)}
 
           {/* 3. ROLLOS */}
           {renderCard('3. ROLLOS LEGENDARIOS', rollosColor, (
-            <div className="flex items-center gap-4">
-               <div className="text-center w-36">
-                  {renderGauge(ultimaFicha.rollosResueltos, ultimaFicha.rollosProgramadosAlCorte, ultimaFicha.totalRollos, rollosColor)}
-               </div>
-               <div className="flex-1 space-y-1">
-                  <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                     <span className="text-xs font-bold text-gray-500">Total rollos</span>
-                     <span className="text-lg font-black">{ultimaFicha.totalRollos || 0}</span>
+            <div className="flex items-start gap-4 mt-1">
+              <div className="text-center shrink-0 w-36">
+                {renderGauge(ultimaFicha.rollosResueltos, ultimaFicha.rollosProgramadosAlCorte, ultimaFicha.totalRollos, rollosColor)}
+              </div>
+              <div className="flex-1 space-y-1.5 mt-1">
+                {[
+                  { label: 'Total rollos',          val: ultimaFicha.totalRollos },
+                  { label: 'Resueltos (real)',       val: ultimaFicha.rollosResueltos, color: rollosColor },
+                  { label: 'Avances significativos', val: ultimaFicha.rollosAvancesSignificativos },
+                  { label: 'En curso',              val: ultimaFicha.rollosEnCurso },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="flex justify-between items-center border-b border-gray-100 pb-1">
+                    <span className="text-xs font-bold text-gray-500">{label}</span>
+                    <span className="text-lg font-black" style={color ? { color } : {}}>{val || 0}</span>
                   </div>
-                  <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                     <span className="text-xs font-bold text-gray-500">Resueltos (real)</span>
-                     <span className="text-lg font-black">{ultimaFicha.rollosResueltos || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                     <span className="text-xs font-bold text-gray-500">Avances signif.</span>
-                     <span className="text-lg font-black">{ultimaFicha.rollosAvancesSignificativos || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-1">
-                     <span className="text-xs font-bold text-gray-500">En curso</span>
-                     <span className="text-lg font-black text-gray-400">{ultimaFicha.rollosEnCurso || 0}</span>
-                  </div>
-               </div>
+                ))}
+              </div>
             </div>
           ), ultimaFicha.avancesRollos, ultimaFicha.alertaRollos)}
 
           {/* 4. RESIDUOS */}
-          {renderCard('4. ESPACIO PÚBLICO - RESIDUOS', residColor, (
+          {renderCard('4. ESPACIO PÃšBLICO - RESIDUOS', residColor, (
             <div>
-               <div className="grid grid-cols-2 gap-4 text-center border-b border-gray-100 pb-2 mb-2">
-                  <div>
-                     <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Puntos Críticos<br/>Priorizados</span>
-                     <span className="text-2xl font-black">{ultimaFicha.puntosCriticosPriorizados || 0}</span>
+              <div className="grid grid-cols-2 gap-4 text-center border-b border-gray-100 pb-2 mb-2">
+                <div>
+                  <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Puntos CrÃ­ticos<br/>Priorizados</span>
+                  <span className="text-2xl font-black">{ultimaFicha.puntosCriticosPriorizados || 0}</span>
+                </div>
+                <div className="border-l border-gray-100">
+                  <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Puntos sostenidos<br/>(Real)</span>
+                  <span className="text-2xl font-black" style={{ color: residColor }}>{ultimaFicha.puntosSostenidos || 0}</span>
+                </div>
+              </div>
+              <div className="flex justify-between text-[9px] font-bold mb-1 px-1">
+                <span className="text-gray-400">0%</span>
+                <span style={{ color: residColor }}>{getAvancePct(ultimaFicha.puntosSostenidos, ultimaFicha.puntosSostenidosProgramados)}% vs programado</span>
+                <span className="text-gray-400">100%</span>
+              </div>
+              <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden mb-3">
+                <div className="h-full rounded-full" style={{
+                  width: `${Math.min(100, getAvancePct(ultimaFicha.puntosSostenidos, ultimaFicha.puntosSostenidosProgramados))}%`,
+                  backgroundColor: residColor
+                }} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                {[
+                  { label: 'Personas sensibilizadas', val: ultimaFicha.personasSensibilizadas },
+                  { label: 'Operativos IVC',          val: ultimaFicha.operativosIVC },
+                  { label: 'Intervenciones rep.',     val: ultimaFicha.accionesReportadas },
+                  { label: 'MÂ³ recolectados',         val: ultimaFicha.residuosM3 },
+                ].map(({ label, val }) => (
+                  <div key={label} className="border border-gray-100 bg-gray-50 p-1.5 rounded flex justify-between items-center">
+                    <span className="text-gray-500 font-bold">{label}</span>
+                    <span className="font-black text-sm">{val?.toLocaleString('es-CO') ?? 0}</span>
                   </div>
-                  <div className="border-l border-gray-100">
-                     <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Puntos sostenidos<br/>(Real)</span>
-                     <span className="text-2xl font-black">{ultimaFicha.puntosSostenidos || 0}</span>
-                  </div>
-               </div>
-               
-               <div className="flex justify-between text-[10px] font-bold mb-1 px-1">
-                 <span className="text-gray-400">0%</span>
-                 <span style={{ color: residColor }}>{getAvancePct(ultimaFicha.puntosSostenidos, ultimaFicha.puntosSostenidosProgramados)}% Cumplimiento al corte</span>
-                 <span className="text-gray-400">100%</span>
-               </div>
-               <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-2 relative">
-                  <div className="h-full" style={{ width: `${Math.min(100, getAvancePct(ultimaFicha.puntosSostenidos, ultimaFicha.puntosSostenidosProgramados))}%`, backgroundColor: residColor }}></div>
-                  {ultimaFicha.puntosSostenidosProgramados === undefined || ultimaFicha.puntosSostenidosProgramados === null ? (
-                     <div className="absolute inset-0 bg-red-100 flex items-center justify-center text-red-500 text-[8px] font-bold">Prog. no reportado</div>
-                  ) : null}
-               </div>
-
-               <div className="grid grid-cols-2 gap-2 text-center text-[10px] mb-2">
-                  <div className="border border-gray-100 bg-gray-50 p-1.5 rounded flex justify-between items-center">
-                    <span className="text-gray-500 font-bold">Personas sensib.</span>
-                    <span className="font-black text-sm">{ultimaFicha.personasSensibilizadas?.toLocaleString('es-CO') || 0}</span>
-                  </div>
-                  <div className="border border-gray-100 bg-gray-50 p-1.5 rounded flex justify-between items-center">
-                    <span className="text-gray-500 font-bold">Operativos IVC</span>
-                    <span className="font-black text-sm">{ultimaFicha.operativosIVC?.toLocaleString('es-CO') || 0}</span>
-                  </div>
-               </div>
-               <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
-                  <div className="border border-gray-100 bg-gray-50 p-1.5 rounded flex justify-between items-center">
-                    <span className="text-gray-500 font-bold">Intervenciones rep.</span>
-                    <span className="font-black text-sm">{ultimaFicha.accionesReportadas?.toLocaleString('es-CO') || 0}</span>
-                  </div>
-                  <div className="border border-gray-100 bg-gray-50 p-1.5 rounded flex justify-between items-center">
-                    <span className="text-gray-500 font-bold">M³ recolectados</span>
-                    <span className="font-black text-sm">{ultimaFicha.residuosM3?.toLocaleString('es-CO') || 0}</span>
-                  </div>
-               </div>
+                ))}
+              </div>
             </div>
           ), ultimaFicha.avancesResiduos, ultimaFicha.alertaEspacioResiduos)}
 
         </div>
       </div>
 
-      {/* PAGE 2 */}
-      <div className="bg-white w-[210mm] min-h-[297mm] mx-auto p-8 shadow-md">
+      {/* â•â•â• PAGE 2 â•â•â• */}
+      <div className="pdf-page bg-white w-[210mm] min-h-[297mm] mx-auto p-8 shadow-md">
         {renderHeader()}
         <div className="grid grid-cols-2 gap-6">
 
-          {/* 5. VENTA INFORMAL (Ocupa las 2 columnas) */}
+          {/* 5. ORG ESPACIO PÃšBLICO â€” full width */}
           <div className="col-span-2">
-             {renderCard('5. ORGANIZACIÓN Y RECUPERACIÓN ESPACIO PÚBLICO', orgColor, (
-               <div className="grid grid-cols-3 gap-6 items-center">
-                  <div className="text-center border-r border-gray-100 pr-4">
-                     <span className="text-[10px] font-bold text-gray-500 block uppercase mb-1">Puntos con Sostenibilidad Efectiva</span>
-                     {renderGauge(ultimaFicha.puntosSostenibilidadEfectiva, ultimaFicha.puntosProgramadosSostenibilidad, ultimaFicha.puntosVerificados, orgColor)}
+            {renderCard('5. ORGANIZACIÃ“N Y RECUPERACIÃ“N ESPACIO PÃšBLICO', orgColor, (
+              <div className="grid grid-cols-3 gap-6 items-start">
+                <div className="text-center border-r border-gray-100 pr-4">
+                  <span className="text-[10px] font-bold text-gray-500 block uppercase mb-1">Puntos con Sostenibilidad Efectiva</span>
+                  {renderGauge(ultimaFicha.puntosSostenibilidadEfectiva, ultimaFicha.puntosProgramadosSostenibilidad, ultimaFicha.puntosVerificados, orgColor)}
+                </div>
+                <div className="text-center border-r border-gray-100 pr-4">
+                  <span className="text-[10px] font-bold text-gray-500 block uppercase mb-2">DistribuciÃ³n Operativos</span>
+                  <div className="h-20 w-full relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={[
+                          { value: ultimaFicha.orgParqueo || 0, color: '#f59e0b' },
+                          { value: ultimaFicha.ventaInformal || 0, color: '#dc2626' },
+                        ]} innerRadius={20} outerRadius={35} dataKey="value" stroke="none">
+                          {[{ color: '#f59e0b' }, { color: '#dc2626' }].map((e, i) => <Cell key={i} fill={e.color} />)}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div className="text-center border-r border-gray-100 pr-4">
-                     <span className="text-[10px] font-bold text-gray-500 block uppercase mb-2">Distribución Operativos</span>
-                     <div className="h-20 w-full relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={[
-                              { value: ultimaFicha.orgParqueo || 0, color: '#f59e0b' },
-                              { value: ultimaFicha.ventaInformal || 0, color: '#e3182d' }
-                            ]} innerRadius={20} outerRadius={35} dataKey="value" stroke="none">
-                              {[{color:'#f59e0b'}, {color:'#e3182d'}].map((e, i) => <Cell key={i} fill={e.color} />)}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                     </div>
-                     <div className="flex justify-around text-[10px] font-bold mt-2">
-                        <div className="text-yellow-600">Org parqueo: {ultimaFicha.orgParqueo || 0}</div>
-                        <div className="text-red-600">Venta informal: {ultimaFicha.ventaInformal || 0}</div>
-                     </div>
+                  <div className="flex justify-around text-[10px] font-bold mt-1">
+                    <div className="text-yellow-600">Parqueo: {ultimaFicha.orgParqueo || 0}</div>
+                    <div className="text-red-600">Venta inf.: {ultimaFicha.ventaInformal || 0}</div>
                   </div>
-                  <div className="space-y-3">
-                     <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                       <span className="text-xs font-bold text-gray-500">Puntos verificados totales</span>
-                       <span className="font-black text-lg">{ultimaFicha.puntosVerificados || 0}</span>
-                     </div>
-                     <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                       <span className="text-xs font-bold text-gray-500">Intervenciones reportadas</span>
-                       <span className="font-black text-lg">{ultimaFicha.puntosIntervenidos || 0}</span>
-                     </div>
-                     <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                       <span className="text-xs font-bold text-gray-500">M² recuperados</span>
-                       <span className="font-black text-lg">{ultimaFicha.m2RecuperadosInformal?.toLocaleString('es-CO') || 0}</span>
-                     </div>
-                     <div className="flex justify-between items-center">
-                       <span className="text-xs font-bold text-gray-500">Personas reubicadas</span>
-                       <span className="font-black text-lg">{ultimaFicha.personasReubicadas?.toLocaleString('es-CO') || 0}</span>
-                     </div>
-                  </div>
-               </div>
-             ), ultimaFicha.avancesVenta, ultimaFicha.alertaEspacioVenta)}
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Puntos verificados', val: ultimaFicha.puntosVerificados },
+                    { label: 'Intervenciones rep.', val: ultimaFicha.puntosIntervenidos },
+                    { label: 'MÂ² recuperados',     val: ultimaFicha.m2RecuperadosInformal },
+                    { label: 'Personas reubicadas', val: ultimaFicha.personasReubicadas },
+                  ].map(({ label, val }) => (
+                    <div key={label} className="flex justify-between items-center border-b border-gray-100 pb-1">
+                      <span className="text-xs font-bold text-gray-500">{label}</span>
+                      <span className="font-black text-lg">{val?.toLocaleString('es-CO') ?? 0}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ), ultimaFicha.avancesVenta, ultimaFicha.alertaEspacioVenta)}
           </div>
 
-          {/* 6. ACTUACIONES */}
+          {/* 6. ACTUACIONES â€” natural height, no h-40 */}
           {renderCard('6. ACTUACIONES ADMINISTRATIVAS', actColor, (
-            <div className="flex justify-around items-end h-40">
-                <div className="text-center">
-                  <span className="font-bold text-xs block mb-3 text-gray-700">ARCHIVOS</span>
-                  {renderGauge(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte, ultimaFicha.metaArchivos, archColor)}
-                  <div className="mt-4 text-[10px] font-bold text-gray-700">
-                    {ultimaFicha.archivosProgramadosCorte === undefined || ultimaFicha.archivosProgramadosCorte === null ? (
-                       <span className="block text-red-500">Programado al corte no reportado</span>
-                    ) : (
-                       <span className="block text-gray-500">{ultimaFicha.archivosProgramadosCorte} Prog. al corte</span>
-                    )}
-                    <span className="block text-gray-400 mt-1">Meta anual: {ultimaFicha.metaArchivos || 0}</span>
-                  </div>
-               </div>
-               <div className="text-center">
-                  <span className="font-bold text-xs block mb-3 text-gray-700">FALLOS</span>
-                  {renderGauge(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte, ultimaFicha.metaFallos, fallosColor)}
-               </div>
+            <div className="flex justify-around items-start gap-4 mt-1">
+              <div className="text-center flex-1">
+                <span className="font-bold text-xs block mb-1 text-gray-700">ARCHIVOS</span>
+                {renderGauge(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte, ultimaFicha.metaArchivos, archColor)}
+              </div>
+              <div className="text-center flex-1">
+                <span className="font-bold text-xs block mb-1 text-gray-700">FALLOS 1Âª INSTANCIA</span>
+                {renderGauge(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte, ultimaFicha.metaFallos, fallosColor)}
+              </div>
             </div>
           ), ultimaFicha.avancesActuaciones, ultimaFicha.alertaActuaciones)}
 
           {/* 7. CONVIVENCIA */}
           {renderCard('7. CONVIVENCIA Y SEGURIDAD', convColor, (
             <div>
-               <div className="grid grid-cols-2 gap-4 text-center border-b border-gray-100 pb-2 mb-2">
-                  <div>
-                     <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Motos programadas<br/>al corte</span>
-                     {ultimaFicha.motosProgramadasCorte === undefined || ultimaFicha.motosProgramadasCorte === null ? (
-                        <span className="block text-red-500 text-[10px] mt-1 font-bold">No reportado</span>
-                     ) : <span className="text-2xl font-black">{ultimaFicha.motosProgramadasCorte}</span>}
+              <div className="grid grid-cols-2 gap-4 text-center border-b border-gray-100 pb-2 mb-3">
+                <div>
+                  <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Motos prog.<br/>al corte</span>
+                  {ultimaFicha.motosProgramadasCorte == null
+                    ? <span className="block text-red-500 text-[10px] mt-1 font-bold">No reportado</span>
+                    : <span className="text-2xl font-black">{ultimaFicha.motosProgramadasCorte}</span>}
+                </div>
+                <div className="border-l border-gray-100">
+                  <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Avance entrega<br/>(Real)</span>
+                  <span className="text-2xl font-black" style={{ color: convColor }}>
+                    {getAvancePct(motosReal, ultimaFicha.motosProgramadasCorte)}%
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[9px] mb-2">
+                {[
+                  { label: 'Entregadas PolicÃ­a', val: ultimaFicha.motosEntregadasPolicia, dot: '#16a34a' },
+                  { label: 'Entregadas SDSCJ',   val: ultimaFicha.motosEntregadas,        dot: '#f59e0b' },
+                  { label: 'AlmacÃ©n FDL',        val: ultimaFicha.motosAlmacenFdl,        dot: '#92400e' },
+                  { label: 'Pendientes FDL',     val: ultimaFicha.motosPendientesFdl,     dot: '#9ca3af' },
+                ].map(({ label, val, dot }) => (
+                  <div key={label} className="border border-gray-100 bg-gray-50 p-1 rounded flex justify-between items-center">
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dot }} />
+                      <span className="text-gray-500 font-medium">{label}</span>
+                    </div>
+                    <span className="font-bold text-sm">{val || 0}</span>
                   </div>
-                  <div className="border-l border-gray-100">
-                     <span className="text-[10px] text-gray-500 font-bold block uppercase leading-tight">Avance de entrega<br/>(Real)</span>
-                     <span className="text-2xl font-black" style={{ color: convColor }}>{getAvancePct(motosReal, ultimaFicha.motosProgramadasCorte)}%</span>
-                  </div>
-               </div>
-               <div className="grid grid-cols-2 gap-2 text-[9px] mb-2">
-                  <div className="border border-gray-100 bg-gray-50 p-1 rounded flex justify-between items-center">
-                    <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>Entregadas Policía</div>
-                    <span className="font-bold text-sm">{ultimaFicha.motosEntregadasPolicia || 0}</span>
-                  </div>
-                  <div className="border border-gray-100 bg-gray-50 p-1 rounded flex justify-between items-center">
-                    <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>Entregadas SDSCJ</div>
-                    <span className="font-bold text-sm">{ultimaFicha.motosEntregadas || 0}</span>
-                  </div>
-               </div>
-               <div className="grid grid-cols-2 gap-2 text-[9px]">
-                  <div className="border border-gray-100 bg-gray-50 p-1 rounded flex justify-between items-center">
-                    <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"></div>Almacén FDL</div>
-                    <span className="font-bold text-sm">{ultimaFicha.motosAlmacenFdl || 0}</span>
-                  </div>
-                  <div className="border border-gray-100 bg-gray-50 p-1 rounded flex justify-between items-center">
-                    <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>Pendientes FDL</div>
-                    <span className="font-bold text-sm text-gray-400">{ultimaFicha.motosPendientesFdl || 0}</span>
-                  </div>
-               </div>
-               <div className="text-center mt-3 text-[10px] text-gray-400 font-medium border-t border-gray-100 pt-1">
-                  Meta Total: {ultimaFicha.motosMetaTotal || 0} motos
-               </div>
+                ))}
+              </div>
+              <div className="text-center text-[10px] text-gray-400 font-medium border-t border-gray-100 pt-1">
+                Meta Total: {ultimaFicha.motosMetaTotal || 0} motos
+              </div>
             </div>
           ), ultimaFicha.avancesConvivencia, ultimaFicha.alertaConvivencia)}
 
-          {/* 8. ESTRATEGIAS (Debe estar de ultimo en pagina 2 por instruccion) */}
+          {/* 8. ESTRATEGIAS â€” full width */}
           <div className="col-span-2">
             {renderCard('8. ESTRATEGIAS DE MEMORIA', memColor, (
-              <div className="flex items-center gap-6 h-28">
-                 <div className="text-center w-36">
-                    {renderGauge(ultimaFicha.estrategiasResueltas, ultimaFicha.estrategiasProgramadasCorte, ultimaFicha.estrategiasTotal, memColor)}
-                    <div className="mt-4 text-[10px] font-bold text-gray-700">
-                      {ultimaFicha.estrategiasProgramadasCorte === undefined || ultimaFicha.estrategiasProgramadasCorte === null ? (
-                         <span className="block text-red-500">Prog. no reportado</span>
-                      ) : (
-                         <span className="block text-gray-500">{ultimaFicha.estrategiasProgramadasCorte} Prog. al corte</span>
-                      )}
+              <div className="flex items-start gap-6">
+                <div className="text-center shrink-0 w-36">
+                  {renderGauge(ultimaFicha.estrategiasResueltas, ultimaFicha.estrategiasProgramadasCorte, ultimaFicha.estrategiasTotal, memColor)}
+                </div>
+                <div className="flex-1 grid grid-cols-2 gap-x-8 gap-y-2 mt-1">
+                  {[
+                    { label: 'Total estrategias',    val: ultimaFicha.estrategiasTotal },
+                    { label: 'Finalizadas (real)',   val: ultimaFicha.estrategiasResueltas, color: memColor },
+                    { label: 'En formulaciÃ³n',       val: ultimaFicha.estrategiasFormulacion },
+                    { label: 'En validaciÃ³n tÃ©cnica', val: ultimaFicha.estrategiasValidacionTecnica },
+                    { label: 'Con ajustes solic.',   val: ultimaFicha.estrategiasAjustes },
+                  ].map(({ label, val, color }) => (
+                    <div key={label} className="flex justify-between items-center border-b border-gray-100 pb-1">
+                      <span className="text-xs font-bold text-gray-500">{label}</span>
+                      <span className="text-lg font-black" style={color ? { color } : {}}>{val || 0}</span>
                     </div>
-                 </div>
-                 <div className="flex-1 grid grid-cols-2 gap-x-8 gap-y-2">
-                    <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                       <span className="text-xs font-bold text-gray-500">Total estrategias</span>
-                       <span className="text-lg font-black">{ultimaFicha.estrategiasTotal || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                       <span className="text-xs font-bold text-gray-500">Resueltas (Finalizadas)</span>
-                       <span className="text-lg font-black" style={{ color: memColor }}>{ultimaFicha.estrategiasResueltas || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                       <span className="text-xs font-bold text-gray-500">En formulación</span>
-                       <span className="text-lg font-black">{ultimaFicha.estrategiasFormulacion || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                       <span className="text-xs font-bold text-gray-500">En validación técnica</span>
-                       <span className="text-lg font-black">{ultimaFicha.estrategiasValidacionTecnica || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-1">
-                       <span className="text-xs font-bold text-gray-500">Con ajustes solic.</span>
-                       <span className="text-lg font-black">{ultimaFicha.estrategiasAjustes || 0}</span>
-                    </div>
-                 </div>
+                  ))}
+                </div>
               </div>
             ), ultimaFicha.avancesEstrategias, ultimaFicha.alertaEstrategias)}
           </div>
-          
+
         </div>
       </div>
     </div>
