@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+﻿const fs = require('fs');
+const content = import { useState, useEffect } from 'react';
 import { fetchApi } from '../../utils/api';
 
 const API = import.meta.env.VITE_API_URL || '';
@@ -9,11 +10,9 @@ const SECCIONES = [
   {
     id: 'ejecucion', titulo: '1. Ejecución del Plan de Desarrollo',
     campos: [
-      { key: 'metaAnualCompromisos', label: 'Compromisos - Meta global anual %', type: 'number', step: '0.1' },
-        { key: 'compromisosPct', label: 'Compromisos - Avance Real %', type: 'number', step: '0.1' },
+      { key: 'compromisosPct', label: 'Compromisos - Avance Real %', type: 'number', step: '0.1' },
       { key: 'metaCompromisosPct', label: 'Compromisos - Programado al corte %', type: 'number', step: '0.1' },
-      { key: 'metaAnualGiros', label: 'Giros - Meta global anual %', type: 'number', step: '0.1' },
-        { key: 'girosPct', label: 'Giros - Avance Real %', type: 'number', step: '0.1' },
+      { key: 'girosPct', label: 'Giros - Avance Real %', type: 'number', step: '0.1' },
       { key: 'metaGirosPct', label: 'Giros - Programado al corte %', type: 'number', step: '0.1' },
       { key: 'procesosMonitoreados', label: 'Procesos Monitoreados', type: 'number' },
       { key: 'procesosRequierenComite', label: 'Procesos requieren comité', type: 'number' },
@@ -136,7 +135,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
   useEffect(() => {
     if (!form.periodo) return;
     setCargando(true);
-    fetchApi(`${API}/api/ficha-resultados/periodo/${form.periodo}`)
+    fetchApi(\\/api/ficha-resultados/periodo/\\)
       .then(res => res.json())
       .then(async data => {
         const formatearFechas = (obj: any) => {
@@ -153,7 +152,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
           setForm(loadedData);
           setOriginalForm(loadedData);
         } else {
-          const ultima = await fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null);
+          const ultima = await fetchApi(\\/api/ficha-resultados/ultima\).then(r => r.json()).catch(() => null);
           if (ultima && ultima.id) {
              const copiedData = { ...formatearFechas(ultima), id: undefined, periodo: form.periodo };
              setForm(copiedData);
@@ -180,7 +179,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
     const payload = { ...form, seccionesActualizadas };
 
     try {
-      const res = await fetchApi(`${API}/api/ficha-resultados`, {
+      const res = await fetchApi(\\/api/ficha-resultados\, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -199,7 +198,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-red-600">Reportar Datos (V2)</h2>
+          <h2 className="text-lg font-bold text-gray-800">Reportar Datos de la Ficha</h2>
           <button onClick={() => onClose()} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
         </div>
 
@@ -266,3 +265,6 @@ export default function ModalFichaResultados({ onClose }: Props) {
     </div>
   );
 }
+\;
+
+fs.writeFileSync('D:/Transformacion/frontend/src/components/gestion/ModalFichaResultados.tsx', content, { encoding: 'utf8' });

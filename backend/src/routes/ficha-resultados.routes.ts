@@ -74,6 +74,8 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
       metaCompromisosPct: data.metaCompromisosPct ?? null,
       girosPct: data.girosPct ?? null,
       metaGirosPct: data.metaGirosPct ?? null,
+        metaAnualCompromisos: data.metaAnualCompromisos ?? null,
+        metaAnualGiros: data.metaAnualGiros ?? null,
       procesosMonitoreados: data.procesosMonitoreados ?? null,
       procesosRequierenComite: data.procesosRequierenComite ?? null,
       alertaEjecucion: data.alertaEjecucion ?? null,

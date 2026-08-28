@@ -84,24 +84,43 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
     </div>
   );
 
-  const renderGauge = (real: number | undefined, prog: number | undefined, color: string) => {
-    const val = getAvancePct(real, prog);
+  const renderGauge = (real: number | undefined, prog: number | undefined, meta: number | undefined, color: string) => {
+    const safeReal = real || 0;
     const safeProg = prog || 0;
+    const safeMeta = meta || 0;
     
-    // Validar si los datos tienen sentido matemático
-    const inconsistente = safeProg > 0 && real !== undefined && real > safeProg;
+    let fillPct = 0;
+    let needlePct = 0;
+    
+    if (safeMeta > 0) {
+      fillPct = Math.min(100, (safeReal / safeMeta) * 100);
+      needlePct = Math.min(100, (safeProg / safeMeta) * 100);
+    } else if (safeProg > 0) {
+      fillPct = Math.min(100, (safeReal / safeProg) * 100);
+      needlePct = 100;
+    }
     
     const data = [
-      { value: Math.min(100, val), color },
-      { value: Math.max(0, 100 - val), color: '#e5e7eb' }
+      { value: fillPct, color },
+      { value: Math.max(0, 100 - fillPct), color: '#e5e7eb' }
     ];
+
+    const renderNeedle = (pct: number) => {
+      const rotateDeg = (pct * 180 / 100) - 90;
+      return (
+        <div 
+          className="absolute z-10"
+          style={{
+            bottom: 0, left: '50%', width: '2px', height: '65px',
+            transformOrigin: 'bottom center', transform: `translateX(-50%) rotate(${rotateDeg}deg)`,
+            borderLeft: '2px dashed #374151'
+          }}
+        />
+      );
+    };
+
     return (
       <div className="relative h-20 w-32 mx-auto mt-2">
-        {inconsistente && (
-           <div className="absolute -top-4 -right-12 bg-red-600 text-white text-[9px] font-bold px-1 py-0.5 rounded shadow z-20">
-              Dato por validar
-           </div>
-        )}
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie data={data} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius={35} outerRadius={55} paddingAngle={0} dataKey="value" stroke="none">
@@ -109,8 +128,9 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             </Pie>
           </PieChart>
         </ResponsiveContainer>
+        {(safeMeta > 0 || safeProg > 0) && renderNeedle(needlePct)}
         <div className="absolute bottom-0 left-0 w-full text-center mb-[-8px]">
-           <span className="text-xl font-black" style={{ color }}>{val}%</span>
+           <span className="text-xl font-black" style={{ color }}>{Math.round(fillPct)}%</span>
         </div>
       </div>
     );
@@ -158,7 +178,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             <div className="flex justify-around items-end h-32 mt-4">
                <div className="text-center">
                   <span className="font-bold text-xs block mb-3 text-gray-700">COMPROMISOS</span>
-                  {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, c1Color)}
+                  {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, ultimaFicha.metaAnualCompromisos, c1Color)}
                   <div className="mt-4 text-xs font-bold text-gray-700">
                     {ultimaFicha.metaCompromisosPct === undefined || ultimaFicha.metaCompromisosPct === null ? (
                        <span className="block text-red-500 text-[10px]">Programado al corte no reportado</span>
@@ -169,7 +189,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                </div>
                <div className="text-center">
                   <span className="font-bold text-xs block mb-3 text-gray-700">GIROS</span>
-                  {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, c2Color)}
+                  {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, ultimaFicha.metaAnualGiros, c2Color)}
                   <div className="mt-4 text-xs font-bold text-gray-700">
                     {ultimaFicha.metaGirosPct === undefined || ultimaFicha.metaGirosPct === null ? (
                        <span className="block text-red-500 text-[10px]">Programado al corte no reportado</span>
@@ -217,7 +237,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
           {renderCard('3. ROLLOS LEGENDARIOS', rollosColor, (
             <div className="flex items-center gap-4">
                <div className="text-center w-36">
-                  {renderGauge(ultimaFicha.rollosResueltos, ultimaFicha.rollosProgramadosAlCorte, rollosColor)}
+                  {renderGauge(ultimaFicha.rollosResueltos, ultimaFicha.rollosProgramadosAlCorte, ultimaFicha.totalRollos, rollosColor)}
                   {ultimaFicha.rollosProgramadosAlCorte === undefined || ultimaFicha.rollosProgramadosAlCorte === null ? (
                      <span className="block text-red-500 text-[10px] mt-4 font-bold">Programado al corte no reportado</span>
                   ) : <span className="block text-gray-500 text-[10px] mt-4 font-bold">{ultimaFicha.rollosProgramadosAlCorte} Programados</span>}
@@ -306,7 +326,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                <div className="grid grid-cols-3 gap-6 items-center">
                   <div className="text-center border-r border-gray-100 pr-4">
                      <span className="text-[10px] font-bold text-gray-500 block uppercase mb-1">Puntos con Sostenibilidad Efectiva</span>
-                     {renderGauge(ultimaFicha.puntosSostenibilidadEfectiva, ultimaFicha.puntosProgramadosSostenibilidad, orgColor)}
+                     {renderGauge(ultimaFicha.puntosSostenibilidadEfectiva, ultimaFicha.puntosProgramadosSostenibilidad, ultimaFicha.puntosVerificados, orgColor)}
                      <div className="mt-4">
                        <span className="font-bold text-lg" style={{ color: orgColor }}>{ultimaFicha.puntosSostenibilidadEfectiva || 0}</span>
                        <span className="text-[10px] text-gray-500"> reales de </span>
@@ -363,7 +383,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             <div className="flex justify-around items-end h-40">
                 <div className="text-center">
                   <span className="font-bold text-xs block mb-3 text-gray-700">ARCHIVOS</span>
-                  {renderGauge(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte, archColor)}
+                  {renderGauge(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte, ultimaFicha.metaArchivos, archColor)}
                   <div className="mt-4 text-[10px] font-bold text-gray-700">
                     {ultimaFicha.archivosProgramadosCorte === undefined || ultimaFicha.archivosProgramadosCorte === null ? (
                        <span className="block text-red-500">Programado al corte no reportado</span>
@@ -375,7 +395,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                </div>
                <div className="text-center">
                   <span className="font-bold text-xs block mb-3 text-gray-700">FALLOS 1ª INSTANCIA</span>
-                  {renderGauge(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte, fallosColor)}
+                  {renderGauge(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte, ultimaFicha.metaFallos, fallosColor)}
                   <div className="mt-4 text-[10px] font-bold text-gray-700">
                     {ultimaFicha.fallosProgramadosCorte === undefined || ultimaFicha.fallosProgramadosCorte === null ? (
                        <span className="block text-red-500">Programado al corte no reportado</span>
@@ -434,7 +454,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             {renderCard('8. ESTRATEGIAS DE MEMORIA', memColor, (
               <div className="flex items-center gap-6 h-28">
                  <div className="text-center w-36">
-                    {renderGauge(ultimaFicha.estrategiasResueltas, ultimaFicha.estrategiasProgramadasCorte, memColor)}
+                    {renderGauge(ultimaFicha.estrategiasResueltas, ultimaFicha.estrategiasProgramadasCorte, ultimaFicha.estrategiasTotal, memColor)}
                     <div className="mt-4 text-[10px] font-bold text-gray-700">
                       {ultimaFicha.estrategiasProgramadasCorte === undefined || ultimaFicha.estrategiasProgramadasCorte === null ? (
                          <span className="block text-red-500">Prog. no reportado</span>
