@@ -109,7 +109,6 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             </Pie>
           </PieChart>
         </ResponsiveContainer>
-        {safeProg > 0 && renderNeedle(100, 55)}
         <div className="absolute bottom-0 left-0 w-full text-center mb-[-8px]">
            <span className="text-xl font-black" style={{ color }}>{val}%</span>
         </div>
@@ -361,9 +360,9 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
           {/* 6. ACTUACIONES */}
           {renderCard('6. ACTUACIONES ADMINISTRATIVAS', actColor, (
-            <div className="flex justify-around items-end h-32">
-               <div className="text-center">
-                  <span className="font-bold text-[10px] block mb-1 text-gray-500">ARCHIVOS</span>
+            <div className="flex justify-around items-end h-40">
+                <div className="text-center">
+                  <span className="font-bold text-xs block mb-3 text-gray-700">ARCHIVOS</span>
                   {renderGauge(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte, archColor)}
                   <div className="mt-4 text-[10px] font-bold text-gray-700">
                     {ultimaFicha.archivosProgramadosCorte === undefined || ultimaFicha.archivosProgramadosCorte === null ? (
@@ -375,7 +374,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                   </div>
                </div>
                <div className="text-center">
-                  <span className="font-bold text-[10px] block mb-1 text-gray-500">FALLOS 1ª INSTANCIA</span>
+                  <span className="font-bold text-xs block mb-3 text-gray-700">FALLOS 1ª INSTANCIA</span>
                   {renderGauge(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte, fallosColor)}
                   <div className="mt-4 text-[10px] font-bold text-gray-700">
                     {ultimaFicha.fallosProgramadosCorte === undefined || ultimaFicha.fallosProgramadosCorte === null ? (
