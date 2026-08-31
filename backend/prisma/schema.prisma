@@ -518,8 +518,9 @@ model Reunion {
   // PRESENCIAL | VIRTUAL | TELEFONICA | MIXTA
   modalidad        String
   responsable      String
-  desarrollo       String   @db.Text
+  desarrollo       String?  @db.Text
   imagenAsistencia String?  // URL en Supabase Storage
+  actaPdfUrl       String?  // URL de acta PDF pre-elaborada cargada por el usuario
   creadoPorId      String
   fechaCreacion    DateTime @default(now())
 

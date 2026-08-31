@@ -205,7 +205,7 @@ router.get('/:id/preview', azureADAuth, async (req: AuthRequest, res) => {
       responsable: reunion.responsable,
       asistentes: reunion.asistentes.map(a => ({ nombre: a.nombre, cargo: a.cargo || undefined, entidad: a.entidad || undefined })),
       imagenAsistenciaUrl: reunion.imagenAsistencia || null,
-      desarrollo: reunion.desarrollo,
+      desarrollo: reunion.desarrollo || '',
       compromisos: reunion.compromisos.map(c => ({ descripcion: c.descripcion, responsable: c.responsable, fechaEntrega: c.fechaEntrega ? c.fechaEntrega.toISOString() : null })),
     };
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -216,15 +216,47 @@ router.get('/:id/preview', azureADAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// GET /api/reuniones/:id/pdf — generar PDF del acta
+// POST /api/reuniones/:id/acta — subir acta PDF pre-elaborada
+router.post('/:id/acta', azureADAuth, upload.single('acta'), async (req: AuthRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibio archivo PDF' });
+  try {
+    const filename = `acta_${req.params.id}_${Date.now()}.pdf`;
+    const url = await uploadFileToSupabase(filename, req.file.buffer, req.file.mimetype || 'application/pdf');
+    await prisma.reunion.update({
+      where: { id: req.params.id },
+      data: { actaPdfUrl: url },
+    });
+    res.json({ url });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error subiendo PDF del acta' });
+  }
+});
+
+// GET /api/reuniones/:id/pdf — generar o servir acta PDF
 router.get('/:id/pdf', azureADAuth, async (req: AuthRequest, res) => {
   try {
     const reunion = await prisma.reunion.findUnique({
       where: { id: req.params.id },
       include: { asistentes: true, compromisos: true },
     });
-    if (!reunion) return res.status(404).json({ error: 'Reunión no encontrada' });
+    if (!reunion) return res.status(404).json({ error: 'Reunion no encontrada' });
 
+    const fechaStr = reunion.fecha.toISOString().slice(0, 10);
+    const filename = `Acta_Reunion_${fechaStr}.pdf`;
+
+    // Si el usuario cargo un PDF pre-elaborado, servirlo directamente
+    if (reunion.actaPdfUrl) {
+      const pdfResponse = await fetch(reunion.actaPdfUrl);
+      if (!pdfResponse.ok) throw new Error('Error descargando el PDF almacenado');
+      const arrayBuf = await pdfResponse.arrayBuffer();
+      const pdfBuffer = Buffer.from(arrayBuf);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(pdfBuffer);
+    }
+
+    // Si no hay PDF cargado, generar desde los datos
     const actaData: ActaData = {
       objeto: reunion.objeto,
       fecha: reunion.fecha,
@@ -232,11 +264,11 @@ router.get('/:id/pdf', azureADAuth, async (req: AuthRequest, res) => {
       horaFin: reunion.horaFin,
       lugar: reunion.lugar,
       modalidad: reunion.modalidad as ActaData['modalidad'],
-      dependencia: 'Subsecretaria Gestión Local - Unidad de Transformación',
+      dependencia: 'Subsecretaria Gestion Local - Unidad de Transformacion',
       responsable: reunion.responsable,
       asistentes: reunion.asistentes.map(a => ({ nombre: a.nombre, cargo: a.cargo || undefined, entidad: a.entidad || undefined })),
       imagenAsistenciaUrl: reunion.imagenAsistencia || null,
-      desarrollo: reunion.desarrollo,
+      desarrollo: reunion.desarrollo || '',
       compromisos: reunion.compromisos.map(c => ({
         descripcion: c.descripcion,
         responsable: c.responsable,
@@ -246,17 +278,15 @@ router.get('/:id/pdf', azureADAuth, async (req: AuthRequest, res) => {
 
     const pdfBuffer = await generarActaPDF(actaData);
 
-    const fechaStr = reunion.fecha.toISOString().slice(0, 10);
-    const filename = `Acta_Reunion_${fechaStr}.pdf`;
-
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(pdfBuffer);
   } catch (error: any) {
-    console.error('[PDF] Error generando acta:', error);
-    res.status(500).json({ message: `Error generando PDF del acta: ${error.message || String(error)}` });
+    console.error('[PDF] Error:', error);
+    res.status(500).json({ message: `Error: ${error.message || String(error)}` });
   }
 });
+
 
 // PATCH /api/reuniones/compromisos/:compromisoId — marcar compromiso como cumplido
 router.patch('/compromisos/:compromisoId', azureADAuth, async (req: AuthRequest, res) => {
