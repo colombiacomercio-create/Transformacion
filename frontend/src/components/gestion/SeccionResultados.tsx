@@ -5,7 +5,7 @@ import FichasDecoradas from './FichasDecoradas';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
 
 interface Props { userData: any; }
 

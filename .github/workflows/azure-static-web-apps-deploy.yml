@@ -23,7 +23,7 @@ jobs:
       - name: Build Frontend
         run: npm run build -w frontend
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api-transformacion-sdg.azurewebsites.net' }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://transformacion-backend.vercel.app' }}
           VITE_TENANT_ID: ${{ vars.VITE_TENANT_ID }}
           VITE_CLIENT_ID: ${{ vars.VITE_CLIENT_ID }}
           VITE_BYPASS_AUTH: 'true'

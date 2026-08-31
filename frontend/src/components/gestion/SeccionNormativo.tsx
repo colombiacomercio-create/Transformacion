@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchApi } from '../../utils/api';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
 const ESTADOS: Record<string, { label: string; color: string }> = {
   EN_FORMULACION:    { label: 'En formulación',    color: 'bg-yellow-100 text-yellow-700' },
   EXPEDIDO:          { label: 'Expedido',           color: 'bg-blue-100 text-blue-700' },

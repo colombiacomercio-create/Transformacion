@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
 
 const COLORS_PIE = ['#e3002b', '#FFCD00', '#333333', '#888888', '#cc6600'];
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchApi } from '../../utils/api';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
 const TIPOS: Record<string, string> = {
   CIRCULO_CALIDAD:       'Círculo de calidad',
   COMITE_OBRAS:          'Comité de obras e infraestructura',

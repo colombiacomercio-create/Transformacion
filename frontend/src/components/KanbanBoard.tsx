@@ -61,7 +61,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
   const esAdminStr = userData?.rol === 'ADMIN';
 
   const fetchActividades = () => {
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades`)
       .then(res => res.json())
       .then(data => {
          setActividades(data || []);

@@ -12,7 +12,7 @@ export default function VistaAlertaAsignada() {
 
   const cargarAlerta = async () => {
     try {
-      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`);
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/fichas-alertas`);
       const fichas = await res.json();
       const ficha = fichas.find((f: any) => f.id === id);
       
@@ -36,7 +36,7 @@ export default function VistaAlertaAsignada() {
     e.preventDefault();
     if (!comentario.trim()) return;
     try {
-      await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas/${id}/actualizaciones`, {
+      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/fichas-alertas/${id}/actualizaciones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comentario, urlArchivo })

@@ -3,7 +3,7 @@ import { fetchApi } from '../../utils/api';
 import ModalNuevaReunion from './ModalNuevaReunion';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
 
 const COLORS = ['#e3002b','#FFCD00','#1a1a2e','#16213e','#0f3460','#e94560','#f5a623','#7ed321','#417505','#9013fe'];
 

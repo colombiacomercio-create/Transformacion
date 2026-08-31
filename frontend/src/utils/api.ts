@@ -47,9 +47,9 @@ export const fetchApi = async (url: string, options: RequestInit = {}): Promise<
 
   if (!response.ok) {
      const errorData = await response.json().catch(() => ({}));
+     const msg = errorData.message || errorData.error || `HTTP ${response.status}`;
      console.error("Error de la API:", response.status, errorData);
-     // Lanza un error estructurado para que el frontend no colapse
-     throw new Error(errorData.message || 'Error en la petición a la API');
+     throw new Error(msg);
   }
 
   return response;

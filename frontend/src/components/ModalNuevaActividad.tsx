@@ -24,7 +24,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
   });
 
   useEffect(() => {
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/planes`)
       .then(res => res.json())
       .then(data => {
         setPlanes(data);
@@ -40,7 +40,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

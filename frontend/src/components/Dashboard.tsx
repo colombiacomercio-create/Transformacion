@@ -39,7 +39,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
   const isAdmin = userData?.rol === 'ADMIN';
 
   useEffect(() => {
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades`)
       .then(res => res.json())
       .then(data => {
          const hoy = new Date();
@@ -196,14 +196,14 @@ export default function Dashboard({ userData }: { userData?: any }) {
          }
       }).catch(err => console.error(err));
 
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/cortes`)
       .then(res => res.json())
       .then(data => {
          setCortes(data);
          if(data.length > 0) setCorteActivo(data[0]);
       }).catch(err => console.error(err));
 
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/planes`)
       .then(res => res.json())
       .then(data => {
          if (data.length > 0) {
@@ -232,7 +232,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
          }
       }).catch(err => console.error(err));
 
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ficha-resultados/ultima`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ficha-resultados/ultima`)
       .then(res => res.json())
       .then(data => setUltimaFicha(data))
       .catch(err => console.error(err));
@@ -251,7 +251,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
         ? localidades[0].id 
         : localidadFiltro;
 
-      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ia/reportes/generar-borrador`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/reportes/generar-borrador`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -289,7 +289,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
   const handleSave = async (objId: string) => {
     try {
-      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/cortes/${corteActivo.id}/objetivo/${objId}`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/cortes/${corteActivo.id}/objetivo/${objId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formCualitativo)

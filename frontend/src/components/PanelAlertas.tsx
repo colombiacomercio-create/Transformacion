@@ -24,7 +24,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
     }
     setAnalizandoAlerta(true);
     try {
-      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ia/alertas/analizar-preliminar`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/alertas/analizar-preliminar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,7 +55,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
   const [formGestion, setFormGestion] = useState({ estado: 'ABIERTA', ultimaAccion: '', expectativa: '' });
 
   const fetchAlertas = () => {
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/fichas-alertas`)
       .then(res => res.json())
       .then(data => setAlertas(data))
       .catch();
@@ -63,7 +63,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
 
   useEffect(() => {
     fetchAlertas();
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/localidades`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/localidades`)
       .then(res => res.json())
       .then(data => {
          const ORDEN_DANE = ["usaquén", "usaquen", "chapinero", "santa fe", "san cristóbal", "san cristobal", "usme", "tunjuelito", "bosa", "kennedy", "fontibón", "fontibon", "engativá", "engativa", "suba", "barrios unidos", "teusaquillo", "los mártires", "los martires", "antonio nariño", "antonio narino", "puente aranda", "la candelaria", "rafael uribe uribe", "ciudad bolívar", "ciudad bolivar", "sumapaz"];
@@ -76,7 +76,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
          setLocalidades(locsRaw);
       }).catch(err => console.error(err));
       
-    fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/planes`)
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/planes`)
       .then(res => res.json())
       .then(data => {
          if (data.length > 0) {
@@ -96,7 +96,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
        
        const severidadFinal = sugerenciasIA?.severidadSugerida || 'MODERADA';
 
-       const response = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas`, {
+       const response = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/fichas-alertas`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({
@@ -153,7 +153,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
     e.preventDefault();
     if(!mostrandoGestion) return;
     try {
-      await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/fichas-alertas/${mostrandoGestion}/estado`, {
+      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/fichas-alertas/${mostrandoGestion}/estado`, {
          method: 'PATCH',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify(formGestion)

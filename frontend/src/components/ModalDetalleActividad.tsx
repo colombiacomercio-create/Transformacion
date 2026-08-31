@@ -53,7 +53,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     if (!nuevoComentario.trim()) return;
     setPostingComment(true);
     try {
-      await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/${actividad.id}/comentarios`, {
+      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/comentarios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -82,7 +82,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
     setUploading(true);
     try {
-      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/evidencias/upload/${actividad.id}`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/evidencias/upload/${actividad.id}`, {
         method: 'POST',
         body: formData
       });
@@ -103,7 +103,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
   const handleAdminSaveEdits = async () => {
     try {
-      await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/${actividad.id}`, {
+      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editData)
@@ -136,13 +136,13 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
        formData.append('descripcion', 'Soporte de cambio de estado');
        formData.append('comentarioAdjunto', comentarioEstado);
 
-       await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/evidencias/upload/${actividad.id}`, {
+       await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/evidencias/upload/${actividad.id}`, {
          method: 'POST',
          body: formData
        });
 
        // 2. Subir Comentario (aunque el upload ya crea uno, creamos este para ser explícitos sobre el cambio de estado)
-       await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/${actividad.id}/comentarios`, {
+       await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/comentarios`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({
@@ -152,7 +152,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
        });
 
        // 3. Cambiar estado local
-       await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/asignacion/${asigActual.id}/estadoLocal`, {
+       await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/asignacion/${asigActual.id}/estadoLocal`, {
          method: 'PATCH',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ estadoLocal: estadoPendiente })
@@ -170,7 +170,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   const handleUpdateEstadoValidacion = async (estadoValidacion: string) => {
     if (!asigActual) return;
     try {
-      await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/actividades/asignacion/${asigActual.id}/estadoValidacion`, {
+      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/asignacion/${asigActual.id}/estadoValidacion`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estadoValidacion })
@@ -477,7 +477,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                           <button 
                             onClick={async () => {
                               try {
-                                const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ia/evidencias/prechequear`, {
+                                const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/evidencias/prechequear`, {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ evidenciaId: ev.id })

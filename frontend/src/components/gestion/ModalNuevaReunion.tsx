@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { fetchApi } from '../../utils/api';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
 
 interface Compromiso { descripcion: string; responsable: string; fechaEntrega: string; }
 interface Props { onClose: () => void; }
