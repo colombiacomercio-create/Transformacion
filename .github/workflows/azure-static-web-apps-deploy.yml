@@ -37,3 +37,4 @@ jobs:
           app_location: "frontend"
           output_location: "dist"
           skip_app_build: true
+          routes_location: "frontend/public"
