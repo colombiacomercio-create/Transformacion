@@ -221,8 +221,8 @@ export default function ModalNuevaReunion({ onClose }: Props) {
     try {
       if (actaFile) {
         const fd = new FormData();
-        fd.append('acta', actaFile);
-        const uploadRes = await fetchApi(`${API}/api/reuniones/${reunionId}/acta`, { method: 'POST', body: fd });
+        fd.append('imagen', actaFile);
+        const uploadRes = await fetchApi(`${API}/api/reuniones/${reunionId}/imagen`, { method: 'POST', body: fd });
         if (!uploadRes.ok) throw new Error('Error subiendo el PDF del acta');
       }
       const pdfRes = await fetchApi(`${API}/api/reuniones/${reunionId}/pdf`);

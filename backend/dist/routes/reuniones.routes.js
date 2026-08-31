@@ -282,8 +282,11 @@ router.get('/:id/pdf', auth_middleware_1.azureADAuth, async (req, res) => {
         const fechaStr = reunion.fecha.toISOString().slice(0, 10);
         const filename = `Acta_Reunion_${fechaStr}.pdf`;
         // Si el usuario cargo un PDF pre-elaborado, servirlo directamente
-        if (reunion.actaPdfUrl) {
-            const pdfResponse = await fetch(reunion.actaPdfUrl);
+        const storedPdfUrl = (reunion.imagenAsistencia && reunion.imagenAsistencia.toLowerCase().includes('.pdf'))
+            ? reunion.imagenAsistencia
+            : reunion.actaPdfUrl;
+        if (storedPdfUrl) {
+            const pdfResponse = await fetch(storedPdfUrl);
             if (!pdfResponse.ok)
                 throw new Error('Error descargando el PDF almacenado');
             const arrayBuf = await pdfResponse.arrayBuffer();
