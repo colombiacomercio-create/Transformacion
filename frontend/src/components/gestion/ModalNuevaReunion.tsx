@@ -225,13 +225,6 @@ export default function ModalNuevaReunion({ onClose }: Props) {
         const uploadRes = await fetchApi(`${API}/api/reuniones/${reunionId}/imagen`, { method: 'POST', body: fd });
         if (!uploadRes.ok) throw new Error('Error subiendo el PDF del acta');
       }
-      const pdfRes = await fetchApi(`${API}/api/reuniones/${reunionId}/pdf`);
-      if (!pdfRes.ok) throw new Error('Error obteniendo el acta');
-      const blob = await pdfRes.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `Acta_Reunion_${form.fecha}.pdf`; a.click();
-      URL.revokeObjectURL(url);
       onClose();
     } catch (e: any) {
       setError(e?.message || 'Error procesando el acta.');

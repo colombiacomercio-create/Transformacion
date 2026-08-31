@@ -100,7 +100,11 @@ export default function SeccionSesionesMesas({ userData }: Props) {
 
   useEffect(() => { cargar(); }, [filtroContraparte, filtroResponsable, filtroMes]);
 
-  const descargarPDF = async (id: string, fecha: string) => {
+  const descargarPDF = async (id: string, fecha: string, urlPdf?: string | null) => {
+    if (urlPdf && urlPdf.toLowerCase().includes('.pdf')) {
+      window.open(urlPdf, '_blank');
+      return;
+    }
     try {
       const res = await fetchApi(`${API}/api/reuniones/${id}/pdf`);
       const blob = await res.blob();
@@ -109,7 +113,7 @@ export default function SeccionSesionesMesas({ userData }: Props) {
       a.href = url; a.download = `Acta_Reunion_${fecha.slice(0, 10)}.pdf`; a.click();
       URL.revokeObjectURL(url);
     } catch (error: any) {
-      alert(`Error: ${error.message || 'Error generando el acta PDF'}`);
+      alert(`Error: ${error.message || 'Error obteniendo el acta PDF'}`);
     }
   };
 
@@ -295,9 +299,19 @@ export default function SeccionSesionesMesas({ userData }: Props) {
                     <span className="font-semibold text-gray-800">{r.compromisos?.length ?? 0}</span>
                   </td>
                   <td className="px-3 py-2 text-center">
-                    {r.fecha >= '2026-01-01' ? (
+                    {r.imagenAsistencia?.toLowerCase().includes('.pdf') || r.actaPdfUrl ? (
+                      <button onClick={() => descargarPDF(r.id, r.fecha, r.imagenAsistencia || r.actaPdfUrl)} title="Ver / Descargar Acta Cargada"
+                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded-full hover:bg-blue-50 transition-colors inline-flex items-center justify-center">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      </button>
+                    ) : r.desarrollo ? (
+                      <button onClick={() => descargarPDF(r.id, r.fecha)} title="Descargar Acta Generada"
+                        className="text-red-600 hover:text-red-800 p-1.5 rounded-full hover:bg-red-50 transition-colors inline-flex items-center justify-center">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      </button>
+                    ) : r.fecha >= '2026-01-01' ? (
                       <button onClick={() => descargarPDF(r.id, r.fecha)} title="Descargar Acta"
-                        className="text-red-600 hover:text-red-800 p-1.5 rounded-full hover:bg-red-50 transition-colors">
+                        className="text-red-600 hover:text-red-800 p-1.5 rounded-full hover:bg-red-50 transition-colors inline-flex items-center justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       </button>
                     ) : (
