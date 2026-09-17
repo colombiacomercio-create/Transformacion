@@ -138,12 +138,12 @@ function App() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-black border-b-4 border-bogota-primary sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between min-h-[90px] py-3 items-center gap-4">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex flex-col xl:flex-row justify-between min-h-[90px] py-3 items-center gap-4">
+            <div className="flex items-center gap-4 flex-shrink-0">
               <div className="bg-white rounded-md flex-shrink-0 flex items-center justify-center p-2 shadow-sm">
                 <img src="/Logo_Bogota.jpg" alt="Bogotá" className="h-12 md:h-16 w-auto object-contain" />
               </div>
-              <div className="flex flex-col border-l-2 pl-4 border-gray-700 justify-center min-w-0">
+              <div className="flex flex-col border-l-2 pl-4 border-gray-700 justify-center">
                 <span className="text-[10px] md:text-xs text-gray-300 font-bold uppercase tracking-wider mb-1 leading-tight">
                   Secretaría Distrital de Gobierno - Unidad de Transformación
                 </span>
@@ -157,7 +157,7 @@ function App() {
             </div>
             
             {!isAlertaRoute && (
-              <nav className="flex space-x-2 md:space-x-4 flex-shrink-0">
+              <nav className="flex flex-wrap justify-center gap-2 md:gap-4 flex-shrink-0">
                 <button 
                   onClick={() => setActiveTab('kanban')}
                   className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'kanban' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
