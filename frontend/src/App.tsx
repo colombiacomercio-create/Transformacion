@@ -140,14 +140,14 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-[80px] items-center">
             <div className="flex items-center gap-4">
-              <div className="bg-white rounded-md flex items-center justify-center px-3 py-2 shadow-sm">
-                <img src="/Logo_sede_electronica_SDG.png" alt="Escudo de Bogotá" className="h-10 md:h-12 object-contain" />
+              <div className="bg-white rounded flex items-center justify-center p-1.5 shadow-sm">
+                <img src="/Logo_sede_electronica_SDG.png" alt="Escudo de Bogotá" className="h-10 object-contain" />
               </div>
-              <div className="flex flex-col border-l-2 pl-4 border-gray-700 justify-center">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-[#FFCD00] leading-none tracking-wide">
+              <div className="flex flex-col border-l-2 pl-4 py-1 border-gray-700 justify-center">
+                <h1 className="text-2xl md:text-3xl font-black text-[#FFCD00] leading-none tracking-wide">
                    RADAR
                 </h1>
-                <span className="text-sm md:text-base font-medium text-white mt-1">
+                <span className="text-xs md:text-sm text-gray-200 mt-1.5 whitespace-nowrap">
                    Red de articulación, Datos, alertas y Resultados
                 </span>
               </div>
