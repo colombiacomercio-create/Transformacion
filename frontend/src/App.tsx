@@ -8,7 +8,7 @@ import ModalInstrucciones from "./components/ModalInstrucciones";
 import PanelAlertas from "./components/PanelAlertas";
 import PanelGestionResultados from "./components/PanelGestionResultados";
 import VistaAlertaAsignada from "./pages/VistaAlertaAsignada";
-import { Sparkles, MessageSquare, Send, X } from "lucide-react";
+import { Sparkles, MessageSquare, Send, X, Radar } from "lucide-react";
 
 const renderMarkdown = (text: string) => {
   if (!text) return null;
@@ -116,8 +116,8 @@ function App() {
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center">
         <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">
           <div className="flex justify-center flex-col items-center mb-8">
-             <div className="w-16 h-16 bg-bogota-secondary rounded-full flex items-center justify-center mb-4">
-               <span className="text-bogota-primary font-bold text-2xl">BOG</span>
+             <div className="w-20 h-20 bg-bogota-secondary rounded-full flex items-center justify-center mb-4">
+               <Radar className="w-12 h-12 text-bogota-primary" />
              </div>
              <h1 className="text-2xl font-bold text-gray-800">RADAR – Red de articulación, Datos, alertas y Resultados</h1>
              <p className="text-gray-500 mt-2 text-sm text-center">Plataforma de Gobernanza, Seguimiento Estratégico y Gestión de Resultados</p>
