@@ -124,7 +124,7 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
              const link = `${window.location.origin}/#/alerta/${nuevaAlerta.id}`;
              const body = `
                <h2>Nueva Alerta Asignada</h2>
-               <p>Se te ha asignado como responsable o notificado de la siguiente alerta en SITRA:</p>
+               <p>Se te ha asignado como responsable o notificado de la siguiente alerta en RADAR:</p>
                <p><strong>Descripción:</strong> ${form.desc}</p>
                <p><strong>Nivel / Tipo:</strong> ${form.tipo}</p>
                <p>Para ver los detalles, subir un reporte de actualización o adjuntar archivos, haz clic en el siguiente enlace:</p>
@@ -289,11 +289,11 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
                             }
                             try {
                                const { sendEmailGraphAPI } = await import('../utils/api');
-                               const subject = "Recordatorio: Alerta Asignada en SITRA";
+                               const subject = "Recordatorio: Alerta Asignada en RADAR";
                                const link = `${window.location.origin}/#/alerta/${a.id}`;
                                const body = `
                                  <h2>Recordatorio de Alerta Asignada</h2>
-                                 <p>Se te ha notificado de la siguiente alerta en el sistema SITRA:</p>
+                                 <p>Se te ha notificado de la siguiente alerta en el sistema RADAR:</p>
                                  <p><strong>Descripción:</strong> ${a.descripcion}</p>
                                  <p><strong>Nivel / Tipo:</strong> ${a.tipo}</p>
                                  <p><strong>Localidad:</strong> ${a.localidad?.nombre || 'General'}</p>

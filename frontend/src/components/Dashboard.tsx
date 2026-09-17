@@ -272,7 +272,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
       });
     } catch (err) {
       console.error('Error generating report with IA:', err);
-      alert('Error conectando al servicio de IA de SITRA. Verifica que el servidor de desarrollo esté activo.');
+      alert('Error conectando al servicio de IA de RADAR. Verifica que el servidor de desarrollo esté activo.');
     } finally {
       setGenerandoIA(null);
     }

@@ -27,6 +27,12 @@ const SECCIONES = [
       { key: 'intervencionesFinalizadas', label: 'Intervenciones finalizadas (real)', type: 'number' },
       { key: 'kmCarrilIntervenido', label: 'Km-carril intervenidos', type: 'number', step: '0.1' },
       { key: 'kmIntervenidos', label: 'M2 intervenidos (kmIntervenidos/m2)', type: 'number', step: '0.1' },
+      { key: 'obrasMallaVial', label: 'Malla Vial (detalle)', type: 'number' },
+      { key: 'obrasEspacioPublico', label: 'Espacio Público (detalle)', type: 'number' },
+      { key: 'obrasViviendaRural', label: 'Vivienda Rural (detalle)', type: 'number' },
+      { key: 'obrasParque', label: 'Parque (detalle)', type: 'number' },
+      { key: 'obrasSalonComunal', label: 'Salón Comunal (detalle)', type: 'number' },
+      { key: 'obrasOtras', label: 'Otras (detalle)', type: 'number' },
       { key: 'avancesObras', label: 'Principales avances del corte (viñetas)', type: 'textarea' },
       { key: 'alertaObras', label: 'Alertas', type: 'textarea' },
     ],
@@ -39,6 +45,10 @@ const SECCIONES = [
       { key: 'rollosEnCurso', label: 'Rollos en curso', type: 'number' },
       { key: 'rollosAvancesSignificativos', label: 'Rollos con avances significativos', type: 'number' },
       { key: 'rollosProgramadosAlCorte', label: 'Rollos programados al corte', type: 'number' },
+      { key: 'rollosSinDesenrollarse', label: 'Rollos sin desenrollarse', type: 'number' },
+      { key: 'rollosDesenrolladosLista', label: 'Lista de rollos desenrollados', type: 'textarea' },
+      { key: 'rollosDesenrollandoseLista', label: 'Lista de rollos desenrollándose', type: 'textarea' },
+      { key: 'rollosSinDesenrollarseLista', label: 'Lista de rollos sin desenrollarse', type: 'textarea' },
       { key: 'avancesRollos', label: 'Principales avances del corte (viñetas)', type: 'textarea' },
       { key: 'alertaRollos', label: 'Alertas', type: 'textarea' },
     ],
@@ -49,10 +59,12 @@ const SECCIONES = [
       { key: 'puntosCriticosPriorizados', label: 'Total Puntos Críticos Priorizados', type: 'number' },
       { key: 'puntosSostenidosProgramados', label: 'Puntos programados para estar sostenidos', type: 'number' },
       { key: 'puntosSostenidos', label: 'Puntos sostenidos a la fecha (real)', type: 'number' },
-      { key: 'personasSensibilizadas', label: 'Personas sensibilizadas (real)', type: 'number' },
+      { key: 'residuosProgramadoAlCorte', label: 'Residuos programados al corte', type: 'number' },
+      { key: 'residuosIntervencionesSemestre', label: 'Intervenciones semestre', type: 'number' },
       { key: 'personasSensibilizadasProgramadas', label: 'Personas sensibilizadas (programado)', type: 'number' },
-      { key: 'operativosIVC', label: 'Operativos IVC (real)', type: 'number' },
+      { key: 'personasSensibilizadas', label: 'Personas sensibilizadas (real)', type: 'number' },
       { key: 'operativosIVCProgramados', label: 'Operativos IVC (programado)', type: 'number' },
+      { key: 'operativosIVC', label: 'Operativos IVC (real)', type: 'number' },
       { key: 'accionesReportadas', label: 'Intervenciones reportadas', type: 'number' },
       { key: 'residuosM3', label: 'Residuos recolectados (m³)', type: 'number', step: '0.1' },
       { key: 'espacioPublicoM2', label: 'M² recuperados', type: 'number', step: '0.1' },
@@ -66,6 +78,9 @@ const SECCIONES = [
       { key: 'puntosVerificados', label: 'Total Puntos Priorizados/Verificados', type: 'number' },
       { key: 'puntosProgramadosSostenibilidad', label: 'Puntos programados para sostenibilidad', type: 'number' },
       { key: 'puntosSostenibilidadEfectiva', label: 'Puntos con sostenibilidad efectiva (real)', type: 'number' },
+      { key: 'espacioPuntosSostenidos', label: 'Puntos sostenidos', type: 'number' },
+      { key: 'espacioProgramadoAlCorte', label: 'Programado al corte', type: 'number' },
+      { key: 'espacioIntervencionesSemestre', label: 'Intervenciones semestre', type: 'number' },
       { key: 'puntosIntervenidos', label: 'Intervenciones reportadas', type: 'number' },
       { key: 'm2RecuperadosInformal', label: 'M² recuperados', type: 'number', step: '0.1' },
       { key: 'personasReubicadas', label: 'Personas reubicadas', type: 'number' },
@@ -80,9 +95,11 @@ const SECCIONES = [
     campos: [
       { key: 'metaArchivos', label: 'Archivos - Meta Anual', type: 'number' },
       { key: 'archivosProgramadosCorte', label: 'Archivos - Programado al corte', type: 'number', step: '0.1' },
+      { key: 'archivosReal', label: 'Archivos - Real', type: 'number' },
       { key: 'archivosPct', label: 'Archivos - Resultado acumulado', type: 'number', step: '0.1' },
       { key: 'metaFallos', label: 'Fallos 1ª Instancia - Meta Anual', type: 'number' },
       { key: 'fallosProgramadosCorte', label: 'Fallos - Programado al corte', type: 'number', step: '0.1' },
+      { key: 'fallosReal', label: 'Fallos - Real', type: 'number' },
       { key: 'fallosPrimeraEstanciaPct', label: 'Fallos - Resultado acumulado', type: 'number', step: '0.1' },
       { key: 'avancesActuaciones', label: 'Principales avances del corte (viñetas)', type: 'textarea' },
       { key: 'alertaActuaciones', label: 'Alertas', type: 'textarea' },
@@ -91,12 +108,12 @@ const SECCIONES = [
   {
     id: 'convivencia', titulo: '7. Convivencia y Seguridad',
     campos: [
-      { key: 'motosMetaTotal', label: 'Meta total de Motos', type: 'number' },
-      { key: 'motosProgramadasCorte', label: 'Motos programadas al corte', type: 'number' },
-      { key: 'motosEntregadasPolicia', label: 'Entregadas a Policía', type: 'number' },
-      { key: 'motosEntregadas', label: 'Entregadas a SDSCJ', type: 'number' },
-      { key: 'motosAlmacenFdl', label: 'En almacén FDL', type: 'number' },
-      { key: 'motosPendientesFdl', label: 'Pendientes entrega FDL', type: 'number' },
+      { key: 'vehiculosMetaTotal', label: 'Meta total de Vehículos', type: 'number' },
+      { key: 'vehiculosProgramadosCorte', label: 'Vehículos programados al corte', type: 'number' },
+      { key: 'vehiculosEntregadosPolicia', label: 'Entregados a Policía', type: 'number' },
+      { key: 'vehiculosEntregadosSdscj', label: 'Entregados a SDSCJ', type: 'number' },
+      { key: 'vehiculosEntregadosAlmacen', label: 'En almacén FDL', type: 'number' },
+      { key: 'vehiculosPendienteEntrega', label: 'Pendientes entrega FDL', type: 'number' },
       { key: 'avancesConvivencia', label: 'Principales avances del corte (viñetas)', type: 'textarea' },
       { key: 'alertaConvivencia', label: 'Alertas', type: 'textarea' },
     ],
@@ -151,16 +168,9 @@ export default function ModalFichaResultados({ onClose }: Props) {
           setForm(loadedData);
           setOriginalForm(loadedData);
         } else {
-          const ultima = await fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null);
-          if (ultima && ultima.id) {
-             const copiedData = { ...formatearFechas(ultima), id: undefined, periodo: form.periodo };
-             setForm(copiedData);
-             setOriginalForm(copiedData);
-          } else {
-             const emptyData = { periodo: form.periodo };
-             setForm(emptyData);
-             setOriginalForm(emptyData);
-          }
+          const emptyData = { periodo: form.periodo };
+          setForm(emptyData);
+          setOriginalForm(emptyData);
         }
       })
       .catch(() => {})

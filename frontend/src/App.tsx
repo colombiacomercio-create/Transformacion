@@ -53,7 +53,7 @@ function App() {
   // Asistente de IA Chat State
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string }>>([
-    { sender: 'bot', text: '¡Hola! Soy tu Asistente SITRA. ¿En qué te puedo ayudar hoy? Puedes preguntarme por el avance de obras, alertas activas o tareas vencidas.' }
+    { sender: 'bot', text: '¡Hola! Soy tu Asistente RADAR. ¿En qué te puedo ayudar hoy? Puedes preguntarme por el avance de obras, alertas activas o tareas vencidas.' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -119,7 +119,7 @@ function App() {
              <div className="w-16 h-16 bg-bogota-secondary rounded-full flex items-center justify-center mb-4">
                <span className="text-bogota-primary font-bold text-2xl">BOG</span>
              </div>
-             <h1 className="text-2xl font-bold text-gray-800">SITRA – Sistema Integral de Transformación</h1>
+             <h1 className="text-2xl font-bold text-gray-800">RADAR – Red de articulación, Datos, alertas y Resultados</h1>
              <p className="text-gray-500 mt-2 text-sm text-center">Plataforma de Gobernanza, Seguimiento Estratégico y Gestión de Resultados</p>
           </div>
           <button 
@@ -146,7 +146,7 @@ function App() {
               <div className="flex flex-col border-l-2 pl-4 border-gray-700">
                 <span className="text-xs text-[#FFCD00] font-bold uppercase tracking-wider">Secretaría Distrital de Gobierno</span>
                 <h1 className="text-xl font-bold text-white leading-tight">
-                   SITRA – Sistema Integral de Transformación
+                   RADAR – Red de articulación, Datos, alertas y Resultados
                 </h1>
               </div>
             </div>
@@ -237,7 +237,7 @@ function App() {
                  <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-yellow-300"/>
                     <div>
-                       <h3 className="font-bold text-sm leading-tight">Asistente SITRA</h3>
+                       <h3 className="font-bold text-sm leading-tight">Asistente RADAR</h3>
                        <p className="text-[10px] text-purple-200">Impulsado por Gemini 3.5</p>
                     </div>
                  </div>

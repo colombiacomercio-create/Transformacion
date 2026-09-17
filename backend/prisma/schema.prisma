@@ -1,4 +1,4 @@
-// Generado por Antigravity
+﻿// Generado por Antigravity
 
 generator client {
   provider = "prisma-client-js"
@@ -99,7 +99,7 @@ model Usuario {
   reportesEditados       ReporteCualitativo[]  @relation("EditorReporte")
   historialChat          HistorialChat[]
 
-  // Ficha Resultados - Tracking por sección
+  // Ficha Resultados - Tracking por secciÃ³n
   fichasEjecucionAct     FichaResultados[] @relation("EjecucionAct")
   fichasObrasAct         FichaResultados[] @relation("ObrasAct")
   fichasComitesAct       FichaResultados[] @relation("ComitesAct")
@@ -313,7 +313,7 @@ model ReporteCualitativo {
   estadoRevisionAlertas       EstadoRevisionDraft @default(SIN_BORRADOR)
   generadoPorIA               Boolean             @default(false)
   fechaGeneracionIA           DateTime?
-  editadoPorId                String?             // Administrador de la Unidad de Transformación que revisa
+  editadoPorId                String?             // Administrador de la Unidad de TransformaciÃ³n que revisa
   fechaUltimaEdicion          DateTime?
 
   objetivo                    ObjetivoEstrategico @relation(fields: [objetivoId], references: [id])
@@ -363,12 +363,12 @@ model ActualizacionAlerta {
   fichaAlerta     FichaAlerta @relation(fields: [fichaAlertaId], references: [id], onDelete: Cascade)
 }
 
-// ─── MÓDULO GESTIÓN Y RESULTADOS ─────────────────────────────────────────────
+// â”€â”€â”€ MÃ“DULO GESTIÃ“N Y RESULTADOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model FichaResultados {
   id                       String   @id @default(uuid())
   periodo                  DateTime @unique // fecha de corte del reporte
-  // Ejecución presupuestal
+  // EjecuciÃ³n presupuestal
   compromisosPct           Float?
   metaCompromisosPct       Float?
   girosPct                 Float?
@@ -382,26 +382,21 @@ model FichaResultados {
   kmCarrilIntervenido      Float?
   kmIntervenidos           Float?
   alertaObras              String?  @db.Text
-  // Comités de contratación
+  // ComitÃ©s de contrataciÃ³n
   comitesRealizados        Int?
   comitesMeta              Int?
   alertaComites            String?  @db.Text
-  // Espacio público – Residuos (general)
+  // Espacio pÃºblico â€“ Residuos (general)
   accionesReportadas       Int?
   residuosM3               Float?
   espacioPublicoM2         Float?
-  // Espacio público – Venta Informal / Parqueo
+  // Espacio pÃºblico â€“ Venta Informal / Parqueo
   puntosIntervenidos       Int?
   ventaInformal            Int?
   orgParqueo               Int?
   m2RecuperadosInformal    Float?
   personasReubicadas       Int?
   // Convivencia y seguridad
-  motosContratadas         Int?
-  motosPendientesFdl       Int?
-  motosAlmacenFdl          Int?
-  motosEntregadas          Int?
-    motosEntregadasPolicia   Int?
   alertaConvivencia        String?  @db.Text
   // Actuaciones
   archivosPct              Float?
@@ -428,9 +423,9 @@ model FichaResultados {
   alertaActuaciones        String?  @db.Text
   alertaEstrategias        String?  @db.Text
 
-  // Tracking por sección
+  // Tracking por secciÃ³n
   
-    // --- Nuevos Campos para Rediseño Fichas (2026) ---
+    // --- Nuevos Campos para RediseÃ±o Fichas (2026) ---
     avancesEjecucion          String?  @db.Text
     avancesObras              String?  @db.Text
     avancesRollos             String?  @db.Text
@@ -440,29 +435,57 @@ model FichaResultados {
     avancesConvivencia        String?  @db.Text
     avancesEstrategias        String?  @db.Text
     
+    // Obras Locales
     obrasProgramadasAlCorte   Int?
+    obrasMallaVial            Int?
+    obrasEspacioPublico       Int?
+    obrasViviendaRural        Int?
+    obrasParque               Int?
+    obrasSalonComunal         Int?
+    obrasOtras                Int?
     
+    // Rollos Legendarios
     totalRollos               Int?
     rollosAvancesSignificativos Int?
     rollosProgramadosAlCorte  Int?
+    rollosDesenrolladosLista       String?  @db.Text
+    rollosDesenrollandoseLista     String?  @db.Text
+    rollosSinDesenrollarseLista    String?  @db.Text
+    rollosSinDesenrollarse         Int? // Para contar los que faltan
     
+    // Espacio PÃºblico - Residuos
     puntosCriticosPriorizados Int?
     puntosSostenidos          Int?
     puntosSostenidosProgramados Int?
+    residuosProgramadoAlCorte Int?
+    residuosIntervencionesSemestre Int?
+    
     personasSensibilizadas    Int?
     personasSensibilizadasProgramadas Int?
     operativosIVC             Int?
     operativosIVCProgramados  Int?
     
+    // OrganizaciÃ³n y RecuperaciÃ³n Espacio PÃºblico
     puntosVerificados         Int?
     puntosProgramadosSostenibilidad Int?
     puntosSostenibilidadEfectiva Int?
+    espacioPuntosSostenidos   Int?
+    espacioProgramadoAlCorte  Int?
+    espacioIntervencionesSemestre Int?
     
+    // Actuaciones Administrativas
     archivosProgramadosCorte  Float?
     fallosProgramadosCorte    Float?
+    archivosReal              Int?
+    fallosReal                Int?
     
-    motosMetaTotal            Int?
-    motosProgramadasCorte     Int?
+    // Convivencia y Seguridad (VehÃ­culos)
+    vehiculosMetaTotal        Int?
+    vehiculosProgramadosCorte Int?
+    vehiculosEntregadosPolicia Int?
+    vehiculosEntregadosSdscj  Int?
+    vehiculosEntregadosAlmacen Int?
+    vehiculosPendienteEntrega Int?
     
     estrategiasTotal          Int?
     estrategiasAjustes        Int?
@@ -610,7 +633,7 @@ model OtroEspacioArticulacion {
   creadoPor Usuario @relation(fields: [creadoPorId], references: [id])
 }
 
-// ─── NUEVOS MODELOS PARA IA Y MIGRACIÓN ──────────────────────────────────────
+// â”€â”€â”€ NUEVOS MODELOS PARA IA Y MIGRACIÃ“N â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model HistorialChat {
   id            String   @id @default(uuid())
@@ -619,7 +642,7 @@ model HistorialChat {
   respuesta     String   @db.Text
   exitoSQL      Boolean  @default(true)
   sentenciaSQL  String?  @db.Text
-  feedbackUtiles Int?    // Calificación de utilidad
+  feedbackUtiles Int?    // CalificaciÃ³n de utilidad
   fechaConsulta DateTime @default(now())
 
   usuario       Usuario  @relation(fields: [usuarioId], references: [id])
@@ -631,7 +654,7 @@ model MigracionPlannERLog {
   registrosProcesados  Int
   registrosExitosos    Int
   registrosFallidos    Int
-  detallesErrores      Json?    // Errores en la validación lógica
+  detallesErrores      Json?    // Errores en la validaciÃ³n lÃ³gica
   ejecutadoPor         String
 }
 
@@ -642,17 +665,17 @@ model HistorialCambios {
   campoModificado    String   // ej: "estadoValidacion", "porcentajeAvance", "fechaLimite"
   valorAnterior      String?
   valorNuevo         String
-  justificacion      String?  @db.Text // Razón del cambio (motivo de rechazo, etc.)
+  justificacion      String?  @db.Text // RazÃ³n del cambio (motivo de rechazo, etc.)
   usuarioResponsable String   // Correo o nombre del autor del cambio
   fechaCambio        DateTime
-  origen             String   @default("SITRA") // "SITRA", "PLANNER_IMPORT_DEDUCIDO", "PLANNER_IMPORT_LIGERO"
+  origen             String   @default("RADAR") // "RADAR", "PLANNER_IMPORT_DEDUCIDO", "PLANNER_IMPORT_LIGERO"
 
   actividad          Actividad @relation(fields: [actividadId], references: [id], onDelete: Cascade)
   localidad          Localidad @relation(fields: [localidadId], references: [id], onDelete: Cascade)
 }
 
 
-// ─── TABLERO OBRAS LOCALES ───────────────────────────────────────────────────
+// â”€â”€â”€ TABLERO OBRAS LOCALES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model FrenteObra {
   id                        Int       @id @default(autoincrement())
