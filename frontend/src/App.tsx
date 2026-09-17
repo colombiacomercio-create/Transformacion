@@ -138,23 +138,23 @@ function App() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-black border-b-4 border-bogota-primary sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-[80px] items-center">
-            <div className="flex items-center gap-4">
-              <div className="bg-white rounded flex items-center justify-center p-1.5 shadow-sm">
-                <img src="/Logo_sede_electronica_SDG.png" alt="Escudo de Bogotá" className="h-10 object-contain" />
+          <div className="flex justify-between min-h-[80px] py-2 items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+              <div className="bg-white rounded flex-shrink-0 flex items-center justify-center px-2 py-1 shadow-sm">
+                <img src="/Logo_sede_electronica_SDG.png" alt="Escudo de Bogotá" className="h-12 md:h-14 w-auto object-contain" />
               </div>
-              <div className="flex flex-col border-l-2 pl-4 py-1 border-gray-700 justify-center">
-                <h1 className="text-2xl md:text-3xl font-black text-[#FFCD00] leading-none tracking-wide">
+              <div className="flex flex-col border-l-2 pl-3 md:pl-4 border-gray-700 justify-center min-w-0">
+                <h1 className="text-2xl md:text-3xl font-black text-[#FFCD00] leading-none tracking-wide truncate">
                    RADAR
                 </h1>
-                <span className="text-xs md:text-sm text-gray-200 mt-1.5 whitespace-nowrap">
+                <span className="text-xs md:text-sm text-gray-200 mt-1 leading-tight truncate sm:whitespace-normal">
                    Red de articulación, Datos, alertas y Resultados
                 </span>
               </div>
             </div>
             
             {!isAlertaRoute && (
-              <nav className="flex space-x-4">
+              <nav className="flex space-x-2 md:space-x-4 flex-shrink-0">
                 <button 
                   onClick={() => setActiveTab('kanban')}
                   className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'kanban' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
