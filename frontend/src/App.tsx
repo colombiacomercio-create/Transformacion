@@ -138,17 +138,20 @@ function App() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-black border-b-4 border-bogota-primary sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between min-h-[80px] py-2 items-center gap-4">
-            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-              <div className="bg-white rounded flex-shrink-0 flex items-center justify-center px-2 py-1 shadow-sm">
-                <img src="/Logo_sede_electronica_SDG.png" alt="Escudo de Bogotá" className="h-12 md:h-14 w-auto object-contain" />
+          <div className="flex justify-between min-h-[90px] py-3 items-center gap-4">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="bg-white rounded-md flex-shrink-0 flex items-center justify-center p-2 shadow-sm">
+                <img src="/Logo_Bogota.jpg" alt="Bogotá" className="h-12 md:h-16 w-auto object-contain" />
               </div>
-              <div className="flex flex-col border-l-2 pl-3 md:pl-4 border-gray-700 justify-center min-w-0">
-                <h1 className="text-2xl md:text-3xl font-black text-[#FFCD00] leading-none tracking-wide truncate">
+              <div className="flex flex-col border-l-2 pl-4 border-gray-700 justify-center min-w-0">
+                <span className="text-[10px] md:text-xs text-gray-300 font-bold uppercase tracking-wider mb-1 leading-tight">
+                  Secretaría Distrital de Gobierno - Unidad de Transformación
+                </span>
+                <h1 className="text-3xl md:text-4xl font-black text-[#FFCD00] leading-none tracking-wide">
                    RADAR
                 </h1>
-                <span className="text-xs md:text-sm text-gray-200 mt-1 leading-tight truncate sm:whitespace-normal">
-                   Red de articulación, Datos, alertas y Resultados
+                <span className="text-[11px] md:text-xs text-gray-400 mt-1 leading-tight sm:whitespace-normal">
+                   Red de articulación, datos y Resultados
                 </span>
               </div>
             </div>
