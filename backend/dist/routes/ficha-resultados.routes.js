@@ -212,7 +212,7 @@ router.post('/', auth_middleware_1.azureADAuth, (0, auth_middleware_1.requireRol
     }
     catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error procesando ficha de resultados' });
+        res.status(500).json({ error: 'Error procesando ficha de resultados', details: error.message });
     }
 });
 // PATCH /api/ficha-resultados/:id — editar ficha (solo ADMIN)
