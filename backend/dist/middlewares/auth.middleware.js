@@ -17,7 +17,7 @@ const azureADAuth = async (req, res, next) => {
             if (!dbUser) {
                 dbUser = await prisma.usuario.create({
                     data: {
-                        email: 'admin.prueba@sitra.gov.co',
+                        email: 'admin.prueba@RADAR.gov.co',
                         nombre: 'Administrador de Pruebas',
                         rol: 'ADMIN'
                     }
@@ -28,21 +28,21 @@ const azureADAuth = async (req, res, next) => {
         }
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             console.log('No auth header:', authHeader);
-            return res.status(401).json({ message: 'No se proporcionó un token de autenticación válido.' });
+            return res.status(401).json({ message: 'No se proporcionÃ³ un token de autenticaciÃ³n vÃ¡lido.' });
         }
         const token = authHeader.split(' ')[1];
         // Decodificar sin validar firma (IMPORTANTE: El token viene de Azure AD, ya fue validado por el frontend)
         const decoded = jsonwebtoken_1.default.decode(token, { complete: false });
         console.log('Token decodificado:', decoded);
         if (!decoded) {
-            return res.status(401).json({ message: 'Token inválido.' });
+            return res.status(401).json({ message: 'Token invÃ¡lido.' });
         }
         const userEmail = decoded?.preferred_username || decoded?.upn || decoded?.unique_name || decoded?.email;
         if (!userEmail) {
             console.log('No email en token:', decoded);
-            return res.status(401).json({ message: 'Token no contiene correo electrónico.' });
+            return res.status(401).json({ message: 'Token no contiene correo electrÃ³nico.' });
         }
-        console.log('Email extraído:', userEmail);
+        console.log('Email extraÃ­do:', userEmail);
         // Buscar usuario en DB
         let dbUser = await prisma.usuario.findUnique({
             where: { email: userEmail }
@@ -50,7 +50,7 @@ const azureADAuth = async (req, res, next) => {
         if (!dbUser) {
             console.log('Usuario no encontrado, creando:', userEmail);
             try {
-                // Crear usuario automáticamente como OBSERVADOR
+                // Crear usuario automÃ¡ticamente como OBSERVADOR
                 dbUser = await prisma.usuario.create({
                     data: {
                         email: userEmail,
@@ -79,7 +79,7 @@ exports.azureADAuth = azureADAuth;
 const requireRole = (rolesPermitidos) => {
     return (req, res, next) => {
         if (!req.user || !rolesPermitidos.includes(req.user.rol)) {
-            return res.status(403).json({ message: 'Privilegios insuficientes para esta acción.' });
+            return res.status(403).json({ message: 'Privilegios insuficientes para esta acciÃ³n.' });
         }
         next();
     };

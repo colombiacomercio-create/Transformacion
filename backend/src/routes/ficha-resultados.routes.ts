@@ -95,11 +95,7 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
       m2RecuperadosInformal: data.m2RecuperadosInformal ?? null,
       personasReubicadas: data.personasReubicadas ?? null,
       alertaEspacioVenta: data.alertaEspacioVenta ?? null,
-      motosContratadas: data.motosContratadas ?? null,
-      motosPendientesFdl: data.motosPendientesFdl ?? null,
-      motosAlmacenFdl: data.motosAlmacenFdl ?? null,
-      motosEntregadas: data.motosEntregadas ?? null,
-      motosEntregadasPolicia: data.motosEntregadasPolicia ?? null,
+
       alertaConvivencia: data.alertaConvivencia ?? null,
       archivosPct: data.archivosPct ?? null,
       metaArchivosPct: data.metaArchivosPct ?? null,

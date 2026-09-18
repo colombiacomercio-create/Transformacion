@@ -47,13 +47,13 @@ router.post('/reportes/generar-borrador', auth_middleware_1.azureADAuth, (0, aut
     try {
         const { objetivoId, localidadId, corteId } = req.body;
         if (!objetivoId || !localidadId || !corteId) {
-            return res.status(400).json({ error: 'Faltan parámetros objetivoId, localidadId o corteId' });
+            return res.status(400).json({ error: 'Faltan parÃ¡metros objetivoId, localidadId o corteId' });
         }
         // 1. Obtener la localidad y el objetivo
         const localidad = await prisma.localidad.findUnique({ where: { id: localidadId } });
         const objetivo = await prisma.objetivoEstrategico.findUnique({ where: { id: objetivoId } });
         if (!localidad || !objetivo) {
-            return res.status(404).json({ error: 'Localidad u Objetivo estratégico no encontrado' });
+            return res.status(404).json({ error: 'Localidad u Objetivo estratÃ©gico no encontrado' });
         }
         // 2. Obtener cifras y comentarios de actividades para este objetivo y localidad
         const asignaciones = await prisma.asignacionLocalidad.findMany({
@@ -189,7 +189,7 @@ router.put('/reportes/guardar-edicion', auth_middleware_1.azureADAuth, (0, auth_
     try {
         const { reporteId, avances, alertas } = req.body;
         if (!reporteId) {
-            return res.status(400).json({ error: 'Falta parámetro reporteId' });
+            return res.status(400).json({ error: 'Falta parÃ¡metro reporteId' });
         }
         const reporte = await prisma.reporteCualitativo.update({
             where: { id: reporteId },
@@ -206,7 +206,7 @@ router.put('/reportes/guardar-edicion', auth_middleware_1.azureADAuth, (0, auth_
     }
     catch (error) {
         console.error('[AI Routes] Error en guardar-edicion:', error);
-        res.status(500).json({ error: 'Error guardando edición del reporte' });
+        res.status(500).json({ error: 'Error guardando ediciÃ³n del reporte' });
     }
 });
 /**
@@ -217,7 +217,7 @@ router.post('/reportes/publicar', auth_middleware_1.azureADAuth, (0, auth_middle
     try {
         const { reporteId } = req.body;
         if (!reporteId) {
-            return res.status(400).json({ error: 'Falta parámetro reporteId' });
+            return res.status(400).json({ error: 'Falta parÃ¡metro reporteId' });
         }
         const draft = await prisma.reporteCualitativo.findUnique({ where: { id: reporteId } });
         if (!draft) {
@@ -248,7 +248,7 @@ router.post('/alertas/analizar-preliminar', auth_middleware_1.azureADAuth, async
     try {
         const { descripcion, localidadId } = req.body;
         if (!descripcion || !localidadId) {
-            return res.status(400).json({ error: 'Faltan parámetros descripcion o localidadId' });
+            return res.status(400).json({ error: 'Faltan parÃ¡metros descripcion o localidadId' });
         }
         // Obtener usuarios disponibles en la localidad o administradores
         const usuarios = await prisma.usuario.findMany({
@@ -256,13 +256,13 @@ router.post('/alertas/analizar-preliminar', auth_middleware_1.azureADAuth, async
         });
         // Llamar a IA para clasificar
         const sugerencias = await aiService.clasificarYEnrutarAlerta(descripcion, localidadId, usuarios);
-        // Buscar alertas similares en la base de datos (similitud semántica/palabras clave básica)
+        // Buscar alertas similares en la base de datos (similitud semÃ¡ntica/palabras clave bÃ¡sica)
         const alertasPasadas = await prisma.fichaAlerta.findMany({
             where: { localidadId },
             take: 5,
             orderBy: { fechaCreacion: 'desc' }
         });
-        // Simular puntaje de coincidencia básica usando palabras en común para no complejizar en el piloto sin base vectorial
+        // Simular puntaje de coincidencia bÃ¡sica usando palabras en comÃºn para no complejizar en el piloto sin base vectorial
         const alertasRelacionadas = alertasPasadas.map(a => {
             const palabrasComunes = a.descripcion.split(' ').filter(w => w.length > 4 && descripcion.includes(w));
             const score = palabrasComunes.length > 0 ? 0.5 + (palabrasComunes.length * 0.1) : 0.0;
@@ -284,13 +284,13 @@ router.post('/alertas/analizar-preliminar', auth_middleware_1.azureADAuth, async
 });
 /**
  * 5. POST /api/ia/evidencias/prechequear
- * Dispara el análisis de pre-chequeo sobre una evidencia cargada en Supabase.
+ * Dispara el anÃ¡lisis de pre-chequeo sobre una evidencia cargada en Supabase.
  */
 router.post('/evidencias/prechequear', auth_middleware_1.azureADAuth, async (req, res) => {
     try {
         const { evidenciaId } = req.body;
         if (!evidenciaId) {
-            return res.status(400).json({ error: 'Falta el parámetro evidenciaId' });
+            return res.status(400).json({ error: 'Falta el parÃ¡metro evidenciaId' });
         }
         const evidencia = await prisma.evidencia.findUnique({
             where: { id: evidenciaId },
@@ -300,7 +300,7 @@ router.post('/evidencias/prechequear', auth_middleware_1.azureADAuth, async (req
             return res.status(404).json({ error: 'Evidencia no encontrada' });
         }
         // Para el piloto, si no hay archivo binario directo, leemos la metadata y simulamos con su URL.
-        // En caso real, haríamos fetch del archivo desde Supabase usando su URL.
+        // En caso real, harÃ­amos fetch del archivo desde Supabase usando su URL.
         let fileBase64 = null;
         let mimeType = null;
         if (evidencia.urlArchivo && !evidencia.urlArchivo.includes('simulado')) {
@@ -312,7 +312,7 @@ router.post('/evidencias/prechequear', auth_middleware_1.azureADAuth, async (req
                 mimeType = fileResponse.headers.get('content-type');
             }
             catch (err) {
-                console.warn('⚠️ No se pudo descargar el archivo de Supabase. Corriendo en modo texto.', err);
+                console.warn('âš ï¸ No se pudo descargar el archivo de Supabase. Corriendo en modo texto.', err);
             }
         }
         const prechequeo = await aiService.prechequearEvidencia(evidencia.actividad.descripcion || evidencia.actividad.nombre, evidencia.actividad.tiposEvidenciaRequeridos, fileBase64, mimeType, evidencia.comentarioAdjunto || '');
@@ -335,17 +335,17 @@ router.post('/evidencias/prechequear', auth_middleware_1.azureADAuth, async (req
 });
 /**
  * 6. POST /api/ia/chat/mensaje
- * Endpoint del Asistente SITRA conversacional.
+ * Endpoint del Asistente RADAR conversacional.
  */
 router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => {
     try {
         const { query } = req.body;
         if (!query) {
-            return res.status(400).json({ error: 'Falta el parámetro query' });
+            return res.status(400).json({ error: 'Falta el parÃ¡metro query' });
         }
         // Generamos un resumen del esquema para el contexto de la IA de forma segura
         const contextoData = `
-      SITRA Data Model:
+      RADAR Data Model:
       - Actividad (id, codigoCompleto, nombre, descripcion, estado: PENDIENTE/EN_PROGRESO/COMPLETADA/CON_ALERTA/VENCIDA, prioridad)
       - Localidad (id, nombre)
       - AsignacionLocalidad (actividadId, localidadId, porcentajeAvance, estadoLocal, estadoValidacion)
@@ -362,7 +362,7 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
             let alertas = [];
             // 1. Filtrar por Localidad si se detecta nombre
             let localidadId = filtros.localidadId;
-            const targetLocalidad = filtros.localidadNombre || filtros.localidad || (query.toLowerCase().includes('usaquen') ? 'Usaquén' : 'Suba');
+            const targetLocalidad = filtros.localidadNombre || filtros.localidad || (query.toLowerCase().includes('usaquen') ? 'UsaquÃ©n' : 'Suba');
             if (targetLocalidad) {
                 const loc = await prisma.localidad.findFirst({
                     where: { nombre: { contains: targetLocalidad, mode: 'insensitive' } }
@@ -387,11 +387,11 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
                 queryNorm.includes('estado de la localidad') ||
                 queryNorm.includes('reporte general') ||
                 queryNorm.includes('aspiracion') ||
-                queryNorm.includes('aspiración') ||
+                queryNorm.includes('aspiraciÃ³n') ||
                 queryNorm.includes('objetivo') ||
                 queryNorm.includes('mayor avance') ||
                 queryNorm.includes('lider') ||
-                queryNorm.includes('líder') ||
+                queryNorm.includes('lÃ­der') ||
                 queryNorm.includes('mejor');
             if (esConsultaVencidas) {
                 const whereAsig = {};
@@ -412,25 +412,25 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
                     const limite = new Date(a.actividad.fechaLimite);
                     return limite < ahora && a.porcentajeAvance < 100 && a.estadoLocal !== 'COMPLETA_SIN_VALIDAR';
                 });
-                // Ordenar por mayor extemporaneidad (más antiguas primero)
+                // Ordenar por mayor extemporaneidad (mÃ¡s antiguas primero)
                 vencidas.sort((x, y) => {
                     return new Date(x.actividad.fechaLimite).getTime() - new Date(y.actividad.fechaLimite).getTime();
                 });
                 if (vencidas.length > 0) {
                     datosReales = `
-            ACTIVIDADES VENCIDAS O EXTEMPORÁNEAS EN ${targetLocalidad}:
+            ACTIVIDADES VENCIDAS O EXTEMPORÃNEAS EN ${targetLocalidad}:
             Total vencidas: ${vencidas.length}
             
             Lista de actividades con mayor extemporaneidad (delays):
             ${vencidas.slice(0, 10).map((v) => {
                         const diasRetraso = Math.floor((ahora.getTime() - new Date(v.actividad.fechaLimite).getTime()) / (1000 * 60 * 60 * 24));
-                        return `- Actividad ${v.actividad.codigoCompleto || v.actividad.id}: "${v.actividad.nombre}" (Vencimiento: ${new Date(v.actividad.fechaLimite).toLocaleDateString()}, Retraso: ${diasRetraso} días, Avance: ${v.porcentajeAvance}%, Estado local: ${v.estadoLocal || 'NO_INICIADA'}, Responsable: ${v.responsable?.nombre || 'No asignado'})`;
+                        return `- Actividad ${v.actividad.codigoCompleto || v.actividad.id}: "${v.actividad.nombre}" (Vencimiento: ${new Date(v.actividad.fechaLimite).toLocaleDateString()}, Retraso: ${diasRetraso} dÃ­as, Avance: ${v.porcentajeAvance}%, Estado local: ${v.estadoLocal || 'NO_INICIADA'}, Responsable: ${v.responsable?.nombre || 'No asignado'})`;
                     }).join('\n')}
           `;
                     respuestaFinal = await aiService.generarRespuestaDirectaChat(query, datosReales);
                 }
                 else {
-                    respuestaFinal = `He consultado la base de datos de SITRA y actualmente no existen actividades con extemporaneidad o retraso en la localidad de "${targetLocalidad}".`;
+                    respuestaFinal = `He consultado la base de datos de RADAR y actualmente no existen actividades con extemporaneidad o retraso en la localidad de "${targetLocalidad}".`;
                 }
             }
             else if (esConsultaGeneralStatus) {
@@ -527,7 +527,7 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
                         liderPorcentaje = 0;
                         liderObjId = firstKey;
                     }
-                    // 1. Detectar si la pregunta está orientada a una aspiración específica o a la líder
+                    // 1. Detectar si la pregunta estÃ¡ orientada a una aspiraciÃ³n especÃ­fica o a la lÃ­der
                     let targetObjetivoId = null;
                     let targetObjetivoNombre = "";
                     const keyWordsMap = {
@@ -587,7 +587,7 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
                         const alSub = alertas.filter(al => al.objetivoId === targetObjetivoId);
                         const alertasTextoObj = alSub.length > 0
                             ? alSub.map(al => `- [${al.tipo}] ${al.descripcion} (Responsable: ${al.responsable}, Estado: ${al.estado})`).join('\n')
-                            : "No hay alertas activas para esta aspiración.";
+                            : "No hay alertas activas para esta aspiraciÃ³n.";
                         objetivoEspecifico = {
                             nombre: targetObjetivoNombre,
                             total: totalObj,
@@ -614,11 +614,11 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
                     });
                 }
                 else {
-                    respuestaFinal = `He consultado los datos de SITRA aplicando el filtro para la localidad de "${targetLocalidad || 'especificada'}" pero actualmente no existen registros de actividades asignadas o alertas creadas en esta sección.`;
+                    respuestaFinal = `He consultado los datos de RADAR aplicando el filtro para la localidad de "${targetLocalidad || 'especificada'}" pero actualmente no existen registros de actividades asignadas o alertas creadas en esta secciÃ³n.`;
                 }
             }
             else {
-                // Consulta genérica específica
+                // Consulta genÃ©rica especÃ­fica
                 const whereAsig = {};
                 if (localidadId)
                     whereAsig.localidadId = localidadId;
@@ -635,7 +635,7 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
                     include: { localidad: true }
                 });
                 datosReales = `
-          DATOS DISPONIBLES EN SISTEMA SITRA PARA ${targetLocalidad}:
+          DATOS DISPONIBLES EN SISTEMA RADAR PARA ${targetLocalidad}:
           Asignaciones (${allAsig.length} encontradas):
           ${allAsig.slice(0, 15).map(a => `- Actividad ${a.actividad.codigoCompleto || a.actividad.id}: "${a.actividad.nombre}" (Avance: ${a.porcentajeAvance}%, Estado: ${a.estadoLocal || 'NO_INICIADA'}, Responsable: ${a.responsable?.nombre || 'No asignado'})`).join('\n')}
           
@@ -645,7 +645,7 @@ router.post('/chat/mensaje', auth_middleware_1.azureADAuth, async (req, res) => 
                 respuestaFinal = await aiService.generarRespuestaDirectaChat(query, datosReales);
             }
         }
-        // Registrar en el historial de chat para auditoría
+        // Registrar en el historial de chat para auditorÃ­a
         await prisma.historialChat.create({
             data: {
                 usuarioId: req.user.id,
