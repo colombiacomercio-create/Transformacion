@@ -1,4 +1,4 @@
-﻿// Generado por Antigravity
+// Generado por Antigravity
 
 generator client {
   provider = "prisma-client-js"
