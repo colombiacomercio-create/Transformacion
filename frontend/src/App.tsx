@@ -46,7 +46,7 @@ const renderMarkdown = (text: string) => {
 function App() {
   const { instance, accounts } = useMsal();
   const isAuthenticated = import.meta.env.VITE_BYPASS_AUTH === 'true' ? true : useIsAuthenticated();
-  const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas' | 'gestion'>('kanban');
+  const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas' | 'gestion'>('gestion');
   const [showHelp, setShowHelp] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   
@@ -136,76 +136,78 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-black border-b-4 border-bogota-primary sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col xl:flex-row justify-between min-h-[90px] py-3 items-center gap-4">
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <div className="bg-white rounded-md flex-shrink-0 flex items-center justify-center p-2 shadow-sm">
-                <img src="/Logo_Bogota.jpg" alt="Bogotá" className="h-12 md:h-16 w-auto object-contain" />
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="h-1 w-full bg-bogota-primary"></div>
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6">
+          <div className="flex flex-col xl:flex-row justify-between min-h-[112px] py-2 items-center gap-4">
+            
+            {/* Izquierda: Logo RADAR + Textos */}
+            <div className="flex items-center gap-4 flex-shrink-0 w-full xl:w-auto justify-between xl:justify-start">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 flex items-center justify-center p-1">
+                  <img src="/radar-logo.png" alt="RADAR Logo" className="h-16 md:h-20 w-auto object-contain" />
+                </div>
+                <div className="flex flex-col border-l-2 pl-4 border-gray-200 justify-center">
+                  <span className="text-[12px] md:text-[13px] font-bold text-gray-800 uppercase tracking-wide leading-tight">SecretarÃ­a Distrital de Gobierno</span>
+                  <span className="text-[11px] md:text-[12px] font-semibold text-gray-600 mb-1">Unidad de TransformaciÃ³n</span>
+                  <span className="text-[9px] md:text-[10px] text-gray-400 italic leading-tight max-w-[200px]">
+                    Red de ArticulaciÃ³n, Datos, Alertas y Resultados
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col border-l-2 pl-4 border-gray-700 justify-center">
-                <span className="text-[10px] md:text-xs text-gray-300 font-bold uppercase tracking-wider mb-1 leading-tight">
-                  Secretaría Distrital de Gobierno - Unidad de Transformación
-                </span>
-                <h1 className="text-3xl md:text-4xl font-black text-[#FFCD00] leading-none tracking-wide">
-                   RADAR
-                </h1>
-                <span className="text-[11px] md:text-xs text-gray-400 mt-1 leading-tight sm:whitespace-normal">
-                   Red de articulación, datos y Resultados
-                </span>
+              
+              {/* Usuario Movil */}
+              <div className="flex xl:hidden flex-col items-end gap-1">
+                <span className="text-xs font-semibold text-gray-700 truncate max-w-[100px]">{userName}</span>
+                <button onClick={handleLogout} className="text-xs font-medium text-bogota-primary hover:text-red-700 transition-colors">Salir</button>
               </div>
             </div>
             
+            {/* Centro: Tabs */}
             {!isAlertaRoute && (
-              <nav className="flex flex-wrap justify-center gap-2 md:gap-4 flex-shrink-0">
+              <nav className="flex flex-wrap justify-center gap-2 lg:gap-3 flex-shrink-0 xl:flex-1 xl:justify-center">
                 <button 
                   onClick={() => setActiveTab('kanban')}
-                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'kanban' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'kanban' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
                 >
-                  Panel Actividades (Kanban)
+                  Panel de actividades
                 </button>
                 <button 
                   onClick={() => setActiveTab('dashboard')}
-                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'dashboard' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
                 >
-                  Tablero de Control
+                  Tablero de control
                 </button>
                 <button 
                   onClick={() => setActiveTab('alertas')}
-                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'alertas' ? 'bg-red-600 text-white shadow' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'alertas' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
                 >
-                  Gestor Alertas
+                  Gestor de alertas
                 </button>
                 <button 
                   onClick={() => setActiveTab('gestion')}
-                  className={`px-3 py-2 rounded-md text-sm font-bold transition-colors leading-tight ${activeTab === 'gestion' ? 'bg-white text-black shadow' : 'text-white hover:bg-gray-800'}`}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'gestion' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
                 >
-                  Gestión<br/>Resultados
-                </button>
-                <button 
-                  onClick={() => setShowHelp(true)}
-                  className="px-3 py-2 rounded-md text-sm font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 transition-colors flex items-center gap-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  Instrucciones
+                  GestiÃ³n de resultados
                 </button>
               </nav>
             )}
 
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-200">{userName}</span>
-              <button 
-                onClick={handleLogout}
-                className="text-sm font-medium text-red-500 hover:text-red-400 transition-colors"
-              >
-                Salir
-              </button>
+            {/* Derecha: Logo Bogota + Usuario Desktop */}
+            <div className="flex flex-col xl:items-end gap-3 w-full xl:w-auto mt-2 xl:mt-0">
+              <div className="hidden xl:flex items-center gap-4 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">{userName}</span>
+                <button onClick={handleLogout} className="text-xs font-bold text-bogota-primary hover:text-red-700 transition-colors uppercase tracking-wide">Salir</button>
+              </div>
+              <div className="hidden xl:flex items-center justify-end">
+                 <img src="/Logo_Bogota.jpg" alt="BogotÃ¡" className="h-14 object-contain" />
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-6">
         {userData ? (
           isAlertaRoute ? (
              <VistaAlertaAsignada />
@@ -229,7 +231,7 @@ function App() {
         <>
           <button 
             onClick={() => setChatOpen(!chatOpen)}
-            className="fixed bottom-6 right-6 bg-purple-700 hover:bg-purple-800 text-white p-4 rounded-full shadow-2xl flex items-center justify-center gap-2 hover:scale-105 transition-all z-40"
+            className="fixed bottom-6 right-6 w-14 h-14 bg-bogota-primary hover:bg-red-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all z-40 group" title="Asistente IA"
           >
             <Sparkles className="w-6 h-6 animate-pulse"/>
             <span className="font-bold text-sm pr-1">Asistente IA</span>
