@@ -236,7 +236,10 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
                      <span className={`text-xs font-bold px-3 py-1 rounded-full border uppercase ${getTipoColor(a.tipo)}`}>{a.tipo.replace(/_/g, ' ')}</span>
                      <span className={`text-xs font-bold uppercase py-1 px-2 rounded-full ${getEstadoBadge(a.estado)}`}>{a.estado.replace(/_/g, ' ')}</span>
                   </div>
-                  <h3 className="text-gray-800 font-bold text-lg">{a.descripcion}</h3>
+                  <h3 className="text-gray-800 font-bold text-lg leading-tight">
+                      {a.descripcion ? (a.descripcion.split(/[\n\.]/)[0].substring(0, 80) + (a.descripcion.length > 80 && !a.descripcion.includes('.') ? "..." : "")) : "Alerta"}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">{a.descripcion}</p>
                   <div className="flex flex-wrap gap-2 text-xs text-gray-600 mt-2">
                      <span className="bg-gray-100 p-1.5 px-3 rounded-lg shadow-sm border border-gray-200">🚩 <strong>Localidad:</strong> {a.localidad?.nombre || 'General'}</span>
                      <span className="bg-gray-100 p-1.5 px-3 rounded-lg shadow-sm border border-gray-200">👤 <strong>Responsable:</strong> {a.responsable}</span>

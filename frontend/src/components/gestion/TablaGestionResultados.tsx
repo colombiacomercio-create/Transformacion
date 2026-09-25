@@ -11,7 +11,7 @@ const COLORS_PIE = ['#e3002b', '#FFCD00', '#333333', '#888888', '#cc6600'];
 
 const LABELS_CONTRAPARTE: Record<string, string> = {
   ALCALDIA: 'Alcaldía', SECTOR_GOBIERNO: 'Sec. Gob',
-  ENTIDAD_DISTRITO: 'Entidad Distrito', INTERNA: 'UGRT', OTRA_ENTIDAD: 'Otras entidades y actores',
+  ENTIDAD_DISTRITO: 'Distrito', INTERNA: 'UGRT', OTRA_ENTIDAD: 'Otros',
 };
 
 interface Props { userData: any; onNavigate: (s: any) => void; }
@@ -132,10 +132,11 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
           {dataPieContraparte.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={dataPieContraparte} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                <Pie data={dataPieContraparte} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}>
                   {dataPieContraparte.map((_: any, i: number) => <Cell key={i} fill={COLORS_PIE[i % COLORS_PIE.length]} />)}
                 </Pie>
                 <Tooltip />
+                <Legend wrapperStyle={{ fontSize: "11px" }} />
               </PieChart>
             </ResponsiveContainer>
           ) : <EmptyChart />}
