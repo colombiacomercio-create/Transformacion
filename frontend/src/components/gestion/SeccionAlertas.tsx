@@ -32,7 +32,7 @@ export default function SeccionAlertas({ userData }: Props) {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Seguimiento GestiÃ³n y Alertas</h3>
+      <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Seguimiento Gestión y Alertas</h3>
 
       {!loading && dataChart.length > 0 && (
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">

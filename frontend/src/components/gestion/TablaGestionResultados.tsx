@@ -105,7 +105,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard titulo="Alertas Críticas" valor={alertasCriticas} subtitulo={`Moderadas: ${alertasModeradas}`} color="bg-red-600" onClick={() => onNavigate('alertas')} />
         <KpiCard titulo="Alertas Resueltas" valor={alertasResueltas} subtitulo="Total cerradas" color="bg-emerald-600" onClick={() => onNavigate('alertas')} />
-        <KpiCard titulo="Intervenciones Residuos" valor={ultimaFicha?.residuosIntervencionesSemestre || 0} subtitulo="GestiÃ³n de residuos" color="bg-purple-700" onClick={() => onNavigate('dashboard')} />
+        <KpiCard titulo="Intervenciones Residuos" valor={ultimaFicha?.residuosIntervencionesSemestre || 0} subtitulo="Gestión de residuos" color="bg-purple-700" onClick={() => onNavigate('dashboard')} />
         <KpiCard titulo="Operativos IVC" valor={ultimaFicha?.operativosIVC || 0} subtitulo={`Programados: ${ultimaFicha?.operativosIVCProgramados || 0}`} color="bg-orange-600" onClick={() => onNavigate('dashboard')} />
       </div>
 
