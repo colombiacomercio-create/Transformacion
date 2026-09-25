@@ -115,7 +115,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
         <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
           <h3 className="font-bold text-sm text-gray-700 mb-3">Reuniones por Responsable</h3>
           {dataBarResponsable.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer width="100%" height={280}>
               <BarChart data={dataBarResponsable} margin={{ left: 0, right: 10 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
@@ -130,7 +130,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
         <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
           <h3 className="font-bold text-sm text-gray-700 mb-3">Reuniones por Actores</h3>
           {dataPieContraparte.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie data={dataPieContraparte} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}>
                   {dataPieContraparte.map((_: any, i: number) => <Cell key={i} fill={COLORS_PIE[i % COLORS_PIE.length]} />)}

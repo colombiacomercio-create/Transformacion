@@ -200,7 +200,7 @@ function App() {
                 <button onClick={handleLogout} className="text-xs font-bold text-bogota-primary hover:text-red-700 transition-colors uppercase tracking-wide">Salir</button>
               </div>
               <div className="hidden xl:flex items-center justify-end">
-                 <img src="/Logo_Bogota.jpg" alt="BogotÃ¡" className="h-14 object-contain" />
+                 <img src="/Logo_Bogota.jpg" alt="BogotÃ¡" className="h-16 md:h-20 object-contain" />
               </div>
             </div>
           </div>
