@@ -145,13 +145,13 @@ function App() {
             <div className="flex items-center gap-4 flex-shrink-0 w-full xl:w-auto justify-between xl:justify-start">
               <div className="flex items-center gap-4">
                 <div className="flex-shrink-0 flex items-center justify-center p-1">
-                  <img src="/radar-logo.png" alt="RADAR Logo" className="h-16 md:h-20 w-auto object-contain" />
+                  <img src="/radar-logo.png" alt="RADAR Logo" className="h-12 md:h-14 w-auto object-contain" />
                 </div>
                 <div className="flex flex-col border-l-2 pl-4 border-gray-200 justify-center">
-                  <span className="text-[12px] md:text-[13px] font-bold text-gray-800 uppercase tracking-wide leading-tight">SecretarÃ­a Distrital de Gobierno</span>
-                  <span className="text-[11px] md:text-[12px] font-semibold text-gray-600 mb-1">Unidad de TransformaciÃ³n</span>
+                  <span className="text-[12px] md:text-[13px] font-bold text-gray-800 uppercase tracking-wide leading-tight">Secretaría Distrital de Gobierno</span>
+                  <span className="text-[11px] md:text-[12px] font-semibold text-gray-600 mb-1">Unidad de Transformación</span>
                   <span className="text-[9px] md:text-[10px] text-gray-400 italic leading-tight max-w-[200px]">
-                    Red de ArticulaciÃ³n, Datos, Alertas y Resultados
+                    Red de Articulación, Datos, Alertas y Resultados
                   </span>
                 </div>
               </div>
@@ -188,19 +188,19 @@ function App() {
                   onClick={() => setActiveTab('gestion')}
                   className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'gestion' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
                 >
-                  GestiÃ³n de resultados
+                  Gestión de resultados
                 </button>
               </nav>
             )}
 
             {/* Derecha: Logo Bogota + Usuario Desktop */}
-            <div className="flex flex-col xl:items-end gap-3 w-full xl:w-auto mt-2 xl:mt-0">
-              <div className="hidden xl:flex items-center gap-4 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-200">
-                <span className="text-sm font-semibold text-gray-700">{userName}</span>
-                <button onClick={handleLogout} className="text-xs font-bold text-bogota-primary hover:text-red-700 transition-colors uppercase tracking-wide">Salir</button>
-              </div>
+            <div className="flex flex-col xl:items-end gap-2 w-full xl:w-auto mt-2 xl:mt-0">
               <div className="hidden xl:flex items-center justify-end">
-                 <img src="/Logo_Bogota.jpg" alt="BogotÃ¡" className="h-16 md:h-20 object-contain" />
+                 <img src="/Logo_Bogota.jpg" alt="Bogotá" className="h-16 md:h-20 object-contain" />
+              </div>
+              <div className="hidden xl:flex items-center gap-4 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+                <span className="text-xs font-semibold text-gray-700">{userName}</span>
+                <button onClick={handleLogout} className="text-xs font-bold text-bogota-primary hover:text-red-700 transition-colors uppercase tracking-wide">Salir</button>
               </div>
             </div>
           </div>
@@ -230,14 +230,14 @@ function App() {
       {userData && (
         <>
           <button 
-            onClick={() => setChatOpen(!chatOpen)}
-            className="fixed bottom-6 right-6 w-14 h-14 bg-bogota-primary hover:bg-red-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all z-40 group" title="Asistente IA"
-          >
-            <Sparkles className="w-6 h-6 animate-pulse"/>
-            <span className="font-bold text-sm pr-1">Asistente IA</span>
-          </button>
+              onClick={() => setChatOpen(!chatOpen)}
+              className="fixed bottom-6 right-6 bg-bogota-primary hover:bg-red-700 text-white px-5 py-3 rounded-full shadow-2xl flex items-center justify-center gap-2 transition-all z-40 border-2 border-bogota-secondary"
+            >
+              <Sparkles className="w-5 h-5 animate-pulse text-white"/>
+              <span className="font-bold text-sm tracking-wide">Asistente IA</span>
+            </button>
 
-          {/* Panel del Chat (Drawer) */}
+            {/* Panel del Chat (Drawer) */}
           {chatOpen && (
             <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
               <div className="bg-purple-700 p-4 flex justify-between items-center text-white border-b border-purple-800">
