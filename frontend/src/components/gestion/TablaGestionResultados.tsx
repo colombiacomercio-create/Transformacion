@@ -28,7 +28,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
     Promise.all([
       fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null),
       fetchApi(`${API}/api/reuniones/stats`).then(r => r.json()).catch(() => null),
-      fetchApi(`${API}/api/alertas`).then(r => r.json()).catch(() => []),
+      fetchApi(`${API}/api/fichas-alertas`).then(r => r.json()).catch(() => []),
       fetchApi(`${API}/api/normativo`).then(r => r.json()).catch(() => []),
       fetchApi(`${API}/api/otros-espacios`).then(r => r.json()).catch(() => []),
     ]).then(([ficha, stats, alertas, norm, otros]) => {
@@ -47,9 +47,9 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
     </div>
   );
 
-  const alertasCriticas = statsAlertas.filter((a: any) => a.nivel === 'CRITICA' && a.activa).length;
-  const alertasModeradas = statsAlertas.filter((a: any) => a.nivel === 'MODERADA' && a.activa).length;
-  const alertasResueltas = statsAlertas.filter((a: any) => !a.activa).length;
+  const alertasCriticas = statsAlertas.filter((a: any) => a.estado !== 'RESUELTA' && a.sugerenciaSeveridad === 'CRITICA').length;
+  const alertasModeradas = statsAlertas.filter((a: any) => a.estado !== 'RESUELTA' && (a.sugerenciaSeveridad === 'MODERADA' || !a.sugerenciaSeveridad)).length;
+  const alertasResueltas = statsAlertas.filter((a: any) => a.estado === 'RESUELTA').length;
 
   const dataPieContraparte = statsReuniones?.porTipoContraparte
     ? Object.entries(statsReuniones.porTipoContraparte).map(([k, v]) => ({ name: LABELS_CONTRAPARTE[k] || k, value: v as number }))
@@ -105,8 +105,8 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard titulo="Alertas Críticas" valor={alertasCriticas} subtitulo={`Moderadas: ${alertasModeradas}`} color="bg-red-600" onClick={() => onNavigate('alertas')} />
         <KpiCard titulo="Alertas Resueltas" valor={alertasResueltas} subtitulo="Total cerradas" color="bg-emerald-600" onClick={() => onNavigate('alertas')} />
-        <KpiCard titulo="Instrumentos Normativos" valor={normativoEnCurso} subtitulo="En curso" color="bg-purple-700" onClick={() => onNavigate('normativo')} />
-        <KpiCard titulo="Comités este mes" valor={otrosMes} subtitulo="Otros espacios" color="bg-orange-600" onClick={() => onNavigate('otros')} />
+        <KpiCard titulo="Intervenciones Residuos" valor={ultimaFicha?.residuosIntervencionesSemestre || 0} subtitulo="GestiÃ³n de residuos" color="bg-purple-700" onClick={() => onNavigate('dashboard')} />
+        <KpiCard titulo="Operativos IVC" valor={ultimaFicha?.operativosIVC || 0} subtitulo={`Programados: ${ultimaFicha?.operativosIVCProgramados || 0}`} color="bg-orange-600" onClick={() => onNavigate('dashboard')} />
       </div>
 
       {/* Gráficas */}
