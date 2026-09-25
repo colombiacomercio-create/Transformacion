@@ -1,174 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { AlertCircle, Clock, CheckCircle2, MoreVertical, FileText, Plus, X, Download } from 'lucide-react';
-import ModalNuevaActividad from './ModalNuevaActividad';
-import ModalDetalleActividad from './ModalDetalleActividad';
-import { fetchApi } from '../utils/api';
+# -*- coding: utf-8 -*-
+import sys
 
-// Colors for dynamic columns
-const columnColors = ['bg-gray-100', 'bg-blue-50', 'bg-green-50', 'bg-orange-50', 'bg-bogota-primary/10', 'bg-teal-50', 'bg-purple-50'];
+def process():
+    with open('src/components/KanbanBoard.tsx', 'r', encoding='utf-8') as f:
+        content = f.read()
+        
+    idx = content.find('  return (\n    <div className="h-[calc(100vh-12rem)] flex flex-col relative">')
+    if idx == -1: idx = content.find('  return (\r\n    <div className="h-[calc(100vh-12rem)] flex flex-col relative">')
+    if idx == -1: idx = content.find('  return (\n    <div className="flex flex-col h-[calc(100vh-140px)]">')
+    if idx == -1: idx = content.find('  return (\r\n    <div className="flex flex-col h-[calc(100vh-140px)]">')
 
-const mockActividades = [
-  {
-    id: 'a1',
-    codigoCompleto: 'P01.H1.A1',
-    nombre: 'Reporte Consolidado de Inversiones',
-    fechaLimite: '2026-02-28',
-    estado: 'PENDIENTE',
-    progreso: 0,
-    evidenciasCargadas: 0,
-    evidenciasRequeridas: 2
-  },
-  {
-    id: 'a2',
-    codigoCompleto: 'P01.H2.A2',
-    nombre: 'Mejora Malla Vial Suba',
-    fechaLimite: '2026-01-15',
-    estado: 'VENCIDA',
-    progreso: 80,
-    evidenciasCargadas: 1,
-    evidenciasRequeridas: 3
-  },
-  {
-    id: 'a3',
-    codigoCompleto: 'P02.H1.A1',
-    nombre: 'Estrategia de Memoria Histórica',
-    fechaLimite: '2026-05-10',
-    estado: 'EN_PROGRESO',
-    progreso: 50,
-    evidenciasCargadas: 2,
-    evidenciasRequeridas: 2
-  }
-];
-
-export default function KanbanBoard({ userData }: { userData?: any }) {
-  const [actividades, setActividades] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [actividadSeleccionada, setActividadSeleccionada] = useState<any>(null);
-  const [mostrandoNuevaActividad, setMostrandoNuevaActividad] = useState(false);
-  const [filtroFecha, setFiltroFecha] = useState('TODAS');
-  const [filtroTexto, setFiltroTexto] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('TODOS'); // 'PENDIENTES', 'EN_REVISION', 'COMPLETADAS'
-  const [filtroObjetivo, setFiltroObjetivo] = useState('TODOS');
-  const [filtroProducto, setFiltroProducto] = useState('TODOS');
-  const [mostrandoBandejaValidacion, setMostrandoBandejaValidacion] = useState(false);
-
-  // Computar validaciones pendientes (Solo para ADMIN, que trae múltiples asignaciones)
-  const validacionesPendientes = actividades.flatMap(a => 
-      a.asignaciones?.filter((asig: any) => asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' && asig.estadoValidacion === 'PENDIENTE_REVISION')
-       .map((asig: any) => ({ ...asig, actividadUrl: a.codigoCompleto, actividadNombre: a.nombre })) || []
-  );
-  
-  const esAdminStr = userData?.rol === 'ADMIN';
-
-  const fetchActividades = () => {
-    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades`)
-      .then(res => res.json())
-      .then(data => {
-         setActividades(data || []);
-         
-         // Si hay una seleccionada, la actualizamos también con la nueva data
-         if (actividadSeleccionada) {
-            const up = data.find((a: any) => a.id === actividadSeleccionada.id);
-            if (up) setActividadSeleccionada(up);
-         }
-         
-         setLoading(false);
-      })
-      .catch(err => {
-         console.error('Error fetching actividades:', err);
-         setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchActividades();
-  }, []);
-
-  const hoy = new Date();
-  hoy.setHours(0,0,0,0);
-  const manana = new Date(hoy); manana.setDate(manana.getDate() + 1);
-  const laOtraSemana = new Date(hoy); laOtraSemana.setDate(laOtraSemana.getDate() + 7);
-  const mesProximo = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59);
-
-  let actividadesFiltradas = actividades.filter(a => {
-    if (userData?.rol === 'GESTOR') {
-      const tieneAsig = a.asignaciones?.some((asig: any) => userData.localidadesAsignadas?.includes(asig.localidadId));
-      if (!tieneAsig) return false;
-    }
-
-    if (filtroTexto && !a.codigoCompleto?.toLowerCase().includes(filtroTexto.toLowerCase()) && !a.nombre.toLowerCase().includes(filtroTexto.toLowerCase())) return false;
-    
-    if (filtroFecha !== 'TODAS') {
-       if (!a.fechaLimite) return false;
-       const limit = new Date(a.fechaLimite);
-       if (filtroFecha === 'VENCIDA') return limit < hoy;
-       if (filtroFecha === 'HOY') return limit >= hoy && limit < manana;
-       if (filtroFecha === 'PROXIMA_SEMANA') return limit >= hoy && limit <= laOtraSemana;
-       if (filtroFecha === 'ESTE_MES') return limit >= hoy && limit <= mesProximo;
-    }
-    if (filtroEstado !== 'TODOS') {
-       // Buscar si ALGUNA asignacion cumple (Para Gestores será la de ellos, para Admin mira el global)
-       const asignacionesAValidar = userData?.rol === 'GESTOR' 
-         ? a.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId))
-         : a.asignaciones;
-         
-       if (filtroEstado === 'PENDIENTES') {
-          if (!asignacionesAValidar?.some((asig:any) => asig.estadoLocal === 'NO_INICIADA')) return false;
-       }
-       if (filtroEstado === 'EN_REVISION') {
-          if (!asignacionesAValidar?.some((asig:any) => asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' && asig.estadoValidacion === 'PENDIENTE_REVISION')) return false;
-       }
-       if (filtroEstado === 'COMPLETADA') {
-          if (!asignacionesAValidar?.some((asig:any) => asig.estadoValidacion === 'VALIDADA_COMPLETADA')) return false;
-       }
-    }
-    
-    const objNombre = a.hito?.programa?.objetivo?.nombre || 'General';
-    const prodCodigo = a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General';
-
-    if (filtroObjetivo !== 'TODOS' && objNombre !== filtroObjetivo) return false;
-    if (filtroProducto !== 'TODOS' && prodCodigo !== filtroProducto) return false;
-
-    return true;
-  });
-
-  const exportToCSV = (lista: any[], baseName: string) => {
-    let csvData = '\uFEFFCodigo Actividad,Nombre Actividad,Objetivo,Programa,Localidad,Estado Local,Estado Validacion\n';
-    lista.forEach(act => {
-       const obs = act.hito?.programa?.objetivo?.nombre || 'General';
-       const progs = act.hito?.programa ? `${act.hito.programa.codigo} ${act.hito.programa.nombre}` : 'General';
-       
-       let asignacionesExportar = act.asignaciones;
-       if (userData?.rol === 'GESTOR') {
-         asignacionesExportar = act.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId));
-       }
-
-       if (!asignacionesExportar || asignacionesExportar.length === 0) {
-           csvData += `"${act.codigoCompleto || ''}","${act.nombre}","${obs}","${progs}","Sin Asignacion","",""\n`;
-       } else {
-           asignacionesExportar.forEach((asig:any) => {
-              csvData += `"${act.codigoCompleto || ''}","${act.nombre}","${obs}","${progs}","${asig.localidad?.nombre || 'General'}","${asig.estadoLocal || ''}","${asig.estadoValidacion || ''}"\n`;
-           });
-       }
-    });
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${baseName}.csv`;
-    link.click();
-  };
-
-  const objetivosList = Array.from(new Set(actividades.map(a => a.hito?.programa?.objetivo?.nombre || 'General'))).sort();
-  const productosList = Array.from(new Set(actividades.map(a => a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General'))).sort();
-
-  const columnasSet = new Set(actividadesFiltradas.map(a => a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General'));
-  const columnasDinamicas = Array.from(columnasSet).map((obj, i) => ({
-     id: obj, titulo: obj, color: columnColors[i % columnColors.length]
-  })).sort((a,b) => a.id.localeCompare(b.id)); // Alfabetico O1, O2...
-
-  if (loading) return <div className="p-8 text-center text-gray-500">Cargando actividades...</div>;
-
-  return (
+    if idx == -1:
+        print("Start not found.")
+        sys.exit(1)
+        
+    end_str = '    </div>\n  );\n}\n'
+    end_idx = content.find(end_str, idx)
+    if end_idx == -1: end_idx = content.find('    </div>\r\n  );\r\n}\r\n', idx)
+    if end_idx == -1: end_idx = content.find('    </div>\n  );\n}', idx)
+    if end_idx == -1: end_idx = content.find('    </div>\r\n  );\r\n}', idx)
+        
+    if end_idx == -1:
+        print("End not found")
+        sys.exit(1)
+        
+    new_return = '''  return (
     <div className="flex flex-col h-[calc(100vh-140px)]">
       <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4 flex-shrink-0">
         
@@ -364,3 +220,11 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
     </div>
   );
 }
+'''
+    
+    final_content = content[:idx] + new_return
+    with open('src/components/KanbanBoard.tsx', 'w', encoding='utf-8') as f:
+        f.write(final_content)
+        print("Success")
+        
+process()

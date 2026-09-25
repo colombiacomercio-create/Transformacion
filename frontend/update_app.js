@@ -1,0 +1,183 @@
+const fs = require('fs');
+let content = fs.readFileSync('src/App.tsx', 'utf-8');
+
+// Replace the main authenticated return statement
+const authReturnStart = content.indexOf('return (\n    <div className="min-h-screen');
+if (authReturnStart === -1) console.error("Could not find auth return");
+
+const newAuthReturn = \eturn (
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <header className="bg-white border-b-2 border-bogota-secondary sticky top-0 z-10 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6">
+          <div className="flex flex-col lg:flex-row justify-between min-h-[112px] py-2 items-center gap-4">
+            
+            {/* Logo and Branding */}
+            <div className="flex items-center gap-4 flex-shrink-0 w-full lg:w-auto justify-between lg:justify-start">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 flex items-center justify-center p-1">
+                  <img src="/radar-logo.png" alt="RADAR Logo" className="h-16 md:h-20 w-auto object-contain" />
+                </div>
+                <div className="flex flex-col border-l-2 pl-4 border-gray-200 justify-center">
+                  <span className="text-[10px] md:text-[11px] text-gray-500 font-semibold uppercase tracking-wider mb-0.5 leading-tight">
+                    Secretaría Distrital de Gobierno
+                  </span>
+                  <span className="text-[10px] md:text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-1 leading-tight">
+                    Unidad de Transformación
+                  </span>
+                  <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-none tracking-tight">
+                     RADAR
+                  </h1>
+                </div>
+              </div>
+
+              {/* Mobile User/Logout (Visible only on mobile) */}
+              <div className="lg:hidden flex items-center gap-3">
+                <span className="text-xs font-semibold text-gray-700 truncate max-w-[100px]">{userName}</span>
+                <button onClick={handleLogout} className="text-xs font-medium text-bogota-primary hover:text-red-700 transition-colors">Salir</button>
+              </div>
+            </div>
+            
+            {/* Navigation and Desktop User */}
+            <div className="flex flex-col lg:items-end gap-3 w-full lg:w-auto">
+              
+              {/* Desktop User/Logout */}
+              <div className="hidden lg:flex items-center gap-4 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">{userName}</span>
+                <div className="w-px h-4 bg-gray-300"></div>
+                <button 
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-bogota-primary hover:text-red-700 transition-colors"
+                >
+                  Salir
+                </button>
+              </div>
+
+              {/* Main Navigation */}
+              {!isAlertaRoute && (
+                <nav className="flex flex-wrap justify-center lg:justify-end gap-2 flex-shrink-0">
+                  <button 
+                    onClick={() => setActiveTab('kanban')}
+                    className={\px-4 py-2 rounded-md text-sm font-semibold transition-colors \\}
+                  >
+                    Panel Actividades
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('dashboard')}
+                    className={\px-4 py-2 rounded-md text-sm font-semibold transition-colors \\}
+                  >
+                    Tablero de Control
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('alertas')}
+                    className={\px-4 py-2 rounded-md text-sm font-semibold transition-colors \\}
+                  >
+                    Gestor Alertas
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('gestion')}
+                    className={\px-4 py-2 rounded-md text-sm font-semibold transition-colors \\}
+                  >
+                    Gestión Resultados
+                  </button>
+                  <button 
+                    onClick={() => setShowHelp(true)}
+                    className="px-3 py-2 rounded-md text-sm font-semibold text-yellow-700 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 transition-colors flex items-center gap-1 ml-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Ayuda
+                  </button>
+                </nav>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-6">
+        {userData ? (
+          isAlertaRoute ? (
+             <VistaAlertaAsignada />
+          ) : (
+            <>
+              {activeTab === 'kanban' && <KanbanBoard userData={userData} />}
+              {activeTab === 'dashboard' && <Dashboard userData={userData} />}
+              {activeTab === 'alertas' && <PanelAlertas userData={userData} />}
+              {activeTab === 'gestion' && <PanelGestionResultados userData={userData} />}
+            </>
+          )
+        ) : (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bogota-primary"></div>
+          </div>
+        )}
+      </main>
+
+      {/* Botón flotante del Asistente */}
+      {userData && (
+        <>
+          <button 
+            onClick={() => setChatOpen(!chatOpen)}
+            className="fixed bottom-6 right-6 w-12 h-12 bg-gray-900 hover:bg-black text-white rounded-full shadow-xl flex items-center justify-center transition-all z-40 group"
+            title="Asistente IA"
+          >
+            <Sparkles className="w-5 h-5 group-hover:animate-pulse text-bogota-secondary"/>
+          </button>
+
+          {/* Panel del Chat (Drawer) */}
+          {chatOpen && (
+            <div className="fixed bottom-20 right-6 w-96 h-[500px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
+              <div className="bg-gray-900 p-4 flex justify-between items-center text-white border-b border-gray-800">
+                 <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-bogota-secondary"/>
+                    <div>
+                       <h3 className="font-bold text-sm leading-tight">Asistente RADAR</h3>
+                       <p className="text-[10px] text-gray-400">Impulsado por Gemini 3.5</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setChatOpen(false)} className="hover:bg-gray-800 p-1 rounded text-gray-400 hover:text-white"><X className="w-4 h-4"/></button>
+              </div>
+              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
+                 {chatMessages.map((msg, i) => (
+                    <div key={i} className={\lex \\}>
+                       <div className={\max-w-[80%] rounded-2xl px-4 py-2.5 text-xs \\}>
+                          <div dangerouslySetInnerHTML={{ __html: msg.text.replace(/\\n/g, '<br/>') }} />
+                       </div>
+                    </div>
+                 ))}
+                 {chatLoading && (
+                    <div className="flex justify-start">
+                       <div className="bg-white border rounded-2xl rounded-bl-none px-4 py-2.5 text-xs text-gray-400 shadow-sm flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                       </div>
+                    </div>
+                 )}
+              </div>
+              <form onSubmit={handleSendChat} className="p-3 border-t border-gray-200 bg-white flex gap-2">
+                 <input 
+                   type="text" 
+                   value={chatInput}
+                   onChange={e => setChatInput(e.target.value)}
+                   placeholder="Pregunta por tareas, avances, alertas..."
+                   className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-bogota-secondary focus:border-bogota-secondary"
+                 />
+                 <button type="submit" className="bg-gray-900 hover:bg-black text-white p-2 rounded-full flex items-center justify-center shadow transition-colors"><Send className="w-3.5 h-3.5"/></button>
+              </form>
+            </div>
+          )}
+        </>
+      )}
+
+      {showHelp && <ModalInstrucciones onClose={() => setShowHelp(false)} />}
+    </div>
+  );
+}
+
+export default App;
+\;
+
+content = content.substring(0, authReturnStart) + newAuthReturn;
+fs.writeFileSync('src/App.tsx', content);
+console.log("App.tsx updated");
