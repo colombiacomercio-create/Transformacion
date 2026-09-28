@@ -27,6 +27,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   const [editando, setEditando] = useState(false);
   const [planes, setPlanes] = useState<any[]>([]);
   const [editData, setEditData] = useState({
+     codigoCompleto: actividad.codigoCompleto || '',
      nombre: actividad.nombre || '',
      hitoId: actividad.hitoId || '',
      descripcion: actividad.descripcion || '',
@@ -238,6 +239,9 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
              </span>
              {editando ? (
                 <div className="flex flex-col gap-2 w-full mt-2 pr-6">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Codigo/Numeracion</label>
+                  <input type="text" className="w-full text-sm font-bold border rounded p-1 outline-none mb-2" value={editData.codigoCompleto} onChange={e => setEditData({...editData, codigoCompleto: e.target.value})} />
+                  
                   <label className="text-xs font-bold text-gray-500 uppercase">Titulo de la actividad</label>
                   <input type="text" className="w-full text-lg font-bold border rounded p-1 outline-none" value={editData.nombre} onChange={e => setEditData({...editData, nombre: e.target.value})} />
                   

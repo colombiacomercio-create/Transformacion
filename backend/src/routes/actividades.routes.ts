@@ -92,8 +92,8 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
         await tx.evidencia.deleteMany();
         await tx.comentario.deleteMany();
         await tx.alerta.deleteMany();
-        await tx.fichaAlerta.deleteMany({ where: { actividadId: { not: null } } });
-        await tx.historialCambios.deleteMany({ where: { actividadId: { not: null } } });
+        await tx.fichaAlerta.deleteMany({ where: { NOT: { actividadId: null } } });
+        await tx.historialCambios.deleteMany();
         await tx.actividad.deleteMany();
       }
 
@@ -242,14 +242,19 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
 router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { descripcion, fechaInicio, fechaLimite } = req.body;
+    const { descripcion, fechaInicio, fechaLimite, nombre, hitoId, codigoCompleto } = req.body;
+    
+    const dataToUpdate: any = {};
+    if (descripcion !== undefined) dataToUpdate.descripcion = descripcion;
+    if (fechaInicio !== undefined) dataToUpdate.fechaInicio = fechaInicio ? new Date(fechaInicio) : null;
+    if (fechaLimite !== undefined) dataToUpdate.fechaLimite = fechaLimite ? new Date(fechaLimite) : null;
+    if (nombre !== undefined) dataToUpdate.nombre = nombre;
+    if (hitoId !== undefined) dataToUpdate.hitoId = hitoId;
+    if (codigoCompleto !== undefined) dataToUpdate.codigoCompleto = codigoCompleto;
+
     const actividad = await prisma.actividad.update({
       where: { id },
-      data: { 
-        descripcion,
-        fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined,
-        fechaLimite: fechaLimite ? new Date(fechaLimite) : undefined
-      }
+      data: dataToUpdate
     });
     res.json(actividad);
   } catch (error) {
@@ -259,5 +264,3 @@ router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthReques
 });
 
 export default router;
-
-
