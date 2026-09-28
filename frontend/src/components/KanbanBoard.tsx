@@ -373,8 +373,8 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
         <ModalDetalleActividad 
           actividad={actividadSeleccionada}
           onClose={() => setActividadSeleccionada(null)}
-          onSuccess={fetchActividades}
-          userData={userData}
+          onRefresh={fetchActividades}
+            userData={userData}
         />
       )}
     </div>
