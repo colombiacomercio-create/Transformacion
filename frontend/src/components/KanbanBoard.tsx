@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, Clock, CheckCircle2, MoreVertical, FileText, Plus, X, Download } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2, MoreVertical, FileText, Plus, X, Download , FileSpreadsheet } from 'lucide-react';
 import ModalNuevaActividad from './ModalNuevaActividad';
 import ModalDetalleActividad from './ModalDetalleActividad';
-import ModalImportarRutas from './ModalImportarRutas';
+import ModalImportarRutas from './gestion/ModalImportarRutas';
 import { fetchApi } from '../utils/api';
 
 // Colors for dynamic columns
