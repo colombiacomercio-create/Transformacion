@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+﻿import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { azureADAuth, AuthRequest, requireRole } from '../middlewares/auth.middleware';
 
@@ -44,8 +44,8 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
     const { hitoId, codigoCompleto, nombre, descripcion, indicadorMeta, indicadorUnidad, prioridad, fechaInicio, fechaLimite } = req.body;
     const userId = req.user.id;
 
-    // TODO: La asignación de localidad debería hacerse mediante endpoints separados o incluir localidadId en el body, 
-    // pero por defecto lo crearemos sin asignación o con las localidades existentes si se proveen.
+    // TODO: La asignaciÃ³n de localidad deberÃ­a hacerse mediante endpoints separados o incluir localidadId en el body, 
+    // pero por defecto lo crearemos sin asignaciÃ³n o con las localidades existentes si se proveen.
     const nuevaActividad = await prisma.actividad.create({
       data: {
         hitoId,
@@ -80,6 +80,96 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
   }
 });
 
+// Importación masiva de Actividades
+router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
+  const { eliminarActuales, actividades } = req.body;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (eliminarActuales) {
+        await tx.asignacionLocalidad.deleteMany();
+        await tx.subTarea.deleteMany();
+        await tx.evidencia.deleteMany();
+        await tx.comentario.deleteMany();
+        await tx.alerta.deleteMany();
+        await tx.fichaAlerta.deleteMany({ where: { actividadId: { not: null } } });
+        await tx.historialCambios.deleteMany({ where: { actividadId: { not: null } } });
+        await tx.actividad.deleteMany();
+      }
+
+      if (actividades && Array.isArray(actividades)) {
+        for (const act of actividades) {
+          const { codigoProducto, codigoActividad, nombre, descripcion, fechaInicio, fechaLimite, indicadorMeta, indicadorUnidad, prioridad } = act;
+
+          const programa = await tx.programa.findFirst({
+            where: { codigo: codigoProducto },
+            include: { hitos: true }
+          });
+
+          if (!programa) {
+            throw new Error(`Programa con código ${codigoProducto} no encontrado`);
+          }
+          if (!programa.hitos || programa.hitos.length === 0) {
+            throw new Error(`Programa con código ${codigoProducto} no tiene hitos asociados`);
+          }
+
+          const hito = programa.hitos[0];
+
+          await tx.actividad.create({
+            data: {
+              hitoId: hito.id,
+              codigoCompleto: codigoActividad,
+              nombre: nombre,
+              descripcion: descripcion || null,
+              fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
+              fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
+              indicadorMeta: indicadorMeta ? parseFloat(indicadorMeta) : 0,
+              indicadorUnidad: indicadorUnidad || '',
+              prioridad: prioridad || 'MEDIA',
+              creadoPor: req.user?.id || 'import-script',
+              tiposEvidenciaRequeridos: ['documento']
+            }
+          });
+        }
+      }
+    });
+
+    res.json({ success: true, message: 'Actividades importadas correctamente' });
+  } catch (error: any) {
+    console.error('Error importando actividades:', error);
+    res.status(500).json({ error: error.message || 'Error al importar actividades' });
+  }
+});
+
+// Eliminar una actividad
+router.delete('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const act = await tx.actividad.findUnique({ where: { id } });
+      if (!act) {
+        throw new Error('Actividad no encontrada');
+      }
+
+      await tx.asignacionLocalidad.deleteMany({ where: { actividadId: id } });
+      await tx.subTarea.deleteMany({ where: { actividadId: id } });
+      await tx.evidencia.deleteMany({ where: { actividadId: id } });
+      await tx.comentario.deleteMany({ where: { actividadId: id } });
+      await tx.alerta.deleteMany({ where: { actividadId: id } });
+      await tx.fichaAlerta.deleteMany({ where: { actividadId: id } });
+      await tx.historialCambios.deleteMany({ where: { actividadId: id } });
+
+      await tx.actividad.delete({ where: { id } });
+    });
+
+    res.json({ message: 'Actividad eliminada correctamente' });
+  } catch (error: any) {
+    console.error('Error eliminando actividad:', error);
+    res.status(500).json({ error: error.message || 'Error al eliminar actividad' });
+  }
+});
+
 // Agregar Comentario
 router.post('/:id/comentarios', azureADAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -109,7 +199,7 @@ router.post('/:id/comentarios', azureADAuth, async (req: AuthRequest, res: Respo
   }
 });
 
-// Cambiar Estado Local de una Asignación
+// Cambiar Estado Local de una AsignaciÃ³n
 router.patch('/asignacion/:id/estadoLocal', azureADAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -125,13 +215,13 @@ router.patch('/asignacion/:id/estadoLocal', azureADAuth, async (req: AuthRequest
   }
 });
 
-// Cambiar Estado Validación de una Asignación (Solo ADMIN)
+// Cambiar Estado ValidaciÃ³n de una AsignaciÃ³n (Solo ADMIN)
 router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { estadoValidacion } = req.body;
     
-    // Si validan como COMPLETADA, cerramos también el estadoLocal para que quede todo sincronizado
+    // Si validan como COMPLETADA, cerramos tambiÃ©n el estadoLocal para que quede todo sincronizado
     let updateData: any = { estadoValidacion };
     if (estadoValidacion === 'VALIDADA_COMPLETADA') {
        updateData.estadoLocal = 'COMPLETA_SIN_VALIDAR'; // O dejarlo en algo que indique cerrado
@@ -144,11 +234,11 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
     res.json(asig);
   } catch (error) {
     console.error('Error actualizando estado validacion:', error);
-    res.status(500).json({ error: 'Error actualizando estado de validación' });
+    res.status(500).json({ error: 'Error actualizando estado de validaciÃ³n' });
   }
 });
 
-// Actualizar Descripción (y otras propiedades) de Actividad
+// Actualizar DescripciÃ³n (y otras propiedades) de Actividad
 router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -169,3 +259,5 @@ router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthReques
 });
 
 export default router;
+
+

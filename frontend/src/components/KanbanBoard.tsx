@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, Clock, CheckCircle2, MoreVertical, FileText, Plus, X, Download } from 'lucide-react';
 import ModalNuevaActividad from './ModalNuevaActividad';
 import ModalDetalleActividad from './ModalDetalleActividad';
+import ModalImportarRutas from './ModalImportarRutas';
 import { fetchApi } from '../utils/api';
 
 // Colors for dynamic columns
@@ -45,6 +46,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
   const [loading, setLoading] = useState(true);
   const [actividadSeleccionada, setActividadSeleccionada] = useState<any>(null);
   const [mostrandoNuevaActividad, setMostrandoNuevaActividad] = useState(false);
+  const [mostrandoImportar, setMostrandoImportar] = useState(false);
   const [filtroFecha, setFiltroFecha] = useState('TODAS');
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('TODOS'); // 'PENDIENTES', 'EN_REVISION', 'COMPLETADAS'
@@ -198,6 +200,12 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
               <Plus className="w-4 h-4" />
               Nueva Actividad
             </button>
+            {esAdminStr && (
+              <button onClick={() => setMostrandoImportar(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-bold flex items-center gap-2 transition-colors shadow-sm ml-2">
+                <FileSpreadsheet className="w-4 h-4" />
+                Importar Rutas (Excel)
+              </button>
+              )}
           </div>
         </div>
 
@@ -346,6 +354,14 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
         </div>
       </div>
         
+      
+      {mostrandoImportar && (
+        <ModalImportarRutas
+           onClose={() => setMostrandoImportar(false)}
+           onSuccess={fetchActividades}
+        />
+      )}
+    
       {mostrandoNuevaActividad && (
         <ModalNuevaActividad 
           onClose={() => setMostrandoNuevaActividad(false)} 
@@ -357,7 +373,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
         <ModalDetalleActividad 
           actividad={actividadSeleccionada}
           onClose={() => setActividadSeleccionada(null)}
-          onRefresh={fetchActividades}
+          onSuccess={fetchActividades}
           userData={userData}
         />
       )}

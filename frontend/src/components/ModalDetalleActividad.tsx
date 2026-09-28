@@ -25,7 +25,10 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   
   // States for Admin Edit
   const [editando, setEditando] = useState(false);
+  const [planes, setPlanes] = useState<any[]>([]);
   const [editData, setEditData] = useState({
+     nombre: actividad.nombre || '',
+     hitoId: actividad.hitoId || '',
      descripcion: actividad.descripcion || '',
      fechaInicio: actividad.fechaInicio ? new Date(actividad.fechaInicio).toISOString().split('T')[0] : '',
      fechaLimite: actividad.fechaLimite ? new Date(actividad.fechaLimite).toISOString().split('T')[0] : ''
@@ -47,6 +50,30 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   const evidenciasAMostrar = actividad.evidencias?.filter((e: any) => e.localidadId === curLocId) || [];
 
   const isReadonly = asigActual?.estadoValidacion === 'VALIDADA_COMPLETADA';
+
+  
+  useEffect(() => {
+    if (esAdmin) {
+      fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/planes`)
+        .then(res => res.json())
+        .then(data => setPlanes(data))
+        .catch(err => console.error(err));
+    }
+  }, [esAdmin]);
+
+  const getHitosPlano = () => {
+    let hitos: {id: string, nombre: string}[] = [];
+    planes.forEach(p => {
+       p.objetivos?.forEach((o: any) => {
+          o.programas?.forEach((prog: any) => {
+             if (prog.hitos && prog.hitos.length > 0) {
+                hitos.push({ id: prog.hitos[0].id, nombre: `[${prog.codigo}] ${prog.nombre}` });
+             }
+          });
+       });
+    });
+    return hitos;
+  };
 
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +126,21 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
       alert(err.message);
     }
     setUploading(false);
+  };
+
+  
+  const handleDeleteActividad = async () => {
+    if (window.confirm('Confirma que desea eliminar esta actividad por completo? Esta accion no se puede deshacer.')) {
+      try {
+        await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}`, {
+          method: 'DELETE'
+        });
+        onRefresh();
+        onClose();
+      } catch (e) {
+        alert('Error eliminando la actividad');
+      }
+    }
   };
 
   const handleAdminSaveEdits = async () => {
@@ -194,7 +236,21 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
              <span className="text-xs font-bold text-bogota-primary bg-bogota-primary/10 px-2 py-1 rounded inline-block mb-2">
                  {actividad.codigoCompleto || 'SIN CODIGO'}
              </span>
-             <h2 className="text-2xl font-bold text-gray-800 leading-tight">{actividad.nombre}</h2>
+             {editando ? (
+                <div className="flex flex-col gap-2 w-full mt-2 pr-6">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Titulo de la actividad</label>
+                  <input type="text" className="w-full text-lg font-bold border rounded p-1 outline-none" value={editData.nombre} onChange={e => setEditData({...editData, nombre: e.target.value})} />
+                  
+                  <label className="text-xs font-bold text-gray-500 uppercase mt-2">Reclasificar en Ruta/Aspiracion</label>
+                  <select className="w-full border rounded p-1 text-sm outline-none" value={editData.hitoId} onChange={e => setEditData({...editData, hitoId: e.target.value})}>
+                     {getHitosPlano().map(h => (
+                        <option key={h.id} value={h.id}>{h.nombre}</option>
+                     ))}
+                  </select>
+                </div>
+               ) : (
+                <h2 className="text-2xl font-bold text-gray-800 leading-tight">{actividad.nombre}</h2>
+               )}
              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                <span className="flex items-center gap-1"><Calendar className="w-4 h-4"/> Límite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'Sin Fecha'}</span>
                <span className="flex items-center gap-1">
@@ -331,7 +387,8 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                   {esAdmin && editando && (
                      <div className="flex gap-2">
                        <button onClick={() => setEditando(false)} className="text-gray-500 text-xs font-bold hover:underline">Cancelar</button>
-                       <button onClick={handleAdminSaveEdits} className="bg-bogota-primary text-white text-xs px-3 py-1 rounded hover:bg-red-700">Guardar Cambios</button>
+                       <button onClick={handleDeleteActividad} className="text-white text-xs px-3 py-1 rounded bg-red-600 hover:bg-red-800 font-bold">Eliminar Actividad</button>
+                       <button onClick={handleAdminSaveEdits} className="bg-bogota-primary text-white text-xs px-3 py-1 rounded hover:bg-red-700 font-bold">Guardar Cambios</button>
                      </div>
                   )}
                 </div>
