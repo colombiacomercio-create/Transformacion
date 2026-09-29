@@ -73,7 +73,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
           });
        });
     });
-    return hitos;
+    return hitos.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, {numeric: true}));
   };
 
   const handlePostComment = async (e: React.FormEvent) => {

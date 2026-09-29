@@ -79,7 +79,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
           });
        });
     });
-    return hitos;
+    return hitos.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, {numeric: true}));
   };
   
   const getAspiraciones = () => {
@@ -89,7 +89,7 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
             asp.push({ id: o.id, nombre: `[${o.codigo}] ${o.nombre}` });
          });
       });
-      return asp;
+      return asp.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, {numeric: true}));
   };
 
   return (
