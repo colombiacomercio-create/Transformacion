@@ -41,11 +41,43 @@ router.get('/', azureADAuth, async (req: Request, res: Response) => {
 // Crear Actividad
 router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
-    const { hitoId, codigoCompleto, nombre, descripcion, indicadorMeta, indicadorUnidad, prioridad, fechaInicio, fechaLimite } = req.body;
+    const { 
+      hitoId, codigoCompleto, nombre, descripcion, indicadorMeta, indicadorUnidad, 
+      prioridad, fechaInicio, fechaLimite,
+      crearNuevoProducto, crearNuevaAspiracion,
+      nuevoProductoCodigo, nuevoProductoNombre,
+      aspiracionId, nuevaAspiracionCodigo, nuevaAspiracionNombre
+    } = req.body;
     const userId = req.user.id;
+    
+    let finalHitoId = hitoId;
+    
+    // Si se est\u00e1 creando un producto nuevo desde la UI
+    if (crearNuevoProducto) {
+       let targetAspiracionId = aspiracionId;
+       
+       if (crearNuevaAspiracion) {
+          // 1. Encontrar plan
+          let plan = await prisma.plan.findFirst({ where: { estado: 'ACTIVO' } });
+          if (!plan) plan = await prisma.plan.create({ data: { nombre: 'Plan Estrat\u00e9gico', ano: new Date().getFullYear(), estado: 'ACTIVO', creadoPor: userId } });
+          
+          const nuevaAsp = await prisma.objetivoEstrategico.create({
+             data: { planId: plan.id, codigo: nuevaAspiracionCodigo, nombre: nuevaAspiracionNombre, orden: 99 }
+          });
+          targetAspiracionId = nuevaAsp.id;
+       }
+       
+       const nuevoProg = await prisma.programa.create({
+          data: { objetivoId: targetAspiracionId, codigo: nuevoProductoCodigo, nombre: nuevoProductoNombre }
+       });
+       
+       const nuevoHito = await prisma.hito.create({
+          data: { programaId: nuevoProg.id, codigo: 'H1', nombre: 'General', fechaLimite: fechaLimite ? new Date(fechaLimite) : new Date() }
+       });
+       
+       finalHitoId = nuevoHito.id;
+    }
 
-    // TODO: La asignaciÃ³n de localidad deberÃ­a hacerse mediante endpoints separados o incluir localidadId en el body, 
-    // pero por defecto lo crearemos sin asignaciÃ³n o con las localidades existentes si se proveen.
     const nuevaActividad = await prisma.actividad.create({
       data: {
         hitoId,
