@@ -263,9 +263,23 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                </span>
              </div>
           </div>
-           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors ml-4">
-            <X className="w-6 h-6 text-gray-500" />
-          </button>
+           <div className="flex items-center gap-2 ml-4">
+            {esAdmin && !editando && (
+              <>
+                <button onClick={() => setEditando(true)} className="bg-orange-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-orange-700 font-bold shadow-sm">Editar</button>
+                <button onClick={handleDeleteActividad} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-red-800 font-bold shadow-sm">Eliminar</button>
+              </>
+            )}
+            {esAdmin && editando && (
+              <>
+                <button onClick={() => setEditando(false)} className="text-gray-600 font-bold text-xs hover:underline">Cancelar</button>
+                <button onClick={handleAdminSaveEdits} className="bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-700 font-bold shadow-sm">Guardar</button>
+              </>
+            )}
+            <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+              <X className="w-6 h-6 text-gray-500" />
+            </button>
+          </div>
         </div>
 
         {asignacionesOrdenadas.length > 1 && (
