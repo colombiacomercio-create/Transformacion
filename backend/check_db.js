@@ -1,14 +1,13 @@
 ﻿const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
-async function check() {
-  const latest = await prisma.fichaResultados.findFirst({
-    orderBy: { createdAt: 'desc' }
-  });
-  console.log('motosContratadas:', latest.motosContratadas);
-  console.log('motosPendientesFdl:', latest.motosPendientesFdl);
-  console.log('motosAlmacenFdl:', latest.motosAlmacenFdl);
-  console.log('motosEntregadas:', latest.motosEntregadas);
-  console.log('motosEntregadasPolicia:', latest.motosEntregadasPolicia);
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: "postgresql://postgres.chyxultlgupbvhtgkxek:%2Az%24%2CWP%2F%23Tx4%2CkKW@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+    }
+  }
+});
+async function run() {
+    const progs = await prisma.programa.findMany();
+    progs.forEach(p => console.log(p.nombre));
 }
-check().finally(() => prisma.());
+run();
