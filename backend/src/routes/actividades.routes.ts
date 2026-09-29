@@ -92,6 +92,10 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
         await tx.evidencia.deleteMany();
         await tx.comentario.deleteMany();
         await tx.alerta.deleteMany();
+        const fichasImp = await tx.fichaAlerta.findMany({ where: { NOT: { actividadId: null } }, select: { id: true } });
+        if (fichasImp.length > 0) {
+          await tx.actualizacionAlerta.deleteMany({ where: { fichaAlertaId: { in: fichasImp.map(f => f.id) } } });
+        }
         await tx.fichaAlerta.deleteMany({ where: { NOT: { actividadId: null } } });
         await tx.historialCambios.deleteMany();
         await tx.actividad.deleteMany();
@@ -157,6 +161,10 @@ router.delete('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthReque
       await tx.evidencia.deleteMany({ where: { actividadId: id } });
       await tx.comentario.deleteMany({ where: { actividadId: id } });
       await tx.alerta.deleteMany({ where: { actividadId: id } });
+      const fichas = await tx.fichaAlerta.findMany({ where: { actividadId: id }, select: { id: true } });
+      if (fichas.length > 0) {
+        await tx.actualizacionAlerta.deleteMany({ where: { fichaAlertaId: { in: fichas.map(f => f.id) } } });
+      }
       await tx.fichaAlerta.deleteMany({ where: { actividadId: id } });
       await tx.historialCambios.deleteMany({ where: { actividadId: id } });
 
