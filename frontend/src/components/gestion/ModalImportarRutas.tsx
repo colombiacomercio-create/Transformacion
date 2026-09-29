@@ -9,14 +9,16 @@ interface Props {
 }
 
 const TEMPLATE_HEADERS = [
-  'Codigo Actividad',
-  'Aspiracion',
-  'Producto',
+  'Codigo Actividad (Opcional)',
+  'Aspiracion (Ej: A1)',
+  'Producto (Ej: P01)',
   'Actividad',
   'Descripcion',
   'Fecha inicio',
-  'Fecha final',
-  'Valor actividad (%)'
+  'Fecha final (Separar con coma si es repetitiva)',
+  'Valor actividad (%)',
+  'Es Repetitiva (SI/NO)',
+  'Numero Entregas'
 ];
 
 export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
@@ -59,16 +61,18 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
           const act: any = {};
           let rowError = false;
 
-          TEMPLATE_HEADERS.forEach((header, index) => {
+          // Optional columns are index 0 (Codigo), 8 (Repetitiva), 9 (Entregas)
+          const mandatory = [1, 2, 3, 4, 5, 6, 7];
+          mandatory.forEach((index) => {
             const val = row[index];
             if (val === undefined || val === null || val === '') {
-              newErrors.push(`Fila ${i + 1}: Falta valor en la columna "${header}".`);
+              newErrors.push(`Fila ${i + 1}: Falta valor obligatorio en la columna "${TEMPLATE_HEADERS[index]}".`);
               rowError = true;
             }
           });
 
           if (!rowError) {
-            act.codigoActividad = String(row[0]);
+            act.codigoActividad = row[0] ? String(row[0]) : '';
             act.aspiracion = String(row[1]);
             act.producto = String(row[2]);
             act.nombre = String(row[3]);
@@ -76,6 +80,16 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
             act.fechaInicio = String(row[5]);
             act.fechaLimite = String(row[6]);
             act.valorActividad = String(row[7]);
+            
+            const rep = row[8] ? String(row[8]).trim().toUpperCase() : 'NO';
+            act.esRepetitiva = (rep === 'SI' || rep === 'S�');
+            act.numRepeticiones = row[9] ? parseInt(String(row[9])) : 1;
+            
+            if (act.esRepetitiva) {
+               act.fechasLimites = act.fechaLimite.split(',').map((f: string) => f.trim());
+               act.fechaLimite = act.fechasLimites[0];
+            }
+            
             parsedActs.push(act);
           }
         }
