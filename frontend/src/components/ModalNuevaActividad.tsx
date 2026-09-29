@@ -35,7 +35,8 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
     
     localidadesIds: [] as string[],
     esRepetitiva: false,
-    numRepeticiones: 1
+    numRepeticiones: 1,
+    fechasLimites: [] as string[]
   });
 
   useEffect(() => {
@@ -151,12 +152,14 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
                 value={formData.fechaInicio} onChange={e => setFormData({...formData, fechaInicio: e.target.value})}
               />
             </div>
+            {!formData.esRepetitiva && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Limite <span className="text-gray-400 font-normal">(ejem 26/10/2026)</span></label>
               <input required type="date" className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-bogota-primary/30"
                 value={formData.fechaLimite} onChange={e => setFormData({...formData, fechaLimite: e.target.value})}
               />
             </div>
+            )}
           </div>
 
           <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-xl space-y-3">
@@ -165,12 +168,44 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
                  <label htmlFor="repetitiva" className="font-bold text-sm text-blue-900 cursor-pointer">Actividad Repetitiva (Crear multiples copias/entregas)</label>
               </div>
               {formData.esRepetitiva && (
-                 <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-blue-200">
-                    <span className="text-sm text-gray-700">Cantidad de repeticiones:</span>
-                    <input type="number" min="2" max="20" className="border rounded w-20 px-2 py-1 outline-none" 
-                       value={formData.numRepeticiones} onChange={e => setFormData({...formData, numRepeticiones: Number(e.target.value)})}
-                    />
-                    <div className="text-xs text-gray-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> El valor Meta (%) se dividira equitativamente.</div>
+                 <div className="bg-white p-3 rounded-lg border border-blue-200 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-700">Cantidad de repeticiones:</span>
+                        <input type="number" min="2" max="20" className="border rounded w-20 px-2 py-1 outline-none" 
+                           value={formData.numRepeticiones} onChange={e => {
+                               const num = Number(e.target.value);
+                               let newFechas = [...formData.fechasLimites];
+                               if (num > newFechas.length) {
+                                   newFechas = [...newFechas, ...Array(num - newFechas.length).fill('')];
+                               } else {
+                                   newFechas = newFechas.slice(0, num);
+                               }
+                               setFormData({...formData, numRepeticiones: num, fechasLimites: newFechas});
+                           }}
+                        />
+                        <div className="text-xs text-gray-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> El valor Meta (%) se dividira equitativamente.</div>
+                    </div>
+                    
+                    {formData.numRepeticiones > 1 && (
+                        <div className="mt-2">
+                           <p className="text-sm font-bold text-gray-700 mb-2">Fechas Limites por Repeticion:</p>
+                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                             {Array.from({length: formData.numRepeticiones}).map((_, i) => (
+                                <div key={i} className="flex flex-col">
+                                   <label className="text-xs text-gray-600 mb-1">Repeticion {i + 1}</label>
+                                   <input required type="date" className="border rounded px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-bogota-primary/30"
+                                      value={formData.fechasLimites[i] || ''}
+                                      onChange={e => {
+                                         const newFechas = [...formData.fechasLimites];
+                                         newFechas[i] = e.target.value;
+                                         setFormData({...formData, fechasLimites: newFechas});
+                                      }}
+                                   />
+                                </div>
+                             ))}
+                           </div>
+                        </div>
+                    )}
                  </div>
               )}
           </div>

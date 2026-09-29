@@ -49,7 +49,8 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
       aspiracionId, nuevaAspiracionCodigo, nuevaAspiracionNombre,
       localidadesIds, // array of strings
       esRepetitiva,
-      numRepeticiones
+      numRepeticiones,
+      fechasLimites
     } = req.body;
     const userId = req.user.id;
     
@@ -105,6 +106,12 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
     for (let i = 0; i < repeticionesCount; i++) {
         let currentCode = baseCode;
         let currentName = nombre;
+        
+        let currentFechaLimite = fechaLimite ? new Date(fechaLimite) : null;
+        if (fechasLimites && Array.isArray(fechasLimites) && fechasLimites[i]) {
+            currentFechaLimite = new Date(fechasLimites[i]);
+        }
+
         if (repeticionesCount > 1) {
             currentCode = `${baseCode}-${i + 1}`;
             currentName = `${nombre} (Repetici\u00f3n ${i + 1}/${repeticionesCount})`;
@@ -120,7 +127,7 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
             indicadorUnidad: indicadorUnidad || 'Unidades',
             prioridad: prioridad || 'MEDIA',
             fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
-            fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
+            fechaLimite: currentFechaLimite,
             creadoPor: userId,
             tiposEvidenciaRequeridos: ['documento']
           }
@@ -345,22 +352,38 @@ router.patch('/asignacion/:id/estadoLocal', azureADAuth, async (req: AuthRequest
 
 // Cambiar Estado ValidaciÃ³n de una AsignaciÃ³n (Solo ADMIN)
 router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { estadoValidacion } = req.body;
-    
-    // Si validan como COMPLETADA, cerramos tambiÃ©n el estadoLocal para que quede todo sincronizado
-    let updateData: any = { estadoValidacion };
-    if (estadoValidacion === 'VALIDADA_COMPLETADA') {
-       updateData.estadoLocal = 'COMPLETA_SIN_VALIDAR'; // O dejarlo en algo que indique cerrado
-    }
+    try {
+      const { id } = req.params;
+      const { estadoValidacion } = req.body;
+      
+      const asigCurrent = await prisma.asignacionLocalidad.findUnique({
+          where: { id },
+          include: { actividad: true }
+      });
 
-    const asig = await prisma.asignacionLocalidad.update({
-      where: { id },
-      data: updateData
-    });
-    res.json(asig);
-  } catch (error) {
+      if (!asigCurrent) {
+          return res.status(404).json({ error: 'Asignaci\u00f3n no encontrada' });
+      }
+
+      let updateData: any = { estadoValidacion };
+      
+      // Calculate score (porcentajeAvance) based on the validation status
+      const meta = asigCurrent.actividad.indicadorMeta || 0;
+      if (estadoValidacion === 'VALIDADA_SIN_AVANCE') {
+          updateData.porcentajeAvance = 0;
+      } else if (estadoValidacion === 'VALIDADA_EN_CURSO') {
+          updateData.porcentajeAvance = meta * 0.5;
+      } else if (estadoValidacion === 'VALIDADA_COMPLETADA') {
+          updateData.porcentajeAvance = meta;
+          updateData.estadoLocal = 'COMPLETA_SIN_VALIDAR';
+      }
+
+      const asig = await prisma.asignacionLocalidad.update({
+        where: { id },
+        data: updateData
+      });
+      res.json(asig);
+    } catch (error) {
     console.error('Error actualizando estado validacion:', error);
     res.status(500).json({ error: 'Error actualizando estado de validaciÃ³n' });
   }
