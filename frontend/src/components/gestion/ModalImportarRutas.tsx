@@ -50,7 +50,7 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
         const data = XLSX.utils.sheet_to_json<any>(ws, { header: 1 });
 
         if (data.length < 2) {
-          setErrors(["El archivo está vacío o no tiene datos."]);
+          setErrors(["El archivo est vaco o no tiene datos."]);
           return;
         }
 
@@ -86,7 +86,7 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
             act.prioridad = String(row[8]).toUpperCase();
 
             if (isNaN(act.indicadorMeta)) {
-               newErrors.push(`Fila ${i + 1}: Meta no es un número válido.`);
+               newErrors.push(`Fila ${i + 1}: Meta no es un nmero vlido.`);
             }
             parsedActs.push(act);
           }
@@ -98,7 +98,7 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
           setActividades(parsedActs);
         }
       } catch (err) {
-        setErrors(["Error al leer el archivo Excel. Asegúrese de usar la plantilla."]);
+        setErrors(["Error al leer el archivo Excel. Asegrese de usar la plantilla."]);
       }
     };
     reader.readAsBinaryString(file);
@@ -117,7 +117,7 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error || 'Error en la importación');
+        throw new Error(d.error || 'Error en la importacin');
       }
 
       onSuccess();
@@ -167,18 +167,13 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
           {actividades.length > 0 && errors.length === 0 && (
              <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-green-800 flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-sm flex items-center gap-2"><FileSpreadsheet className="w-4 h-4"/> Archivo Válido</p>
+                  <p className="font-bold text-sm flex items-center gap-2"><FileSpreadsheet className="w-4 h-4"/> Archivo Vlido</p>
                   <p className="text-xs mt-1">Se detectaron {actividades.length} actividades listas para importar.</p>
                 </div>
              </div>
           )}
 
-          <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-start gap-3">
-             <input type="checkbox" id="eliminar" checked={eliminarActuales} onChange={e => setEliminarActuales(e.target.checked)} className="mt-1" />
-             <div>
-               <label htmlFor="eliminar" className="font-bold text-sm text-orange-900 cursor-pointer">Eliminar todas las actividades actuales antes de importar</label>
-               <p className="text-xs text-orange-800 mt-1">¡Advertencia! Esto borrará permanentemente todo el registro de actividades, reportes locales y alertas asociadas.</p>
-             </div>
+          
           </div>
         </div>
 
