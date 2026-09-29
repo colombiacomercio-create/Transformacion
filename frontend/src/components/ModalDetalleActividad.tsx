@@ -138,8 +138,8 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
         });
         onRefresh();
         onClose();
-      } catch (e) {
-        alert('Error eliminando la actividad');
+      } catch (e: any) {
+        alert('Error eliminando la actividad: ' + e.message);
       }
     }
   };
@@ -388,13 +388,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                   {esAdmin && !editando && (
                     <button onClick={() => setEditando(true)} className="text-bogota-primary text-xs font-bold hover:underline">Activar Edición</button>
                   )}
-                  {esAdmin && editando && (
-                     <div className="flex gap-2">
-                       <button onClick={() => setEditando(false)} className="text-gray-500 text-xs font-bold hover:underline">Cancelar</button>
-                       <button onClick={handleDeleteActividad} className="text-white text-xs px-3 py-1 rounded bg-red-600 hover:bg-red-800 font-bold">Eliminar Actividad</button>
-                       <button onClick={handleAdminSaveEdits} className="bg-bogota-primary text-white text-xs px-3 py-1 rounded hover:bg-red-700 font-bold">Guardar Cambios</button>
-                     </div>
-                  )}
+                  
                 </div>
                 {editando ? (
                    <textarea className="w-full border rounded p-2 outline-none h-24" value={editData.descripcion} onChange={e => setEditData({...editData, descripcion: e.target.value})}/>
