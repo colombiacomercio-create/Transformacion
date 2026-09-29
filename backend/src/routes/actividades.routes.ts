@@ -103,21 +103,64 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
 
       if (actividades && Array.isArray(actividades)) {
         for (const act of actividades) {
-          const { codigoProducto, codigoActividad, nombre, descripcion, fechaInicio, fechaLimite, indicadorMeta, indicadorUnidad, prioridad } = act;
+          const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad } = act;
+          
+          if (!codigoActividad || !nombre) {
+            throw new Error('El codigo de la actividad y el nombre son obligatorios');
+          }
 
-          const programa = await tx.programa.findFirst({
-            where: { codigo: codigoProducto },
-            include: { hitos: true }
-          });
+          // Parse Aspiracion
+          let objCodigo = "A0";
+          let objNombre = aspiracion || "Aspiracion General";
+          if (aspiracion && typeof aspiracion === 'string' && aspiracion.includes('.')) {
+              objCodigo = aspiracion.split('.')[0].trim();
+              objNombre = aspiracion.split('.').slice(1).join('.').trim();
+          }
 
+          // Parse Producto
+          let progCodigo = "P00";
+          let progNombre = producto || "Producto General";
+          if (producto && typeof producto === 'string') {
+              const match = producto.match(/^([P|p|A-Z0-9]+)\s+(.*)/);
+              if (match) {
+                 progCodigo = match[1].toUpperCase();
+                 progNombre = match[2].trim();
+              } else {
+                 progCodigo = producto.split(' ')[0].toUpperCase();
+                 progNombre = producto;
+              }
+          }
+
+          // 1. Find or create Plan
+          let plan = await tx.plan.findFirst({ where: { estado: 'ACTIVO' } });
+          if (!plan) {
+             plan = await tx.plan.create({ data: { nombre: 'Plan Estrategico', ano: new Date().getFullYear(), estado: 'ACTIVO', creadoPor: req.user?.id || 'admin' } });
+          }
+
+          // 2. Find or create Objetivo (Aspiracion)
+          let objetivo = await tx.objetivoEstrategico.findFirst({ where: { planId: plan.id, codigo: objCodigo } });
+          if (!objetivo) {
+             objetivo = await tx.objetivoEstrategico.create({ data: { planId: plan.id, codigo: objCodigo, nombre: objNombre, orden: 1 } });
+          }
+
+          // 3. Find or create Programa (Producto)
+          let programa = await tx.programa.findFirst({ where: { objetivoId: objetivo.id, codigo: progCodigo } });
           if (!programa) {
-            throw new Error(`Programa con código ${codigoProducto} no encontrado`);
-          }
-          if (!programa.hitos || programa.hitos.length === 0) {
-            throw new Error(`Programa con código ${codigoProducto} no tiene hitos asociados`);
+             programa = await tx.programa.create({ data: { objetivoId: objetivo.id, codigo: progCodigo, nombre: progNombre } });
           }
 
-          const hito = programa.hitos[0];
+          // 4. Find or create Hito
+          let hito = await tx.hito.findFirst({ where: { programaId: programa.id } });
+          if (!hito) {
+             hito = await tx.hito.create({ data: { programaId: programa.id, codigo: 'H1', nombre: 'Hito General', fechaLimite: new Date() } });
+          }
+
+          // Tratar el valorActividad
+          let meta = 100;
+          if (valorActividad) {
+             const v = parseFloat(valorActividad.toString().replace('%', ''));
+             if (!isNaN(v)) meta = v;
+          }
 
           await tx.actividad.create({
             data: {
@@ -127,11 +170,11 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
               descripcion: descripcion || null,
               fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
               fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
-              indicadorMeta: indicadorMeta ? parseFloat(indicadorMeta) : 0,
-              indicadorUnidad: indicadorUnidad || '',
-              prioridad: prioridad || 'MEDIA',
-              creadoPor: req.user?.id || 'import-script',
-              tiposEvidenciaRequeridos: ['documento']
+              indicadorMeta: meta,
+              indicadorUnidad: '%',
+              prioridad: 'MEDIA',
+              creadoPor: req.user?.id || 'admin',
+              estado: 'PENDIENTE'
             }
           });
         }

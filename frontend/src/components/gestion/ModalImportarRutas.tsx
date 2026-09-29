@@ -9,15 +9,14 @@ interface Props {
 }
 
 const TEMPLATE_HEADERS = [
-  'Codigo Producto',
   'Codigo Actividad',
-  'Nombre',
+  'Aspiracion',
+  'Producto',
+  'Actividad',
   'Descripcion',
-  'Fecha Inicio',
-  'Fecha Limite',
-  'Meta',
-  'Unidad',
-  'Prioridad'
+  'Fecha inicio',
+  'Fecha final',
+  'Valor actividad (%)'
 ];
 
 export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
@@ -75,19 +74,16 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
 
           if (!rowError) {
             // Mapping to expected API fields
-            act.codigoProducto = String(row[0]);
-            act.codigoActividad = String(row[1]);
-            act.nombre = String(row[2]);
-            act.descripcion = String(row[3]);
-            act.fechaInicio = String(row[4]); // should validate date format
-            act.fechaLimite = String(row[5]);
-            act.indicadorMeta = Number(row[6]);
-            act.indicadorUnidad = String(row[7]);
-            act.prioridad = String(row[8]).toUpperCase();
+            
+            act.codigoActividad = String(row[0]);
+            act.aspiracion = String(row[1]);
+            act.producto = String(row[2]);
+            act.nombre = String(row[3]);
+            act.descripcion = String(row[4]);
+            act.fechaInicio = String(row[5]);
+            act.fechaLimite = String(row[6]);
+            act.valorActividad = String(row[7]);
 
-            if (isNaN(act.indicadorMeta)) {
-               newErrors.push(`Fila ${i + 1}: Meta no es un nmero vlido.`);
-            }
             parsedActs.push(act);
           }
         }
