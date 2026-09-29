@@ -46,18 +46,21 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
       prioridad, fechaInicio, fechaLimite,
       crearNuevoProducto, crearNuevaAspiracion,
       nuevoProductoCodigo, nuevoProductoNombre,
-      aspiracionId, nuevaAspiracionCodigo, nuevaAspiracionNombre
+      aspiracionId, nuevaAspiracionCodigo, nuevaAspiracionNombre,
+      localidadesIds, // array of strings
+      esRepetitiva,
+      numRepeticiones
     } = req.body;
     const userId = req.user.id;
     
     let finalHitoId = hitoId;
+    let baseProductCode = "P00";
     
     // Si se est\u00e1 creando un producto nuevo desde la UI
     if (crearNuevoProducto) {
        let targetAspiracionId = aspiracionId;
        
        if (crearNuevaAspiracion) {
-          // 1. Encontrar plan
           let plan = await prisma.plan.findFirst({ where: { estado: 'ACTIVO' } });
           if (!plan) plan = await prisma.plan.create({ data: { nombre: 'Plan Estrat\u00e9gico', ano: new Date().getFullYear(), estado: 'ACTIVO', creadoPor: userId } });
           
@@ -70,42 +73,84 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
        const nuevoProg = await prisma.programa.create({
           data: { objetivoId: targetAspiracionId, codigo: nuevoProductoCodigo, nombre: nuevoProductoNombre }
        });
+       baseProductCode = nuevoProductoCodigo;
        
        const nuevoHito = await prisma.hito.create({
           data: { programaId: nuevoProg.id, codigo: 'H1', nombre: 'General', fechaLimite: fechaLimite ? new Date(fechaLimite) : new Date() }
        });
-       
        finalHitoId = nuevoHito.id;
+    } else {
+       // Buscar el c\u00f3digo del producto para autogenerar
+       const existingHito = await prisma.hito.findUnique({ where: { id: finalHitoId }, include: { programa: true } });
+       if (existingHito) {
+           baseProductCode = existingHito.programa.codigo;
+       }
     }
 
-    const nuevaActividad = await prisma.actividad.create({
-      data: {
-        hitoId,
-        codigoCompleto: codigoCompleto || `ACT-${Date.now()}`,
-        nombre,
-        descripcion,
-        indicadorMeta: parseFloat(indicadorMeta) || 0,
-        indicadorUnidad: indicadorUnidad || 'Unidades',
-        prioridad: prioridad || 'MEDIA',
-        fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
-        fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
-        creadoPor: userId,
-        tiposEvidenciaRequeridos: ['documento']
-      }
+    const repeticionesCount = (esRepetitiva && numRepeticiones > 1) ? parseInt(numRepeticiones) : 1;
+    const metaPerAct = (parseFloat(indicadorMeta) || 0) / repeticionesCount;
+    
+    // Conteo para autogenerar c\u00f3digos secuenciales
+    const conteo = await prisma.actividad.count({
+        where: { hitoId: finalHitoId }
     });
+    
+    let baseCode = codigoCompleto;
+    if (!baseCode) {
+        baseCode = `${baseProductCode}.${conteo + 1}`;
+    }
+    
+    let primaryActividad = null;
 
-    // Auto-asignar a todas las localidades
-    const localidades = await prisma.localidad.findMany();
-    if (localidades.length > 0) {
-      await prisma.asignacionLocalidad.createMany({
-        data: localidades.map(loc => ({
-          actividadId: nuevaActividad.id,
-          localidadId: loc.id
-        }))
-      });
+    for (let i = 0; i < repeticionesCount; i++) {
+        let currentCode = baseCode;
+        let currentName = nombre;
+        if (repeticionesCount > 1) {
+            currentCode = `${baseCode}-${i + 1}`;
+            currentName = `${nombre} (Repetici\u00f3n ${i + 1}/${repeticionesCount})`;
+        }
+
+        const act = await prisma.actividad.create({
+          data: {
+            hitoId: finalHitoId,
+            codigoCompleto: currentCode,
+            nombre: currentName,
+            descripcion,
+            indicadorMeta: metaPerAct,
+            indicadorUnidad: indicadorUnidad || 'Unidades',
+            prioridad: prioridad || 'MEDIA',
+            fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
+            fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
+            creadoPor: userId,
+            tiposEvidenciaRequeridos: ['documento']
+          }
+        });
+        
+        if (i === 0) primaryActividad = act;
+
+        // Asignar localidades
+        let targetLocs = [];
+        if (localidadesIds && Array.isArray(localidadesIds) && localidadesIds.length > 0) {
+            targetLocs = localidadesIds;
+        } else {
+            // Si no mandan nada, quiz\u00e1s quieran todas (o ninguna). Para retrocompatibilidad y requerimiento: "No todas se repiten, pueden ser \u00fanicas"
+            // Let's assume if it's empty, they meant NONE. But wait, if they don't select, it won't show in the kanban.
+            // Let's get ALL if empty to be safe, or just what they select.
+            const allLocs = await prisma.localidad.findMany();
+            targetLocs = allLocs.map(l => l.id);
+        }
+
+        if (targetLocs.length > 0) {
+          await prisma.asignacionLocalidad.createMany({
+            data: targetLocs.map(lId => ({
+              actividadId: act.id,
+              localidadId: lId
+            }))
+          });
+        }
     }
 
-    res.status(201).json(nuevaActividad);
+    res.status(201).json(primaryActividad);
   } catch (error) {
     console.error('Error creando actividad:', error);
     res.status(500).json({ error: 'Error creando actividad' });
