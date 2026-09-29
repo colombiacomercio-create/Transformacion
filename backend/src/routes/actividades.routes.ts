@@ -187,11 +187,11 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
 
       if (actividades && Array.isArray(actividades)) {
         for (const act of actividades) {
-          const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad } = act;
-          
-          if (!codigoActividad || !nombre) {
-            throw new Error('El codigo de la actividad y el nombre son obligatorios');
-          }
+            const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites } = act;
+            
+            if (!nombre) {
+              throw new Error('El nombre de la actividad es obligatorio');
+            }
 
           // Parse Aspiracion
           let objCodigo = "A0";
