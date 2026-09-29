@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, FileSpreadsheet, Upload, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { fetchApi } from '../../utils/api';
@@ -18,18 +18,76 @@ const TEMPLATE_HEADERS = [
   'Fecha final (Separar con coma si es repetitiva)',
   'Valor actividad (%)',
   'Es Repetitiva (SI/NO)',
-  'Numero Entregas'
+  'Cuantas veces se repite la actividad'
 ];
 
 export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
+  const [planes, setPlanes] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/planes`)
+      .then(r => r.json())
+      .then(data => setPlanes(data))
+      .catch(console.error);
+  }, []);
 
   const handleDownloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla Rutas");
+
+    // Hoja de instrucciones
+    const instruccionesAOA = [
+      ["INSTRUCCIONES DE IMPORTACION"],
+      [""],
+      ["COLUMNA", "EXPLICACION"],
+      ["Codigo Actividad", "Opcional. Si lo dejas en blanco, el sistema le asignara uno automaticamente sumando 1 al ultimo codigo existente del producto (Ej: P01.1)."],
+      ["Aspiracion", "Escribe el codigo y nombre exacto de la aspiracion. Copialo de la tabla de abajo. (Ej: A1. Ejecucion presupuestal)"],
+      ["Producto", "Escribe el codigo y nombre exacto del producto. Copialo de la tabla de abajo. (Ej: P01. Ingenieria de Detalle)"],
+      ["Actividad", "Nombre corto o titulo de la actividad."],
+      ["Descripcion", "Detalle de que se va a realizar en esta actividad."],
+      ["Fecha inicio", "Fecha en la que inicia la actividad (Formato MM/DD/AAAA o DD/MM/AAAA segun tu Excel)."],
+      ["Fecha final", "Fecha limite para terminar. Si es repetitiva, separa cada fecha limite con comas (Ej: 20/03/2026, 20/06/2026)."],
+      ["Valor actividad (%)", "Porcentaje global que suma esta actividad al plan. Solo pon el numero (Ej: 100)."],
+      ["Es Repetitiva (SI/NO)", "Escribe SI si la actividad tiene multiples entregas, de lo contrario escribe NO."],
+      ["Cuantas veces se repite la actividad", "Solo si es repetitiva. Pon el numero de veces (Ej: 4). El sistema dividira el valor (%) equitativamente entre estas entregas."],
+      [""],
+      [""],
+      ["CATALOGO DE ASPIRACIONES Y PRODUCTOS (COPIA Y PEGA LOS NOMBRES)"],
+      ["CODIGO ASPIRACION", "NOMBRE ASPIRACION", "CODIGO PRODUCTO", "NOMBRE PRODUCTO"]
+    ];
+
+    // Llenar catalogo desde la base de datos
+    if (planes && planes.length > 0) {
+       planes.forEach((p: any) => {
+          if (p.objetivos) {
+             p.objetivos.forEach((obj: any) => {
+                if (obj.programas) {
+                   obj.programas.forEach((prog: any) => {
+                      instruccionesAOA.push([
+                         obj.codigo,
+                         `[${obj.codigo}] ${obj.nombre}`,
+                         prog.codigo,
+                         `[${prog.codigo}] ${prog.nombre}`
+                      ]);
+                   });
+                } else {
+                   instruccionesAOA.push([obj.codigo, `[${obj.codigo}] ${obj.nombre}`, "", ""]);
+                }
+             });
+          }
+       });
+    }
+
+    const wsInst = XLSX.utils.aoa_to_sheet(instruccionesAOA);
+    
+    // Auto-ajustar ancho de columnas para las instrucciones
+    wsInst["!cols"] = [ { wch: 35 }, { wch: 90 }, { wch: 20 }, { wch: 50 } ];
+
+    XLSX.utils.book_append_sheet(wb, wsInst, "Instrucciones");
     XLSX.writeFile(wb, "plantilla_importacion_rutas.xlsx");
   };
 
