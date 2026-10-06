@@ -149,6 +149,19 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
               localidadId: lId
             }))
           });
+          
+          // Enviar correo a los responsables de las localidades asignadas
+          for (const lId of targetLocs) {
+              const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: lId } } } });
+              const correosLoc = usuariosLoc.map(u => u.email).filter(e => e);
+              if (correosLoc.length > 0) {
+                  await enviarNotificacion(
+                      correosLoc,
+                      `Nueva Actividad Asignada: ${act.nombre}`,
+                      `Se te ha asignado una nueva actividad en el sistema Transformaci\u00f3n Bogot\u00e1:<br><br><b>Actividad:</b> ${act.nombre}<br><b>C\u00f3digo:</b> ${act.codigoCompleto}<br><br>Por favor ingresa a la plataforma para revisarla.`
+                  );
+              }
+          }
         }
     }
 
