@@ -1,3 +1,4 @@
+import { enviarNotificacion } from '../services/mail.service';
 ﻿import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { azureADAuth, AuthRequest, requireRole } from '../middlewares/auth.middleware';
@@ -7,31 +8,25 @@ const prisma = new PrismaClient();
 
 router.get('/', azureADAuth, async (req: Request, res: Response) => {
   try {
-    const actividades = await prisma.actividad.findMany({
-      include: {
-        hito: {
-          include: {
-            programa: {
-              include: {
-                objetivo: true
-              }
-            }
-          }
-        },
-        asignaciones: {
-          include: {
-            localidad: true,
-            responsable: true
-          }
-        },
-        evidencias: true,
-        comentarios: {
-          include: { autor: true },
-          orderBy: { fechaCreacion: 'asc' }
+    const actividadesRaw = await prisma.actividad.findMany({
+        include: {
+          hito: { include: { programa: { include: { objetivo: true } } } },
+          asignaciones: { include: { localidad: true, responsable: true } },
+          evidencias: { include: { subidoPor: true } },
+          comentarios: { include: { autor: true } }
         }
-      }
-    });
-    res.json(actividades);
+      });
+      
+      const userIds = [...new Set(actividadesRaw.map(a => a.creadoPor).filter(id => id && id !== 'SYSTEM'))];
+      const users = await prisma.usuario.findMany({ where: { id: { in: userIds } } });
+      const userMap = new Map(users.map(u => [u.id, u.nombre]));
+      
+      const actividades = actividadesRaw.map(a => ({
+          ...a,
+          nombreCreador: a.creadoPor === 'SYSTEM' ? 'Sistema / Importaci\u00f3n' : (userMap.get(a.creadoPor) || 'Usuario Desconocido')
+      }));
+
+      res.json(actividades);
   } catch (error) {
     console.error('Error fetching actividades:', error);
     res.status(500).json({ error: 'Error fetching actividades' });
@@ -340,10 +335,23 @@ router.patch('/asignacion/:id/estadoLocal', azureADAuth, async (req: AuthRequest
     const { id } = req.params;
     const { estadoLocal } = req.body;
     const asig = await prisma.asignacionLocalidad.update({
-      where: { id },
-      data: { estadoLocal }
-    });
-    res.json(asig);
+        where: { id },
+        data: { estadoLocal },
+        include: { actividad: true, localidad: true }
+      });
+      
+      // Notificar a los administradores
+      const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN' } });
+      const correosAdmins = admins.map(a => a.email).filter(e => e);
+      if (correosAdmins.length > 0) {
+          await enviarNotificacion(
+              correosAdmins, 
+              `Actividad actualizada por Localidad: ${asig.actividad.nombre}`, 
+              `La localidad <b>${asig.localidad.nombre}</b> ha cambiado el estado de la actividad a <b>${estadoLocal}</b>.<br><br>Por favor revisa la plataforma.`
+          );
+      }
+      
+      res.json(asig);
   } catch (error) {
     console.error('Error actualizando estado local:', error);
     res.status(500).json({ error: 'Error actualizando estado local' });
@@ -380,8 +388,21 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
 
       const asig = await prisma.asignacionLocalidad.update({
         where: { id },
-        data: updateData
+        data: updateData,
+        include: { actividad: true, localidad: true }
       });
+      
+      // Notificar a los responsables de la localidad
+      const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: asig.localidadId } } } });
+      const correosLoc = usuariosLoc.map(u => u.email).filter(e => e);
+      if (correosLoc.length > 0) {
+          await enviarNotificacion(
+              correosLoc,
+              `Actividad Validada por Admin: ${asig.actividad.nombre}`,
+              `Un administrador ha cambiado el estado de revisi\u00f3n de tu actividad a <b>${estadoValidacion}</b> con un avance del ${updateData.porcentajeAvance || 0}%.<br><br>Revisa la plataforma para m\u00e1s detalles.`
+          );
+      }
+      
       res.json(asig);
     } catch (error) {
     console.error('Error actualizando estado validacion:', error);
