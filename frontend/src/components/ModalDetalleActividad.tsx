@@ -256,7 +256,10 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                 <h2 className="text-2xl font-bold text-gray-800 leading-tight">{actividad.nombre}</h2>
                )}
              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-               <span className="flex items-center gap-1"><Calendar className="w-4 h-4"/> Límite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'Sin Fecha'}</span>
+               <span className="flex items-center gap-1"><Calendar className="w-4 h-4"/> L�mite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'Sin Fecha'}</span>
+                 <span className="flex items-center gap-1 bg-blue-50 text-blue-800 px-2 py-0.5 rounded-full text-xs ml-4 border border-blue-200">
+                   Creado por: {actividad.nombreCreador || (actividad.creadoPor === 'SYSTEM' ? 'Sistema / Importaci�n' : 'Usuario Desconocido')}
+                 </span>
                <span className="flex items-center gap-1">
                  {actividad.estado === 'COMPLETADA' ? <CheckCircle2 className="w-4 h-4 text-green-500"/> : <Clock className="w-4 h-4 text-orange-500"/>}
                  <span className="font-medium text-gray-700">{actividad.estado}</span>
