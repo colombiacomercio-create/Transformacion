@@ -154,7 +154,7 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
           for (const lId of targetLocs) {
               const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: lId } } } });
               const correosLoc = usuariosLoc.map(u => u.email).filter(e => e);
-              const allEmailsLoc = [...new Set([...correosLoc, ...(asig.actividad.correosNotificacion || [])])];
+              const allEmailsLoc = [...new Set([...correosLoc, ...(act.correosNotificacion || [])])];
       if (allEmailsLoc.length > 0) {
           await enviarNotificacion(
               allEmailsLoc,
@@ -196,7 +196,7 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
 
       if (actividades && Array.isArray(actividades)) {
         for (const act of actividades) {
-            const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites } = act;
+            const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites, correosNotificacion } = act;
             
             if (!nombre) {
               throw new Error('El nombre de la actividad es obligatorio');
