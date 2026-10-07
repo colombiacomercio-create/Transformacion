@@ -235,7 +235,19 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
             </div>
           </div>
 
-          <div>
+          
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                 Responsables a Notificar <span className="text-gray-400 font-normal">(Correos separados por coma)</span>
+              </label>
+              <input type="text" placeholder="ej: coordinador@bogota.gov.co, aux@bogota.gov.co" 
+                className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-bogota-primary/30"
+                value={formData.correosNotificacion.join(', ')} 
+                onChange={e => setFormData({...formData, correosNotificacion: e.target.value.split(',').map(m => m.trim()).filter(m => m)})}
+              />
+            </div>
+
+<div>
              <div className="flex justify-between items-center mb-2">
                  <label className="block text-sm font-medium text-gray-700">Localidades Asignadas</label>
                  <div className="space-x-2 text-xs">
