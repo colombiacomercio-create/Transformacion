@@ -496,9 +496,9 @@ export default function Dashboard({ userData }: { userData?: any }) {
          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 h-[500px]">
            <h4 className="w-full text-center bg-red-600 text-white font-bold py-2 rounded mb-4 uppercase tracking-wider text-sm">Índice Transformación Localidades</h4>
            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dataBars} layout="vertical" margin={{ top: 0, right: 30, left: 80, bottom: 20 }}>
+              <BarChart data={dataBars} layout="vertical" margin={{ top: 0, right: 30, left: 100, bottom: 20 }}>
                  <XAxis type="number" hide domain={[0, 100]} />
-                 <YAxis dataKey="name" type="category" width={90} tick={{ fill: '#4b5563', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                 <YAxis dataKey="nombre" type="category" width={110} tick={{ fill: '#4b5563', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                  <Tooltip cursor={{fill: '#f9fafb'}} />
                  <Bar dataKey="Indice" fill="#005C8A" radius={[0, 4, 4, 0]} barSize={12} label={{ position: 'right', fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }} />
               </BarChart>

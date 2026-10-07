@@ -91,28 +91,26 @@ export const generarBorradorReporte = async (
         });
 
         const prompt = `
-        ActÃºa como un analista experto en polÃ­ticas pÃºblicas para el sistema RADAR.
-        Genera un borrador de reporte cualitativo mensual para la localidad de "${localidadNombre}" sobre el objetivo estratÃ©gico: "${objetivoNombre}".
+        Actúa como un analista experto en políticas públicas para el sistema RADAR.
+        Debes generar un borrador narrativo de los "Principales Avances" y "Alertas y Recomendaciones" del objetivo: "${objetivoNombre}" para la localidad de "${localidadNombre}".
+        
+        INSTRUCCIONES CLAVE:
+        1. Debes MENCIONAR EXPLÍCITAMENTE la localidad ("${localidadNombre}") en ambos textos (avances y alertas), indicando qué ocurre específicamente allí.
+        2. Si hay múltiples observaciones, divídelas en varios PÁRRAFOS utilizando saltos de línea dobles para facilitar la lectura. No entregues un solo bloque de texto.
+        3. Escribe de manera ejecutiva, clara y directa.
 
-        1. Cifras de Actividades (programado vs ejecutado):
-        ${JSON.stringify(cifrasActividades, null, 2)}
+        DATOS DISPONIBLES:
+        - Avance promedio local: ${totalAvance.toFixed(1)}%
+        - Actividades completadas: ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} de ${cifrasActividades.length}
+        - Alertas activas: ${JSON.stringify(alertasActivas)}
+        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas)}
+        - Comentarios del equipo: ${comentarios.join(' | ')}
+        - Alerta Ficha Resultados (Global): ${alertasFichaResultados}
 
-        2. Comentarios / Reportes registrados en las actividades:
-        ${comentarios.length > 0 ? comentarios.map(c => `- ${c}`).join('\n') : 'No hay comentarios registrados.'}
-
-        3. Actividades Vencidas / Rezagadas (Con retraso acumulado):
-        ${actividadesRezagadas.length > 0 ? actividadesRezagadas.map(a => `- Actividad ${a.codigo}: "${a.nombre}" (Retraso acumulado de ${a.diasRetraso} dÃ­as)`).join('\n') : 'No hay actividades rezagadas.'}
-
-        4. Alertas del panel de alertas (FichaAlerta):
-        ${JSON.stringify(alertasActivas, null, 2)}
-
-        5. Observaciones/alertas de la Ficha de Resultados para este objetivo:
-        ${alertasFichaResultados || 'No hay alertas registradas en la Ficha de Resultados.'}
-
-        Genera dos secciones estructuradas en formato JSON plano:
+        Devuelve ÚNICAMENTE un JSON con este formato (asegúrate de escapar las comillas si es necesario):
         {
-          "avances": "RedacciÃ³n clara, formal y ejecutiva de los principales logros (mÃ¡ximo 150 palabras). Sintetiza los avances numÃ©ricos y analiza cualitativamente los comentarios de las actividades para resaltar lo ejecutado.",
-          "alertas": "IdentificaciÃ³n analÃ­tica de los cuellos de botella y recomendaciones especÃ­ficas de mitigaciÃ³n (mÃ¡ximo 150 palabras). Relaciona las actividades rezagadas, las alertas del panel y las observaciones de la Ficha de Resultados."
+          "avances": "texto con los avances, mencionando la localidad, separado en párrafos cortos...",
+          "alertas": "texto con las alertas y recomendaciones, mencionando la localidad, separado en párrafos cortos..."
         }
         `;
 
@@ -159,22 +157,26 @@ export const clasificarYEnrutarAlerta = async (
         });
 
         const prompt = `
-        Analiza el siguiente cuello de botella reportado en la gestiÃ³n local de RADAR:
-        "${descripcionAlerta}"
+        Actúa como un analista experto en políticas públicas para el sistema RADAR.
+        Debes generar un borrador narrativo de los "Principales Avances" y "Alertas y Recomendaciones" del objetivo: "${objetivoNombre}" para la localidad de "${localidadNombre}".
+        
+        INSTRUCCIONES CLAVE:
+        1. Debes MENCIONAR EXPLÍCITAMENTE la localidad ("${localidadNombre}") en ambos textos (avances y alertas), indicando qué ocurre específicamente allí.
+        2. Si hay múltiples observaciones, divídelas en varios PÁRRAFOS utilizando saltos de línea dobles para facilitar la lectura. No entregues un solo bloque de texto.
+        3. Escribe de manera ejecutiva, clara y directa.
 
-        Lista de Usuarios Disponibles para asignaciÃ³n (con rol e id):
-        ${JSON.stringify(usuariosDisponibles, null, 2)}
+        DATOS DISPONIBLES:
+        - Avance promedio local: ${totalAvance.toFixed(1)}%
+        - Actividades completadas: ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} de ${cifrasActividades.length}
+        - Alertas activas: ${JSON.stringify(alertasActivas)}
+        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas)}
+        - Comentarios del equipo: ${comentarios.join(' | ')}
+        - Alerta Ficha Resultados (Global): ${alertasFichaResultados}
 
-        Clasifica la alerta en base a las siguientes directrices:
-        1. Severidad: "CRITICA" (bloqueo total, riesgos legales/sociales), "MODERADA" (retraso manejable), o "INFORMATIVA".
-        2. Responsable: Sugiere el ID del usuario mÃ¡s idÃ³neo segÃºn la naturaleza del problema.
-        3. Tipo: "VENCIMIENTO", "SIN_EVIDENCIA", "BAJO_AVANCE", "RIESGO_EXTERNO".
-
-        Retorna un objeto JSON con la siguiente estructura exacta:
+        Devuelve ÚNICAMENTE un JSON con este formato (asegúrate de escapar las comillas si es necesario):
         {
-          "severidadSugerida": "CRITICA" | "MODERADA" | "INFORMATIVA",
-          "responsableSugeridoId": "id_del_usuario_sugerido" | null,
-          "tipoSugerido": "VENCIMIENTO" | "SIN_EVIDENCIA" | "BAJO_AVANCE" | "RIESGO_EXTERNO"
+          "avances": "texto con los avances, mencionando la localidad, separado en párrafos cortos...",
+          "alertas": "texto con las alertas y recomendaciones, mencionando la localidad, separado en párrafos cortos..."
         }
         `;
 
@@ -223,26 +225,26 @@ export const prechequearEvidencia = async (
         };
 
         const prompt = `
-        ActÃºa como auditor tÃ©cnico de evidencias para RADAR.
-        Debes verificar si el documento/imagen adjunto corresponde a la evidencia requerida para la siguiente actividad:
+        Actúa como un analista experto en políticas públicas para el sistema RADAR.
+        Debes generar un borrador narrativo de los "Principales Avances" y "Alertas y Recomendaciones" del objetivo: "${objetivoNombre}" para la localidad de "${localidadNombre}".
+        
+        INSTRUCCIONES CLAVE:
+        1. Debes MENCIONAR EXPLÍCITAMENTE la localidad ("${localidadNombre}") en ambos textos (avances y alertas), indicando qué ocurre específicamente allí.
+        2. Si hay múltiples observaciones, divídelas en varios PÁRRAFOS utilizando saltos de línea dobles para facilitar la lectura. No entregues un solo bloque de texto.
+        3. Escribe de manera ejecutiva, clara y directa.
 
-        DescripciÃ³n de la Actividad: "${actividadDescripcion}"
-        Tipos de Evidencia Solicitados: ${tiposEvidenciaRequeridos.join(', ')}
-        Comentario del Gestor: "${comentarioAdjunto}"
+        DATOS DISPONIBLES:
+        - Avance promedio local: ${totalAvance.toFixed(1)}%
+        - Actividades completadas: ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} de ${cifrasActividades.length}
+        - Alertas activas: ${JSON.stringify(alertasActivas)}
+        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas)}
+        - Comentarios del equipo: ${comentarios.join(' | ')}
+        - Alerta Ficha Resultados (Global): ${alertasFichaResultados}
 
-        EvalÃºa el archivo adjunto y determina:
-        1. Estado de Coherencia:
-           - "APTO" si el archivo adjunto es claramente una prueba vÃ¡lida de lo solicitado.
-           - "NO_APTO" si es un archivo vacÃ­o, corrupto, una hoja en blanco, un meme, o totalmente ajeno a la actividad.
-           - "DUDOSO" si el archivo guarda relaciÃ³n pero es incompleto, borroso o requiere criterio humano.
-        2. Puntaje numÃ©rico de compatibilidad (de 0.0 a 100.0).
-        3. ExplicaciÃ³n breve (Feedback) de por quÃ© se tomÃ³ la decisiÃ³n.
-
-        Retorna un objeto JSON con la siguiente estructura exacta:
+        Devuelve ÚNICAMENTE un JSON con este formato (asegúrate de escapar las comillas si es necesario):
         {
-          "prechequeoEstado": "APTO" | "DUDOSO" | "NO_APTO",
-          "prechequeoPuntaje": 85.5,
-          "prechequeoFeedback": "Texto explicativo detallado en espaÃ±ol."
+          "avances": "texto con los avances, mencionando la localidad, separado en párrafos cortos...",
+          "alertas": "texto con las alertas y recomendaciones, mencionando la localidad, separado en párrafos cortos..."
         }
         `;
 
@@ -281,23 +283,26 @@ export const responderConsultaChat = async (
         });
 
         const prompt = `
-        Eres el Asistente Inteligente de RADAR. Tu labor es responder consultas operativas en lenguaje natural.
-        Para evitar inyecciones SQL u operaciones daÃ±inas, tu tarea inicial es traducir la pregunta del usuario en un filtro JSON estructurado de consulta, y proveer una respuesta preliminar.
-
-        Pregunta del usuario: "${pregunta}"
-        Rol del usuario: "${usuarioRol}"
+        Actúa como un analista experto en políticas públicas para el sistema RADAR.
+        Debes generar un borrador narrativo de los "Principales Avances" y "Alertas y Recomendaciones" del objetivo: "${objetivoNombre}" para la localidad de "${localidadNombre}".
         
-        Datos consolidados en BD (Esquema conceptual y entidades del contexto):
-        ${contextoData}
+        INSTRUCCIONES CLAVE:
+        1. Debes MENCIONAR EXPLÍCITAMENTE la localidad ("${localidadNombre}") en ambos textos (avances y alertas), indicando qué ocurre específicamente allí.
+        2. Si hay múltiples observaciones, divídelas en varios PÁRRAFOS utilizando saltos de línea dobles para facilitar la lectura. No entregues un solo bloque de texto.
+        3. Escribe de manera ejecutiva, clara y directa.
 
-        Genera una respuesta estructurada en JSON con:
-        1. "respuesta": ExplicaciÃ³n ejecutiva y clara de la respuesta utilizando el contexto disponible.
-        2. "parametrosFiltro": Un objeto JSON que represente los filtros de bÃºsqueda que el backend deberÃ­a aplicar en Prisma para verificar los datos (ej: { "localidad": "Suba", "estadoActividad": "VENCIDA" }).
+        DATOS DISPONIBLES:
+        - Avance promedio local: ${totalAvance.toFixed(1)}%
+        - Actividades completadas: ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} de ${cifrasActividades.length}
+        - Alertas activas: ${JSON.stringify(alertasActivas)}
+        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas)}
+        - Comentarios del equipo: ${comentarios.join(' | ')}
+        - Alerta Ficha Resultados (Global): ${alertasFichaResultados}
 
-        Retorna un objeto JSON con la estructura exacta:
+        Devuelve ÚNICAMENTE un JSON con este formato (asegúrate de escapar las comillas si es necesario):
         {
-          "respuesta": "Texto de la respuesta en espaÃ±ol.",
-          "parametrosFiltro": {}
+          "avances": "texto con los avances, mencionando la localidad, separado en párrafos cortos...",
+          "alertas": "texto con las alertas y recomendaciones, mencionando la localidad, separado en párrafos cortos..."
         }
         `;
 
@@ -431,14 +436,27 @@ export const generarRespuestaDirectaChat = async (
         });
 
         const prompt = `
-        Eres el Asistente Inteligente de RADAR. El usuario hizo una pregunta especÃ­fica: "${pregunta}"
-        Hemos consultado la base de datos de RADAR y obtuvimos los siguientes registros reales vinculados a su pregunta:
+        Actúa como un analista experto en políticas públicas para el sistema RADAR.
+        Debes generar un borrador narrativo de los "Principales Avances" y "Alertas y Recomendaciones" del objetivo: "${objetivoNombre}" para la localidad de "${localidadNombre}".
         
-        ${datosReales}
-        
-        Por favor genera una respuesta directa, concisa y ejecutiva en espaÃ±ol (mÃ¡ximo 80-100 palabras) respondiendo puntualmente a la pregunta del usuario utilizando los datos provistos.
-        No uses plantillas de tablero general (no menciones "AspiraciÃ³n LÃ­der" ni estadÃ­sticas globales de la localidad a menos que el usuario lo haya solicitado).
-        Usa negritas y viÃ±etas cortas para mayor claridad.
+        INSTRUCCIONES CLAVE:
+        1. Debes MENCIONAR EXPLÍCITAMENTE la localidad ("${localidadNombre}") en ambos textos (avances y alertas), indicando qué ocurre específicamente allí.
+        2. Si hay múltiples observaciones, divídelas en varios PÁRRAFOS utilizando saltos de línea dobles para facilitar la lectura. No entregues un solo bloque de texto.
+        3. Escribe de manera ejecutiva, clara y directa.
+
+        DATOS DISPONIBLES:
+        - Avance promedio local: ${totalAvance.toFixed(1)}%
+        - Actividades completadas: ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} de ${cifrasActividades.length}
+        - Alertas activas: ${JSON.stringify(alertasActivas)}
+        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas)}
+        - Comentarios del equipo: ${comentarios.join(' | ')}
+        - Alerta Ficha Resultados (Global): ${alertasFichaResultados}
+
+        Devuelve ÚNICAMENTE un JSON con este formato (asegúrate de escapar las comillas si es necesario):
+        {
+          "avances": "texto con los avances, mencionando la localidad, separado en párrafos cortos...",
+          "alertas": "texto con las alertas y recomendaciones, mencionando la localidad, separado en párrafos cortos..."
+        }
         `;
 
         const response = await ejecutarConReintentos(() => model.generateContent(prompt));
