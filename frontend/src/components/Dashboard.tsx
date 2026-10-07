@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle, Save, Edit2, Info, Flag, Sparkles } from 'lucide-react';
 import { fetchApi } from '../utils/api';
-import FichasDecoradas from './gestion/FichasDecoradas';
 
 const mockAvancePorAspiraciones = [
   { name: 'A1. Presupuesto', avance: 95 },
@@ -219,7 +218,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
             });
 
             // 2. Ordenar de O1 a OV2
-            const ordenCodigos = ['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'OV1', 'OV2'];
+            const ordenCodigos = ['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'OV1', 'OV2', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
             const sorted = [...filtered].sort((a: any, b: any) => {
                const idxA = ordenCodigos.indexOf(a.codigo);
                const idxB = ordenCodigos.indexOf(b.codigo);
@@ -450,13 +449,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
     <div className="flex flex-col gap-6 font-sans">
       {renderFiltros()}
 
-      {/* FICHAS SUPERIORES */}
-      {ultimaFicha && (
-         <div className="mb-4 bg-gray-50 p-4 rounded-xl shadow-inner border border-gray-200">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 px-2">Gestión y Resultados Globales</h3>
-            <FichasDecoradas ultimaFicha={ultimaFicha} />
-         </div>
-      )}
+      {/* Ficha de transformación local fue movida a Gestión de Resultados */}
 
       {/* METRICAS HORIZONTALES */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
