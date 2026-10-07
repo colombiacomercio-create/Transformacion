@@ -30,6 +30,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
   const [localidades, setLocalidades] = useState<any[]>([]);
   const [localidadFiltro, setLocalidadFiltro] = useState<string>('TODAS');
   const [aspiracionesDinamicas, setAspiracionesDinamicas] = useState<any[]>(mockAvancePorAspiraciones);
+  const [objIdsConActividades, setObjIdsConActividades] = useState<Set<string>>(new Set());
   
   // Data local para drill-down
   const [locData, setLocData] = useState<any>({ indice: 0, productos: [], objetivosBars: [], pieData: [], actList: [] });
@@ -112,6 +113,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
             avance: data.total > 0 ? Math.round(data.sum / data.total) : 0
          }));
          setAspiracionesDinamicas(aspiracionesArr);
+         setObjIdsConActividades(new Set(data.map((a: any) => a.hito?.programa?.objetivo?.id).filter(Boolean)));
 
          const locStats = new Map();
          data.forEach((a: any) => {
@@ -456,7 +458,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 flex flex-col items-center justify-center">
             <h4 className="w-full text-center bg-red-600 text-white font-bold py-2 rounded shadow-sm mb-6 uppercase tracking-wider text-xs">Cumplimiento Global</h4>
             <div className="flex items-center gap-6">
-               <span className="text-5xl font-bold text-[#FFCD00]">{stats.evaluadas}</span>
+               <span className="text-5xl font-bold text-[#FFCD00]">{stats.avance}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-4 mt-8 mb-2 relative overflow-hidden flex items-center shadow-inner">
                <div className="bg-[#78B833] h-full" style={{width: `${stats.avance}%`}}></div>
@@ -494,9 +496,9 @@ export default function Dashboard({ userData }: { userData?: any }) {
          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 h-[500px]">
            <h4 className="w-full text-center bg-red-600 text-white font-bold py-2 rounded mb-4 uppercase tracking-wider text-sm">Índice Transformación Localidades</h4>
            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dataBars} layout="vertical" margin={{ top: 0, right: 30, left: 30, bottom: 20 }}>
+              <BarChart data={dataBars} layout="vertical" margin={{ top: 0, right: 30, left: 80, bottom: 20 }}>
                  <XAxis type="number" hide domain={[0, 100]} />
-                 <YAxis dataKey="name" type="category" tick={{ fill: '#4b5563', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                 <YAxis dataKey="name" type="category" width={90} tick={{ fill: '#4b5563', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                  <Tooltip cursor={{fill: '#f9fafb'}} />
                  <Bar dataKey="Indice" fill="#005C8A" radius={[0, 4, 4, 0]} barSize={12} label={{ position: 'right', fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }} />
               </BarChart>
@@ -506,11 +508,11 @@ export default function Dashboard({ userData }: { userData?: any }) {
          <div className="bg-white border rounded-xl shadow-sm p-6 h-[500px]">
             <h4 className="w-full text-center bg-red-600 text-white font-bold py-2 rounded mb-4 uppercase tracking-wider text-sm">Avance Radárico por Objetivo</h4>
             <ResponsiveContainer width="100%" height="100%">
-               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={mockDataRadar}>
+               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={aspiracionesDinamicas}>
                   <PolarGrid stroke="#e5e7eb" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#4b5563', fontSize: 11, fontWeight: 'bold' }} />
+                  <PolarAngleAxis dataKey="name" tick={{ fill: '#4b5563', fontSize: 11, fontWeight: 'bold' }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#9ca3af' }} />
-                  <Radar name="Promedio" dataKey="B" stroke="#b91c1c" fill="#ef4444" fillOpacity={0.4} />
+                  <Radar name="Promedio" dataKey="avance" stroke="#b91c1c" fill="#ef4444" fillOpacity={0.4} />
                   <Tooltip />
                </RadarChart>
             </ResponsiveContainer>
@@ -518,7 +520,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
       </div>
 
       {/* SECCIÓN ANALÍTICA CUALITATIVA POR OBJETIVO */}
-      {objetivosAPI.map(obj => {
+      {objetivosAPI.filter(obj => objIdsConActividades.has(obj.id)).map(obj => {
          const objReporte = corteActivo?.reportes?.find((r:any) => r.objetivoId === obj.id) || {};
          const isEditing = editandoCualitativo === obj.id;
 
