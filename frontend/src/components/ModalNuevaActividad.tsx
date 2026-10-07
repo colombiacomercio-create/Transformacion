@@ -36,7 +36,8 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
     localidadesIds: [] as string[],
     esRepetitiva: false,
     numRepeticiones: 1,
-    fechasLimites: [] as string[]
+    fechasLimites: [] as string[],
+    correosNotificacion: [] as string[]
   });
 
   useEffect(() => {

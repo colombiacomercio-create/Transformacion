@@ -154,9 +154,10 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
           for (const lId of targetLocs) {
               const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: lId } } } });
               const correosLoc = usuariosLoc.map(u => u.email).filter(e => e);
-              if (correosLoc.length > 0) {
-                  await enviarNotificacion(
-                      correosLoc,
+              const allEmailsLoc = [...new Set([...correosLoc, ...(asig.actividad.correosNotificacion || [])])];
+      if (allEmailsLoc.length > 0) {
+          await enviarNotificacion(
+              allEmailsLoc,
                       `Nueva Actividad Asignada: ${act.nombre}`,
                       `Se te ha asignado una nueva actividad en el sistema Transformaci\u00f3n Bogot\u00e1:<br><br><b>Actividad:</b> ${act.nombre}<br><b>C\u00f3digo:</b> ${act.codigoCompleto}<br><br>Por favor ingresa a la plataforma para revisarla.`
                   );
@@ -266,6 +267,7 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
               indicadorUnidad: '%',
               prioridad: 'MEDIA',
               creadoPor: req.user?.id || 'admin',
+                  correosNotificacion: correosNotificacion || [],
               estado: 'PENDIENTE'
             }
           });
@@ -356,9 +358,10 @@ router.patch('/asignacion/:id/estadoLocal', azureADAuth, async (req: AuthRequest
       // Notificar a los administradores
       const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN' } });
       const correosAdmins = admins.map(a => a.email).filter(e => e);
-      if (correosAdmins.length > 0) {
+      const allEmails = [...new Set([...correosAdmins, ...(asig.actividad.correosNotificacion || [])])];
+      if (allEmails.length > 0) {
           await enviarNotificacion(
-              correosAdmins, 
+              allEmails, 
               `Actividad actualizada por Localidad: ${asig.actividad.nombre}`, 
               `La localidad <b>${asig.localidad.nombre}</b> ha cambiado el estado de la actividad a <b>${estadoLocal}</b>.<br><br>Por favor revisa la plataforma.`
           );
@@ -408,9 +411,10 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
       // Notificar a los responsables de la localidad
       const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: asig.localidadId } } } });
       const correosLoc = usuariosLoc.map(u => u.email).filter(e => e);
-      if (correosLoc.length > 0) {
+      const allEmailsLoc = [...new Set([...correosLoc, ...(asig.actividad.correosNotificacion || [])])];
+      if (allEmailsLoc.length > 0) {
           await enviarNotificacion(
-              correosLoc,
+              allEmailsLoc,
               `Actividad Validada por Admin: ${asig.actividad.nombre}`,
               `Un administrador ha cambiado el estado de revisi\u00f3n de tu actividad a <b>${estadoValidacion}</b> con un avance del ${updateData.porcentajeAvance || 0}%.<br><br>Revisa la plataforma para m\u00e1s detalles.`
           );

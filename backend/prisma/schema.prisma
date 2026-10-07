@@ -170,6 +170,7 @@ model Actividad {
   fechaLimite              DateTime?
   prioridad                Prioridad       @default(MEDIA)
   tiposEvidenciaRequeridos String[] // Array de strings o JSON
+  correosNotificacion      String[] @default([])
   indicadorMeta            Float
   indicadorUnidad          String
   estado                   EstadoActividad @default(PENDIENTE)
