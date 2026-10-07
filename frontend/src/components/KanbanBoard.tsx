@@ -52,6 +52,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
   const [filtroEstado, setFiltroEstado] = useState('TODOS'); // 'PENDIENTES', 'EN_REVISION', 'COMPLETADAS'
   const [filtroObjetivo, setFiltroObjetivo] = useState('TODOS');
   const [filtroProducto, setFiltroProducto] = useState('TODOS');
+  const [filtroLocalidad, setFiltroLocalidad] = useState('TODAS');
   const [mostrandoBandejaValidacion, setMostrandoBandejaValidacion] = useState(false);
 
   // Computar validaciones pendientes (Solo para ADMIN, que trae múltiples asignaciones)
@@ -93,7 +94,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
   const mesProximo = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59);
 
   let actividadesFiltradas = actividades.filter(a => {
-    if (userData?.rol === 'GESTOR') {
+    if (userData?.rol !== 'ADMIN') {
       const tieneAsig = a.asignaciones?.some((asig: any) => userData.localidadesAsignadas?.includes(asig.localidadId));
       if (!tieneAsig) return false;
     }
@@ -110,7 +111,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
     }
     if (filtroEstado !== 'TODOS') {
        // Buscar si ALGUNA asignacion cumple (Para Gestores será la de ellos, para Admin mira el global)
-       const asignacionesAValidar = userData?.rol === 'GESTOR' 
+       const asignacionesAValidar = userData?.rol !== 'ADMIN' 
          ? a.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId))
          : a.asignaciones;
          
@@ -130,6 +131,9 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
 
     if (filtroObjetivo !== 'TODOS' && objNombre !== filtroObjetivo) return false;
     if (filtroProducto !== 'TODOS' && prodCodigo !== filtroProducto) return false;
+    if (filtroLocalidad !== 'TODAS') {
+      if (!a.asignaciones?.some((asig: any) => asig.localidad?.nombre === filtroLocalidad)) return false;
+    }
 
     return true;
   });
@@ -141,7 +145,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
        const progs = act.hito?.programa ? `${act.hito.programa.codigo} ${act.hito.programa.nombre}` : 'General';
        
        let asignacionesExportar = act.asignaciones;
-       if (userData?.rol === 'GESTOR') {
+       if (userData?.rol !== 'ADMIN') {
          asignacionesExportar = act.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId));
        }
 
@@ -161,6 +165,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
   };
 
   const objetivosList = Array.from(new Set(actividades.map(a => a.hito?.programa?.objetivo?.nombre || 'General'))).sort();
+  const localidadesList = Array.from(new Set(actividades.flatMap((a: any) => a.asignaciones?.map((asig: any) => asig.localidad?.nombre)).filter(Boolean))).sort();
   const productosList = Array.from(new Set(actividades.map(a => a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General'))).sort();
 
   const columnasSet = new Set(actividadesFiltradas.map(a => a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General'));
@@ -210,7 +215,7 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
         </div>
 
         {/* Fila 2: Buscador y Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
           <input 
             type="text" 
             placeholder="Buscar por codigo o nombre..." 
@@ -225,6 +230,14 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
           >
             <option value="TODOS">Objetivos: Todos</option>
             {objetivosList.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <select 
+            value={filtroLocalidad}
+            onChange={(e) => setFiltroLocalidad(e.target.value)}
+            className="border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm outline-none cursor-pointer w-full focus:ring-2 focus:ring-bogota-secondary focus:border-bogota-secondary"
+          >
+            <option value="TODAS">Localidad: Todas</option>
+            {localidadesList.map(l => <option key={l as string} value={l as string}>{l as string}</option>)}
           </select>
           <select 
             value={filtroProducto}

@@ -46,7 +46,7 @@ const renderMarkdown = (text: string) => {
 function App() {
   const { instance, accounts } = useMsal();
   const isAuthenticated = import.meta.env.VITE_BYPASS_AUTH === 'true' ? true : useIsAuthenticated();
-  const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas' | 'gestion'>('gestion');
+  const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas' | 'gestion'>('kanban');
   const [showHelp, setShowHelp] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   
@@ -172,24 +172,28 @@ function App() {
                 >
                   Panel de actividades
                 </button>
-                <button 
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'dashboard' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
-                >
-                  Tablero de control
-                </button>
-                <button 
-                  onClick={() => setActiveTab('alertas')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'alertas' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
-                >
-                  Gestor de alertas
-                </button>
-                <button 
-                  onClick={() => setActiveTab('gestion')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'gestion' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
-                >
-                  Gestión de resultados
-                </button>
+                {userData?.rol === 'ADMIN' && (
+                  <>
+                    <button 
+                      onClick={() => setActiveTab('dashboard')}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'dashboard' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                    >
+                      Tablero de control
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('alertas')}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'alertas' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                    >
+                      Gestor de alertas
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('gestion')}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'gestion' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                    >
+                      Gestión de resultados
+                    </button>
+                  </>
+                )}
               </nav>
             )}
 
