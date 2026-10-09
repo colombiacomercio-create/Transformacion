@@ -311,7 +311,10 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
               
               <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-3 custom-scrollbar">
                 {actividadesFiltradas.filter(a => (a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General') === col.id).map(actividad => (
-                  <div key={actividad.id} onClick={() => setActividadSeleccionada(actividad)} className="bg-white p-4 rounded-xl shadow-sm border border-[#E5E7EB] hover:shadow-md hover:border-gray-300 transition-all cursor-pointer relative group flex flex-col gap-2">
+                  <div key={actividad.id} onClick={() => setActividadSeleccionada(actividad)} className={`bg-white p-4 rounded-xl shadow-sm border border-[#E5E7EB] hover:shadow-md hover:border-gray-300 transition-all cursor-pointer relative group flex flex-col gap-2 border-l-4 ${actividad.estado === 'VENCIDA' ? 'border-l-red-500' : actividad.estado === 'COMPLETA_SIN_VALIDAR' || actividad.estado === 'COMPLETADA' ? 'border-l-green-500' : 'border-l-yellow-400'}`}>
+                    <div className="text-[11px] text-gray-500 font-bold uppercase flex items-center gap-1">
+                      📍 {actividad.asignaciones?.map((a:any) => a.localidad?.nombre).join(', ') || 'GLOBAL'}
+                    </div>
                     
                     <div className="flex justify-between items-start gap-2">
                       <span className="text-[12px] font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded truncate max-w-[85%]" title={actividad.codigoCompleto || 'SIN CODIGO'}>
