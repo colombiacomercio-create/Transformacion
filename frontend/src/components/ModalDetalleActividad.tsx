@@ -162,9 +162,9 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
       
       
       // Enviar correo si se agregaron nuevos responsables
-      const newEmails = (editData.correosNotificacion || '').split(',').map(e => e.trim()).filter(Boolean);
+      const newEmails = (editData.correosNotificacion || '').split(',').map((e: string) => e.trim()).filter(Boolean);
       const oldEmails = actividad.correosNotificacion || [];
-      const addedEmails = newEmails.filter(e => !oldEmails.includes(e));
+      const addedEmails = newEmails.filter((e: string) => !oldEmails.includes(e));
       
       if (addedEmails.length > 0) {
           try {
