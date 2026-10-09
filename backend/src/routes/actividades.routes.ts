@@ -431,7 +431,7 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
 router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { descripcion, fechaInicio, fechaLimite, nombre, hitoId, codigoCompleto } = req.body;
+    const { descripcion, fechaInicio, fechaLimite, nombre, hitoId, codigoCompleto, correosNotificacion } = req.body;
     
     const dataToUpdate: any = {};
     if (descripcion !== undefined) dataToUpdate.descripcion = descripcion;
@@ -440,6 +440,11 @@ router.patch('/:id', azureADAuth, requireRole(['ADMIN']), async (req: AuthReques
     if (nombre !== undefined) dataToUpdate.nombre = nombre;
     if (hitoId !== undefined) dataToUpdate.hitoId = hitoId;
     if (codigoCompleto !== undefined) dataToUpdate.codigoCompleto = codigoCompleto;
+    if (correosNotificacion !== undefined) {
+      dataToUpdate.correosNotificacion = Array.isArray(correosNotificacion) 
+         ? correosNotificacion 
+         : correosNotificacion.split(',').map((c: string) => c.trim()).filter(Boolean);
+    }
 
     const actividad = await prisma.actividad.update({
       where: { id },

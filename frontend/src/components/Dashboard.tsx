@@ -73,7 +73,10 @@ export default function Dashboard({ userData }: { userData?: any }) {
          
          data.forEach((a: any) => {
             const esProgramada = a.fechaLimite && new Date(a.fechaLimite) <= hoy;
-            const asp = mapByCodigo(a.codigoCompleto);
+            let asp = mapByCodigo(a.codigoCompleto);
+              if (!asp && (a.codigoCompleto.includes('[P05') || a.codigoCompleto.includes('H2') || a.codigoCompleto.includes('P2') || a.codigoCompleto.includes('P08'))) {
+                 asp = 'A4. Rollo Legendario';
+              }
             a.asignaciones?.forEach((asig: any) => {
                 const completada = asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' || asig.estadoValidacion === 'VALIDADA_COMPLETADA' || asig.estadoLocal === 'COMPLETADA_LOCAL';
                 

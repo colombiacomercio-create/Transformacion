@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient({ log: ['query', 'info', 'warn', 'error'] }); prisma.plan.findFirst({where: { nombre: 'Plan de Desarrollo 2024-2028' }}).then(console.log).catch(console.error).finally(() => prisma.$disconnect());

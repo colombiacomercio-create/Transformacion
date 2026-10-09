@@ -32,7 +32,8 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
      hitoId: actividad.hitoId || '',
      descripcion: actividad.descripcion || '',
      fechaInicio: actividad.fechaInicio ? new Date(actividad.fechaInicio).toISOString().split('T')[0] : '',
-     fechaLimite: actividad.fechaLimite ? new Date(actividad.fechaLimite).toISOString().split('T')[0] : ''
+     fechaLimite: actividad.fechaLimite ? new Date(actividad.fechaLimite).toISOString().split('T')[0] : '',
+     correosNotificacion: actividad.correosNotificacion?.join(', ') || ''
   });
 
   // States for Gestor Evidence Form
@@ -251,6 +252,9 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                         <option key={h.id} value={h.id}>{h.nombre}</option>
                      ))}
                   </select>
+                  
+                  <label className="text-xs font-bold text-gray-500 uppercase mt-2">Responsables a Notificar (Correos separados por coma)</label>
+                  <input type="text" className="w-full text-sm border rounded p-1 outline-none mb-2" value={editData.correosNotificacion} onChange={e => setEditData({...editData, correosNotificacion: e.target.value})} placeholder="admin@gobierno.gov.co, alcalde@bogota.gov.co" />
                 </div>
                ) : (
                 <h2 className="text-2xl font-bold text-gray-800 leading-tight">{actividad.nombre}</h2>
@@ -424,6 +428,12 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                     ) : (
                       <p className="font-medium">Inicio: {actividad.fechaInicio ? new Date(actividad.fechaInicio).toLocaleDateString() : 'N/A'}<br/>Límite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'N/A'}</p>
                     )}
+                 </div>
+                 <div>
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Responsables Asignados</h3>
+                    <p className="font-medium text-sm text-bogota-primary mb-3">
+                      {actividad.correosNotificacion?.length > 0 ? actividad.correosNotificacion.join(', ') : 'No asignado'}
+                    </p>
                  </div>
                  <div>
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Localidades Asignadas</h3>

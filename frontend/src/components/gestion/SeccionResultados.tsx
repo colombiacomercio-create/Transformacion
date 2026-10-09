@@ -151,6 +151,7 @@ export default function SeccionResultados({ userData }: Props) {
                 <th className="text-left px-3 py-2">Obras finalizadas</th>
                 <th className="text-left px-3 py-2">m² Esp. Público</th>
                 <th className="text-left px-3 py-2">Reportado por</th>
+                <th className="text-center px-3 py-2">Acciones</th>
               </tr></thead>
               <tbody>
                 {fichas.map((f: any) => (
@@ -161,6 +162,25 @@ export default function SeccionResultados({ userData }: Props) {
                     <td className="px-3 py-2">{f.intervencionesFinalizadas ?? '-'}</td>
                     <td className="px-3 py-2">{f.espacioPublicoM2 ? `${f.espacioPublicoM2.toLocaleString('es-CO')} m²` : '-'}</td>
                     <td className="px-3 py-2">{f.reportadoPor?.nombre}</td>
+                    <td className="px-3 py-2 text-center">
+                      <div className="flex justify-center gap-2">
+                      <button 
+                        onClick={() => setFichaActivaId(f.id)}
+                        className="px-2 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs"
+                      >
+                        Ver
+                      </button>
+                      <button 
+                        onClick={() => {
+                           setFichaActivaId(f.id);
+                           setTimeout(exportPDF, 500);
+                        }}
+                        className="px-2 py-1 bg-bogota-primary text-white hover:bg-red-700 rounded text-xs"
+                      >
+                        Descargar
+                      </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
