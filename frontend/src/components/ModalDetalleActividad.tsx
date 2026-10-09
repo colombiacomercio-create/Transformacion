@@ -152,6 +152,27 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editData)
       });
+      
+      // Enviar correo si se agregaron nuevos responsables
+      const newEmails = (editData.correosNotificacion || '').split(',').map(e => e.trim()).filter(Boolean);
+      const oldEmails = actividad.correosNotificacion || [];
+      const addedEmails = newEmails.filter(e => !oldEmails.includes(e));
+      
+      if (addedEmails.length > 0) {
+          try {
+             if (sessionStorage.getItem('BYPASS_AUTH') === 'true') {
+                 console.log("Modo Bypass Activo. Se omite el envio de correo por Microsoft Graph API.");
+             } else {
+                 const { sendEmailGraphAPI } = await import('../utils/api');
+                 const subject = `Asignacion de Responsabilidad - ${actividad.codigoCompleto || 'Sistema de Transformacion'}`;
+                 const body = `<p>Hola,</p><p>Usted ha sido designado como responsable de la actividad <strong>${actividad.nombre}</strong>.</p><p>Por favor revise el Tablero de Transformacion para mas detalles y gestionar los avances.</p>`;
+                 await sendEmailGraphAPI(addedEmails, subject, body);
+             }
+          } catch(e) {
+             console.error("No se pudo enviar el correo de notificacion:", e);
+          }
+      }
+
       setEditando(false);
       onRefresh();
     } catch(err) { console.error(err); }
