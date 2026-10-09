@@ -147,11 +147,19 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
   const handleAdminSaveEdits = async () => {
     try {
-      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}`, {
+      const updatedAct = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editData)
       });
+      
+      // Update local object to reflect changes immediately
+      actividad.nombre = editData.nombre;
+      actividad.codigoCompleto = editData.codigoCompleto;
+      actividad.fechaLimite = editData.fechaLimite;
+      actividad.fechaInicio = editData.fechaInicio;
+      actividad.correosNotificacion = (editData.correosNotificacion || '').split(',').map((c:string) => c.trim()).filter(Boolean);
+      
       
       // Enviar correo si se agregaron nuevos responsables
       const newEmails = (editData.correosNotificacion || '').split(',').map(e => e.trim()).filter(Boolean);
@@ -281,7 +289,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                 <h2 className="text-2xl font-bold text-gray-800 leading-tight">{actividad.nombre}</h2>
                )}
              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-               <span className="flex items-center gap-1"><Calendar className="w-4 h-4"/> L�mite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'Sin Fecha'}</span>
+               <span className="flex items-center gap-1"><Calendar className="w-4 h-4"/> Limite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'Sin Fecha'}</span>
                  <span className="flex items-center gap-1 bg-blue-50 text-blue-800 px-2 py-0.5 rounded-full text-xs ml-4 border border-blue-200">
                    Creado por: {actividad.nombreCreador || (actividad.creadoPor === 'SYSTEM' ? 'Sistema / Importaci�n' : 'Usuario Desconocido')}
                  </span>
@@ -447,7 +455,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                          <input type="date" className="border px-2 text-sm rounded" value={editData.fechaLimite} onChange={e => setEditData({...editData, fechaLimite: e.target.value})}/>
                       </div>
                     ) : (
-                      <p className="font-medium">Inicio: {actividad.fechaInicio ? new Date(actividad.fechaInicio).toLocaleDateString() : 'N/A'}<br/>Límite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'N/A'}</p>
+                      <p className="font-medium">Inicio: {actividad.fechaInicio ? new Date(actividad.fechaInicio).toLocaleDateString() : 'N/A'}<br/>Limite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'N/A'}</p>
                     )}
                  </div>
                  <div>
