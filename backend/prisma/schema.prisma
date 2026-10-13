@@ -163,7 +163,7 @@ model Hito {
 model Actividad {
   id                       String          @id @default(uuid())
   hitoId                   String
-  codigoCompleto           String          @unique // ej: "P03.H2.A1"
+  codigoCompleto           String // ej: "P03.H2.A1"
   nombre                   String
   descripcion              String?
   fechaInicio              DateTime?
