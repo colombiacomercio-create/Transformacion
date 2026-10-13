@@ -145,9 +145,49 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     }
   };
 
+  const handleReenviarNotificacion = async () => {
+    const emails = actividad.correosNotificacion || [];
+    if (emails.length === 0) {
+      alert("No hay correos de responsables asignados a esta actividad.");
+      return;
+    }
+    if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+      alert(`Modo Bypass: correo simulado a ${emails.join(', ')}`);
+      return;
+    }
+    try {
+      const { sendEmailGraphAPI } = await import('../utils/api');
+      const subject = `Recordatorio / Asignación de Actividad - ${actividad.codigoCompleto || 'Sistema RADAR'}`;
+      const body = `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <h2 style="color: #003366;">Unidad de Transformación y Cumplimiento - RADAR</h2>
+          <p>Hola,</p>
+          <p>Te recordamos que estás asignado(a) como responsable de la siguiente actividad:</p>
+          <div style="background-color: #f4f6f8; padding: 15px; border-left: 4px solid #FFCD00; margin: 15px 0;">
+            <p><strong>Actividad:</strong> ${actividad.nombre}</p>
+            <p><strong>Código:</strong> ${actividad.codigoCompleto}</p>
+            <p><strong>Fecha Límite:</strong> ${actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'Sin fecha'}</p>
+          </div>
+          <p>Por favor ingresa a la plataforma oficial para revisar el detalle y gestionar los avances y evidencias correspondientes.</p>
+          <br/>
+          <p style="font-size: 12px; color: #777;">Este es un mensaje automático generado por el Sistema de Transformación Bogotá.</p>
+        </div>
+      `;
+      await sendEmailGraphAPI(emails, subject, body);
+      alert(`Notificación enviada con éxito a: ${emails.join(', ')}`);
+    } catch (err: any) {
+      console.error("Error enviando notificación:", err);
+      alert(`Error enviando correo por Microsoft Graph: ${err.message || err}`);
+    }
+  };
+
   const handleAdminSaveEdits = async () => {
     try {
-      const updatedAct = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}`, {
+      const previousEmails: string[] = (actividad.correosNotificacion || []).map((e: string) => e.trim()).filter(Boolean);
+      const newEmails: string[] = (editData.correosNotificacion || '').split(',').map((e: string) => e.trim()).filter(Boolean);
+      const addedEmails = newEmails.filter((e: string) => !previousEmails.includes(e));
+
+      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editData)
@@ -158,32 +198,47 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
       actividad.codigoCompleto = editData.codigoCompleto;
       actividad.fechaLimite = editData.fechaLimite;
       actividad.fechaInicio = editData.fechaInicio;
-      actividad.correosNotificacion = (editData.correosNotificacion || '').split(',').map((c:string) => c.trim()).filter(Boolean);
-      
+      actividad.correosNotificacion = newEmails;
       
       // Enviar correo si se agregaron nuevos responsables
-      const newEmails = (editData.correosNotificacion || '').split(',').map((e: string) => e.trim()).filter(Boolean);
-      const oldEmails = actividad.correosNotificacion || [];
-      const addedEmails = newEmails.filter((e: string) => !oldEmails.includes(e));
-      
       if (addedEmails.length > 0) {
+        if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+          console.log("Modo Bypass Activo. Se omite el envio de correo por Microsoft Graph API.");
+          alert(`Actividad guardada. (Modo Bypass: correo simulado para ${addedEmails.join(', ')})`);
+        } else {
           try {
-             if (sessionStorage.getItem('BYPASS_AUTH') === 'true') {
-                 console.log("Modo Bypass Activo. Se omite el envio de correo por Microsoft Graph API.");
-             } else {
-                 const { sendEmailGraphAPI } = await import('../utils/api');
-                 const subject = `Asignacion de Responsabilidad - ${actividad.codigoCompleto || 'Sistema de Transformacion'}`;
-                 const body = `<p>Hola,</p><p>Usted ha sido designado como responsable de la actividad <strong>${actividad.nombre}</strong>.</p><p>Por favor revise el Tablero de Transformacion para mas detalles y gestionar los avances.</p>`;
-                 await sendEmailGraphAPI(addedEmails, subject, body);
-             }
-          } catch(e) {
-             console.error("No se pudo enviar el correo de notificacion:", e);
+            const { sendEmailGraphAPI } = await import('../utils/api');
+            const subject = `Asignación de Responsabilidad - ${editData.codigoCompleto || actividad.codigoCompleto || 'Sistema RADAR'}`;
+            const body = `
+              <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                <h2 style="color: #003366;">Unidad de Transformación y Cumplimiento - RADAR</h2>
+                <p>Hola,</p>
+                <p>Has sido asignado(a) como responsable de la siguiente actividad:</p>
+                <div style="background-color: #f4f6f8; padding: 15px; border-left: 4px solid #FFCD00; margin: 15px 0;">
+                  <p><strong>Actividad:</strong> ${editData.nombre || actividad.nombre}</p>
+                  <p><strong>Código:</strong> ${editData.codigoCompleto || actividad.codigoCompleto}</p>
+                  <p><strong>Fecha Límite:</strong> ${editData.fechaLimite || 'Sin fecha'}</p>
+                </div>
+                <p>Por favor ingresa a la plataforma oficial para revisar el detalle y gestionar los avances y evidencias correspondientes.</p>
+                <br/>
+                <p style="font-size: 12px; color: #777;">Este es un mensaje automático generado por el Sistema de Transformación Bogotá.</p>
+              </div>
+            `;
+            await sendEmailGraphAPI(addedEmails, subject, body);
+            alert(`Actividad guardada y correo de notificación enviado con éxito a: ${addedEmails.join(', ')}`);
+          } catch (mailErr: any) {
+            console.error("No se pudo enviar el correo de notificación:", mailErr);
+            alert(`La actividad se actualizó en la base de datos, pero hubo un error enviando el correo por Microsoft Graph: ${mailErr.message || mailErr}`);
           }
+        }
       }
 
       setEditando(false);
       onRefresh();
-    } catch(err) { console.error(err); }
+    } catch(err: any) {
+      console.error(err);
+      alert(`Error guardando actividad: ${err.message || err}`);
+    }
   };
 
   const handleUpdateEstadoLocal = async (estadoLocal: string) => {
@@ -460,9 +515,19 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                  </div>
                  <div>
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Responsables Asignados</h3>
-                    <p className="font-medium text-sm text-bogota-primary mb-3">
+                    <p className="font-medium text-sm text-bogota-primary mb-1">
                       {actividad.correosNotificacion?.length > 0 ? actividad.correosNotificacion.join(', ') : 'No asignado'}
                     </p>
+                    {actividad.correosNotificacion?.length > 0 && esAdmin && !editando && (
+                      <button
+                        type="button"
+                        onClick={handleReenviarNotificacion}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors mt-1"
+                        title="Enviar correo de notificación oficial por Microsoft a los responsables asignados"
+                      >
+                        ✉️ Reenviar Notificación
+                      </button>
+                    )}
                  </div>
                  <div>
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Localidades Asignadas</h3>

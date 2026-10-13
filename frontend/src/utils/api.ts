@@ -15,9 +15,17 @@ const acquireToken = async (): Promise<string> => {
       });
       return response.accessToken;
     } catch (error) {
-      console.error("Silent token acquisition failed", error);
-      // Fallback to popup or redirect if silent fails (could trigger login)
-      return "";
+      console.warn("Silent token acquisition failed, intentando acquireTokenPopup...", error);
+      try {
+        const response = await msalInstance.acquireTokenPopup({
+          scopes: ["User.Read", "Mail.Send"],
+          account: account
+        });
+        return response.accessToken;
+      } catch (popupErr) {
+        console.error("Popup token acquisition failed", popupErr);
+        return "";
+      }
     }
   }
   return "";

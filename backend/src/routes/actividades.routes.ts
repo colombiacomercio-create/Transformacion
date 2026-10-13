@@ -124,7 +124,8 @@ router.post('/', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, r
             fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
             fechaLimite: currentFechaLimite,
             creadoPor: userId,
-            tiposEvidenciaRequeridos: ['documento']
+            tiposEvidenciaRequeridos: ['documento'],
+            correosNotificacion: Array.isArray(req.body.correosNotificacion) ? req.body.correosNotificacion : (req.body.correosNotificacion ? req.body.correosNotificacion.split(',').map((c: string) => c.trim()).filter(Boolean) : [])
           }
         });
         
