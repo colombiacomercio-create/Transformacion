@@ -63,6 +63,18 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     }
   }, [esAdmin]);
 
+  useEffect(() => {
+    setEditData({
+      codigoCompleto: actividad.codigoCompleto || '',
+      nombre: actividad.nombre || '',
+      hitoId: actividad.hitoId || '',
+      descripcion: actividad.descripcion || '',
+      fechaInicio: actividad.fechaInicio ? new Date(actividad.fechaInicio).toISOString().split('T')[0] : '',
+      fechaLimite: actividad.fechaLimite ? new Date(actividad.fechaLimite).toISOString().split('T')[0] : '',
+      correosNotificacion: actividad.correosNotificacion?.join(', ') || ''
+    });
+  }, [actividad]);
+
   const getHitosPlano = () => {
     let hitos: {id: string, nombre: string}[] = [];
     planes.forEach(p => {
@@ -189,6 +201,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
       // Update local object to reflect changes immediately
       actividad.nombre = editData.nombre;
       actividad.codigoCompleto = editData.codigoCompleto;
+      actividad.descripcion = editData.descripcion;
       actividad.fechaLimite = editData.fechaLimite;
       actividad.fechaInicio = editData.fechaInicio;
       actividad.correosNotificacion = newEmails;
@@ -500,19 +513,31 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                     )}
                  </div>
                  <div>
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Responsables Asignados</h3>
-                    <p className="font-medium text-sm text-bogota-primary mb-1">
-                      {actividad.correosNotificacion?.length > 0 ? actividad.correosNotificacion.join(', ') : 'No asignado'}
-                    </p>
-                    {actividad.correosNotificacion?.length > 0 && esAdmin && !editando && (
-                      <button
-                        type="button"
-                        onClick={handleReenviarNotificacion}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors mt-1"
-                        title="Enviar correo de notificación oficial por Microsoft a los responsables asignados"
-                      >
-                        ✉️ Reenviar Notificación
-                      </button>
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Responsables Asignados ({esAdmin && 'Editables'})</h3>
+                    {editando ? (
+                      <input 
+                        type="text" 
+                        className="w-full text-sm border rounded p-1.5 outline-none font-medium text-gray-700 bg-white" 
+                        value={editData.correosNotificacion} 
+                        onChange={e => setEditData({...editData, correosNotificacion: e.target.value})} 
+                        placeholder="correo@gobiernobogota.gov.co, ..." 
+                      />
+                    ) : (
+                      <>
+                        <p className="font-medium text-sm text-bogota-primary mb-1">
+                          {actividad.correosNotificacion?.length > 0 ? actividad.correosNotificacion.join(', ') : 'No asignado'}
+                        </p>
+                        {actividad.correosNotificacion?.length > 0 && esAdmin && (
+                          <button
+                            type="button"
+                            onClick={handleReenviarNotificacion}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors mt-1"
+                            title="Enviar correo de notificación oficial por Microsoft a los responsables asignados"
+                          >
+                            ✉️ Reenviar Notificación
+                          </button>
+                        )}
+                      </>
                     )}
                  </div>
                  <div>
