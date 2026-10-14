@@ -73,20 +73,16 @@ export default function ModalNuevaActividad({ onClose, onSuccess }: Props) {
         if (import.meta.env.VITE_BYPASS_AUTH !== 'true') {
           try {
             const { sendEmailGraphAPI } = await import('../utils/api');
-            const subject = `Nueva Actividad Asignada - ${formData.codigoCompleto || 'Sistema RADAR'}`;
-            const body = `
-              <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-                <h2 style="color: #003366;">Unidad de Transformación y Cumplimiento - RADAR</h2>
-                <p>Hola,</p>
-                <p>Has sido asignado(a) como responsable de una nueva actividad en el sistema:</p>
-                <div style="background-color: #f4f6f8; padding: 15px; border-left: 4px solid #FFCD00; margin: 15px 0;">
-                  <p><strong>Actividad:</strong> ${formData.nombre}</p>
-                  <p><strong>Código:</strong> ${formData.codigoCompleto}</p>
-                  <p><strong>Fecha Límite:</strong> ${formData.fechaLimite || 'Sin fecha'}</p>
-                </div>
-                <p>Por favor ingresa a la plataforma oficial para revisar el detalle y gestionar los avances correspondientes.</p>
-              </div>
-            `;
+            const { generarCuerpoCorreoActividad, asuntoCorreoActividad } = await import('../utils/mailTemplate');
+            const createdData = await res.clone().json().catch(() => null);
+            const subject = asuntoCorreoActividad(formData.codigoCompleto);
+            const body = generarCuerpoCorreoActividad({
+              nombre: formData.nombre,
+              descripcion: formData.descripcion,
+              codigo: formData.codigoCompleto,
+              fechaLimite: formData.fechaLimite,
+              actividadId: createdData?.id
+            });
             await sendEmailGraphAPI(formData.correosNotificacion, subject, body);
           } catch (mailErr: any) {
             console.error("Error enviando correo al crear:", mailErr);

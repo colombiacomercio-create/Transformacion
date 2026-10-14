@@ -157,22 +157,15 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     }
     try {
       const { sendEmailGraphAPI } = await import('../utils/api');
-      const subject = `Recordatorio / Asignación de Actividad - ${actividad.codigoCompleto || 'Sistema RADAR'}`;
-      const body = `
-        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-          <h2 style="color: #003366;">Unidad de Transformación y Cumplimiento - RADAR</h2>
-          <p>Hola,</p>
-          <p>Te recordamos que estás asignado(a) como responsable de la siguiente actividad:</p>
-          <div style="background-color: #f4f6f8; padding: 15px; border-left: 4px solid #FFCD00; margin: 15px 0;">
-            <p><strong>Actividad:</strong> ${actividad.nombre}</p>
-            <p><strong>Código:</strong> ${actividad.codigoCompleto}</p>
-            <p><strong>Fecha Límite:</strong> ${actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'Sin fecha'}</p>
-          </div>
-          <p>Por favor ingresa a la plataforma oficial para revisar el detalle y gestionar los avances y evidencias correspondientes.</p>
-          <br/>
-          <p style="font-size: 12px; color: #777;">Este es un mensaje automático generado por el Sistema de Transformación Bogotá.</p>
-        </div>
-      `;
+      const { generarCuerpoCorreoActividad, asuntoCorreoActividad } = await import('../utils/mailTemplate');
+      const subject = asuntoCorreoActividad(actividad.codigoCompleto);
+      const body = generarCuerpoCorreoActividad({
+        nombre: actividad.nombre,
+        descripcion: actividad.descripcion,
+        codigo: actividad.codigoCompleto,
+        fechaLimite: actividad.fechaLimite,
+        actividadId: actividad.id
+      });
       await sendEmailGraphAPI(emails, subject, body);
       alert(`Notificación enviada con éxito a: ${emails.join(', ')}`);
     } catch (err: any) {
@@ -208,22 +201,15 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
         } else {
           try {
             const { sendEmailGraphAPI } = await import('../utils/api');
-            const subject = `Asignación de Responsabilidad - ${editData.codigoCompleto || actividad.codigoCompleto || 'Sistema RADAR'}`;
-            const body = `
-              <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-                <h2 style="color: #003366;">Unidad de Transformación y Cumplimiento - RADAR</h2>
-                <p>Hola,</p>
-                <p>Has sido asignado(a) como responsable de la siguiente actividad:</p>
-                <div style="background-color: #f4f6f8; padding: 15px; border-left: 4px solid #FFCD00; margin: 15px 0;">
-                  <p><strong>Actividad:</strong> ${editData.nombre || actividad.nombre}</p>
-                  <p><strong>Código:</strong> ${editData.codigoCompleto || actividad.codigoCompleto}</p>
-                  <p><strong>Fecha Límite:</strong> ${editData.fechaLimite || 'Sin fecha'}</p>
-                </div>
-                <p>Por favor ingresa a la plataforma oficial para revisar el detalle y gestionar los avances y evidencias correspondientes.</p>
-                <br/>
-                <p style="font-size: 12px; color: #777;">Este es un mensaje automático generado por el Sistema de Transformación Bogotá.</p>
-              </div>
-            `;
+            const { generarCuerpoCorreoActividad, asuntoCorreoActividad } = await import('../utils/mailTemplate');
+            const subject = asuntoCorreoActividad(editData.codigoCompleto || actividad.codigoCompleto);
+            const body = generarCuerpoCorreoActividad({
+              nombre: editData.nombre || actividad.nombre,
+              descripcion: editData.descripcion !== undefined ? editData.descripcion : actividad.descripcion,
+              codigo: editData.codigoCompleto || actividad.codigoCompleto,
+              fechaLimite: editData.fechaLimite || actividad.fechaLimite,
+              actividadId: actividad.id
+            });
             await sendEmailGraphAPI(addedEmails, subject, body);
             alert(`Actividad guardada y correo de notificación enviado con éxito a: ${addedEmails.join(', ')}`);
           } catch (mailErr: any) {

@@ -73,6 +73,10 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
          if (actividadSeleccionada) {
             const up = data.find((a: any) => a.id === actividadSeleccionada.id);
             if (up) setActividadSeleccionada(up);
+         } else if (window.location.hash.startsWith('#/actividad/')) {
+            const targetId = window.location.hash.replace('#/actividad/', '').trim();
+            const found = (data || []).find((a: any) => a.id === targetId || a.codigoCompleto === targetId);
+            if (found) setActividadSeleccionada(found);
          }
          
          setLoading(false);
@@ -85,7 +89,17 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
 
   useEffect(() => {
     fetchActividades();
-  }, []);
+
+    const handleHash = () => {
+      if (window.location.hash.startsWith('#/actividad/') && actividades.length > 0) {
+        const targetId = window.location.hash.replace('#/actividad/', '').trim();
+        const found = actividades.find((a: any) => a.id === targetId || a.codigoCompleto === targetId);
+        if (found) setActividadSeleccionada(found);
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, [actividades.length]);
 
   const hoy = new Date();
   hoy.setHours(0,0,0,0);
@@ -388,7 +402,12 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
       {actividadSeleccionada && (
         <ModalDetalleActividad 
           actividad={actividadSeleccionada}
-          onClose={() => setActividadSeleccionada(null)}
+          onClose={() => {
+            setActividadSeleccionada(null);
+            if (window.location.hash.startsWith('#/actividad/')) {
+              window.location.hash = '#/';
+            }
+          }}
           onRefresh={fetchActividades}
             userData={userData}
         />
