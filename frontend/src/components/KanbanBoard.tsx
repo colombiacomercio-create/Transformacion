@@ -342,6 +342,27 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
                     <h4 className="font-semibold text-gray-900 text-[14px] leading-snug">
                       {actividad.nombre}
                     </h4>
+
+                    {/* Responsables Asignados */}
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      {actividad.correosNotificacion && actividad.correosNotificacion.length > 0 ? (
+                        <div 
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md max-w-full truncate" 
+                          title={`Responsables: ${actividad.correosNotificacion.join(', ')}`}
+                        >
+                          <span>👤</span>
+                          <span className="truncate">
+                            {actividad.correosNotificacion.length === 1 
+                              ? actividad.correosNotificacion[0].split('@')[0] 
+                              : `${actividad.correosNotificacion[0].split('@')[0]} (+${actividad.correosNotificacion.length - 1})`}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-gray-400 italic flex items-center gap-1">
+                          <span>👤</span> Sin asignar
+                        </span>
+                      )}
+                    </div>
                     
                     <div className="flex items-center justify-between text-[12px] text-gray-500 mt-2 border-t border-gray-100 pt-3">
                       <div className="flex items-center gap-1.5" title="Fecha limite">

@@ -44,6 +44,18 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   const [comentarioEstado, setComentarioEstado] = useState('');
   const [evidenciaEstado, setEvidenciaEstado] = useState<File | null>(null);
   const [procesandoEstado, setProcesandoEstado] = useState(false);
+  const [nuevoResponsableInput, setNuevoResponsableInput] = useState('');
+  const [guardandoResponsables, setGuardandoResponsables] = useState(false);
+  const [usuariosSistema, setUsuariosSistema] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/auth/usuarios`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setUsuariosSistema(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const curLocId = locSelected || asignacionesOrdenadas[0]?.localidadId;
   const asigActual = asignacionesOrdenadas.find((a: any) => a.localidadId === curLocId);
@@ -154,6 +166,117 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
       } catch (e: any) {
         alert('Error eliminando la actividad: ' + e.message);
       }
+    }
+  };
+
+  const handleAgregarResponsable = async (correoParaAgregar?: string) => {
+    let emailToAdd = (correoParaAgregar || nuevoResponsableInput).trim().toLowerCase();
+    if (!emailToAdd) return;
+
+    // Si escribe solo el usuario sin dominio (ej: "roberto.parra"), autocompletar con @gobiernobogota.gov.co
+    if (!emailToAdd.includes('@')) {
+      emailToAdd = `${emailToAdd}@gobiernobogota.gov.co`;
+    }
+
+    const currentList: string[] = Array.from(new Set(
+      (actividad.correosNotificacion || [])
+        .map((e: string) => (typeof e === 'string' ? e.trim().toLowerCase() : ''))
+        .filter(Boolean)
+    ));
+
+    if (currentList.includes(emailToAdd)) {
+      alert(`El correo ${emailToAdd} ya se encuentra asignado como responsable.`);
+      setNuevoResponsableInput('');
+      return;
+    }
+
+    const updatedList = [...currentList, emailToAdd];
+    setGuardandoResponsables(true);
+    try {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/responsables`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correosNotificacion: updatedList })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Error guardando responsable en el servidor');
+      }
+
+      // Actualizar estado local inmediatamente
+      actividad.correosNotificacion = updatedList;
+      setEditData(prev => ({
+        ...prev,
+        correosNotificacion: updatedList.join(', ')
+      }));
+      setNuevoResponsableInput('');
+
+      // Enviar correo de notificación al nuevo responsable
+      if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+        alert(`Responsable asignado con éxito. (Modo Bypass: correo simulado a ${emailToAdd})`);
+      } else {
+        try {
+          const { sendEmailGraphAPI } = await import('../utils/api');
+          const { generarCuerpoCorreoActividad, asuntoCorreoActividad } = await import('../utils/mailTemplate');
+          const subject = asuntoCorreoActividad(actividad.codigoCompleto);
+          const body = generarCuerpoCorreoActividad({
+            nombre: actividad.nombre,
+            descripcion: actividad.descripcion,
+            codigo: actividad.codigoCompleto,
+            fechaLimite: actividad.fechaLimite,
+            actividadId: actividad.id
+          });
+          await sendEmailGraphAPI([emailToAdd], subject, body);
+          alert(`Responsable ${emailToAdd} asignado con éxito y notificación enviada por correo.`);
+        } catch (mailErr: any) {
+          console.error("Error enviando correo al nuevo responsable:", mailErr);
+          alert(`Responsable ${emailToAdd} guardado en la base de datos, pero ocurrió un aviso con el envío del correo: ${mailErr.message || mailErr}`);
+        }
+      }
+
+      onRefresh();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error al asignar responsable: ${err.message || err}`);
+    } finally {
+      setGuardandoResponsables(false);
+    }
+  };
+
+  const handleQuitarResponsable = async (emailToRemove: string) => {
+    if (!window.confirm(`¿Deseas quitar a ${emailToRemove} de los responsables de esta actividad?`)) {
+      return;
+    }
+
+    const currentList: string[] = (actividad.correosNotificacion || [])
+      .map((e: string) => (typeof e === 'string' ? e.trim().toLowerCase() : ''))
+      .filter(Boolean);
+
+    const updatedList = currentList.filter(e => e !== emailToRemove.toLowerCase());
+    setGuardandoResponsables(true);
+    try {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/responsables`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correosNotificacion: updatedList })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Error removiendo responsable');
+      }
+
+      actividad.correosNotificacion = updatedList;
+      setEditData(prev => ({
+        ...prev,
+        correosNotificacion: updatedList.join(', ')
+      }));
+
+      onRefresh();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error al remover responsable: ${err.message || err}`);
+    } finally {
+      setGuardandoResponsables(false);
     }
   };
 
@@ -512,33 +635,87 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                       <p className="font-medium">Inicio: {actividad.fechaInicio ? new Date(actividad.fechaInicio).toLocaleDateString() : 'N/A'}<br/>Limite: {actividad.fechaLimite ? new Date(actividad.fechaLimite).toLocaleDateString() : 'N/A'}</p>
                     )}
                  </div>
-                 <div>
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Responsables Asignados ({esAdmin && 'Editables'})</h3>
-                    {editando ? (
-                      <input 
-                        type="text" 
-                        className="w-full text-sm border rounded p-1.5 outline-none font-medium text-gray-700 bg-white" 
-                        value={editData.correosNotificacion} 
-                        onChange={e => setEditData({...editData, correosNotificacion: e.target.value})} 
-                        placeholder="correo@gobiernobogota.gov.co, ..." 
-                      />
-                    ) : (
-                      <>
-                        <p className="font-medium text-sm text-bogota-primary mb-1">
-                          {actividad.correosNotificacion?.length > 0 ? actividad.correosNotificacion.join(', ') : 'No asignado'}
-                        </p>
-                        {actividad.correosNotificacion?.length > 0 && esAdmin && (
+                 <div className="col-span-2 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-gray-100 pb-2">
+                       <div>
+                          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                             <span>👤</span> Responsables Asignados
+                             <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                                {actividad.correosNotificacion?.length || 0}
+                             </span>
+                          </h3>
+                          <p className="text-xs text-gray-400 mt-0.5">Puedes asignar uno o varios responsables; puedes agregar o quitar en cualquier momento.</p>
+                       </div>
+                       {actividad.correosNotificacion?.length > 0 && (
                           <button
-                            type="button"
-                            onClick={handleReenviarNotificacion}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors mt-1"
-                            title="Enviar correo de notificación oficial por Microsoft a los responsables asignados"
+                             type="button"
+                             onClick={handleReenviarNotificacion}
+                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors w-fit"
+                             title="Enviar correo de notificación oficial por Microsoft a todos los responsables asignados"
                           >
-                            ✉️ Reenviar Notificación
+                             ✉️ Reenviar Notificación a Todos
                           </button>
-                        )}
-                      </>
-                    )}
+                       )}
+                    </div>
+
+                    {/* Chips de Responsables Asignados */}
+                    <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
+                       {actividad.correosNotificacion && actividad.correosNotificacion.length > 0 ? (
+                          actividad.correosNotificacion.map((email: string) => (
+                             <div 
+                                key={email} 
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 shadow-2xs transition-colors"
+                             >
+                                <span className="w-5 h-5 rounded-full bg-bogota-primary text-white flex items-center justify-center text-[10px] font-bold">
+                                   {email[0]?.toUpperCase()}
+                                </span>
+                                <span className="font-medium text-gray-800">{email}</span>
+                                <button
+                                   type="button"
+                                   disabled={guardandoResponsables}
+                                   onClick={() => handleQuitarResponsable(email)}
+                                   className="ml-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full w-5 h-5 inline-flex items-center justify-center text-sm font-bold transition-colors"
+                                   title={`Quitar a ${email}`}
+                                >
+                                   ✕
+                                </button>
+                             </div>
+                          ))
+                       ) : (
+                          <div className="text-sm text-gray-400 italic py-1">
+                             No hay responsables asignados actualmente.
+                          </div>
+                       )}
+                    </div>
+
+                    {/* Barra para agregar responsable */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-gray-100 bg-gray-50/50 p-2.5 rounded-lg">
+                       <div className="relative flex-1">
+                          <input 
+                             type="text" 
+                             list="sugerencias-usuarios-responsables"
+                             value={nuevoResponsableInput}
+                             onChange={e => setNuevoResponsableInput(e.target.value)}
+                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAgregarResponsable(); } }}
+                             placeholder="Escribe correo o usuario (ej: roberto.parra@gobiernobogota.gov.co)..."
+                             disabled={guardandoResponsables}
+                             className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-bogota-primary/30 bg-white"
+                          />
+                          <datalist id="sugerencias-usuarios-responsables">
+                             {usuariosSistema.map(u => (
+                                <option key={u.id} value={u.email}>{u.nombre} ({u.email})</option>
+                             ))}
+                          </datalist>
+                       </div>
+                       <button
+                          type="button"
+                          disabled={guardandoResponsables || !nuevoResponsableInput.trim()}
+                          onClick={() => handleAgregarResponsable()}
+                          className="bg-bogota-primary hover:bg-red-800 disabled:opacity-50 text-white text-xs px-4 py-2 rounded-lg font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                       >
+                          {guardandoResponsables ? 'Guardando...' : '+ Asignar Responsable'}
+                       </button>
+                    </div>
                  </div>
                  <div>
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Localidades Asignadas</h3>

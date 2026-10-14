@@ -89,7 +89,7 @@ function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchApi(`${import.meta.env.VITE_API_URL || ''}/api/auth/me`)
+      fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/auth/me`)
         .then(res => res.json())
         .then(data => setUserData(data))
         .catch(err => console.error("Error fetching user data:", err));

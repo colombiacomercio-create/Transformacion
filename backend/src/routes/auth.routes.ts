@@ -43,4 +43,18 @@ router.get('/me', azureADAuth, async (req: AuthRequest, res) => {
   }
 });
 
+// Obtener lista de usuarios para asignación de responsables
+router.get('/usuarios', azureADAuth, async (req: AuthRequest, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      select: { id: true, nombre: true, email: true, rol: true },
+      orderBy: { nombre: 'asc' }
+    });
+    res.json(usuarios);
+  } catch (error) {
+    console.error('Error obteniendo usuarios:', error);
+    res.status(500).json({ message: 'Error obteniendo usuarios.' });
+  }
+});
+
 export default router;

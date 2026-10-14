@@ -367,8 +367,30 @@ router.patch('/asignacion/:id/estadoValidacion', auth_middleware_1.azureADAuth, 
         res.status(500).json({ error: 'Error actualizando estado de validaciÃ³n' });
     }
 });
-// Actualizar DescripciÃ³n (y otras propiedades) de Actividad
-router.patch('/:id', auth_middleware_1.azureADAuth, (0, auth_middleware_1.requireRole)(['ADMIN']), async (req, res) => {
+// Actualizar únicamente los responsables de una actividad (agregar o quitar en cualquier momento)
+router.patch('/:id/responsables', auth_middleware_1.azureADAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { correosNotificacion } = req.body;
+        if (!Array.isArray(correosNotificacion)) {
+            return res.status(400).json({ error: 'correosNotificacion debe ser un arreglo de correos.' });
+        }
+        const cleanList = Array.from(new Set(correosNotificacion
+            .map((c) => (typeof c === 'string' ? c.trim().toLowerCase() : ''))
+            .filter((c) => c.length > 0)));
+        const actividad = await prisma.actividad.update({
+            where: { id },
+            data: { correosNotificacion: cleanList }
+        });
+        res.json(actividad);
+    }
+    catch (error) {
+        console.error('Error actualizando responsables:', error);
+        res.status(500).json({ error: error.message || 'Error actualizando responsables' });
+    }
+});
+// Actualizar Descripción (y otras propiedades) de Actividad
+router.patch('/:id', auth_middleware_1.azureADAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { descripcion, fechaInicio, fechaLimite, nombre, hitoId, codigoCompleto, correosNotificacion } = req.body;
