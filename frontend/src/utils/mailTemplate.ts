@@ -35,16 +35,17 @@ export const generarCuerpoCorreoActividad = ({
 
   return `
     <div style="font-family: Arial, Helvetica, sans-serif; color: #333333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background-color: #ffffff;">
-      <div style="background-color: #003366; color: #ffffff; padding: 20px; text-align: center;">
-        <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #ffffff;">Unidad de Transformación SDG</h2>
-        <p style="margin: 6px 0 0; font-size: 13px; color: #FFCD00; font-weight: bold; letter-spacing: 0.5px;">Sistema RADAR – Alcaldía Mayor de Bogotá</p>
+      <!-- Encabezado con Colores del Distrito (Rojo Bogotá y Franja Amarilla) -->
+      <div style="background-color: #de0028; color: #ffffff; padding: 22px 20px; text-align: center; border-bottom: 4px solid #ffcd00;">
+        <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #ffffff; letter-spacing: 0.5px;">Unidad de Transformación</h2>
+        <p style="margin: 6px 0 0; font-size: 13px; color: #ffcd00; font-weight: bold;">Sistema RADAR – Red de Articulación, Datos, Alertas y Resultados</p>
       </div>
 
       <div style="padding: 24px;">
         <p style="font-size: 16px; margin: 0 0 12px 0; color: #111827;">Hola,</p>
         <p style="font-size: 15px; margin: 0 0 18px 0; color: #374151;">Has sido asignado(a) como responsable de la siguiente actividad:</p>
 
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #FFCD00; border-radius: 4px; padding: 16px; margin: 0 0 20px 0;">
+        <div style="background-color: #fffdf5; border: 1px solid #fef3c7; border-left: 4px solid #de0028; border-radius: 4px; padding: 16px; margin: 0 0 20px 0;">
           <p style="margin: 0 0 10px 0; font-size: 14px; color: #111827;"><strong>Actividad:</strong> ${nombre}</p>
           ${descHTML}
           <p style="margin: 0 0 10px 0; font-size: 14px; color: #111827;"><strong>Código:</strong> ${codigo}</p>
@@ -56,14 +57,14 @@ export const generarCuerpoCorreoActividad = ({
         </p>
 
         <div style="text-align: center; margin: 28px 0;">
-          <a href="${link}" style="background-color: #e3002b; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">
+          <a href="${link}" style="background-color: #de0028; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block; border-bottom: 3px solid #ffcd00;">
             Acceder a la Actividad en RADAR
           </a>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
         <p style="font-size: 11px; color: #9ca3af; text-align: center; margin: 0;">
-          Este es un correo institucional automático emitido por el sistema RADAR - Unidad de Transformación SDG.
+          Este es un correo institucional automático emitido por el sistema RADAR - Unidad de Transformación.
         </p>
       </div>
     </div>

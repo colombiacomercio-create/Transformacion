@@ -1,4 +1,4 @@
-﻿import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
@@ -53,9 +53,9 @@ export const azureADAuth = async (req: AuthRequest, res: Response, next: NextFun
 
     console.log('Email extraÃ­do:', userEmail);
 
-    // Buscar usuario en DB
-    let dbUser = await prisma.usuario.findUnique({
-      where: { email: userEmail }
+    // Buscar usuario en DB de forma insensible a mayúsculas/minúsculas
+    let dbUser = await prisma.usuario.findFirst({
+      where: { email: { equals: userEmail, mode: 'insensitive' } }
     });
 
     if (!dbUser) {

@@ -43,9 +43,9 @@ const azureADAuth = async (req, res, next) => {
             return res.status(401).json({ message: 'Token no contiene correo electrÃ³nico.' });
         }
         console.log('Email extraÃ­do:', userEmail);
-        // Buscar usuario en DB
-        let dbUser = await prisma.usuario.findUnique({
-            where: { email: userEmail }
+        // Buscar usuario en DB de forma insensible a mayúsculas/minúsculas
+        let dbUser = await prisma.usuario.findFirst({
+            where: { email: { equals: userEmail, mode: 'insensitive' } }
         });
         if (!dbUser) {
             console.log('Usuario no encontrado, creando:', userEmail);

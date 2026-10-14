@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const mail_service_1 = require("../services/mail.service");
 const express_1 = require("express");
 const client_1 = require("@prisma/client");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
@@ -7,30 +8,21 @@ const router = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
 router.get('/', auth_middleware_1.azureADAuth, async (req, res) => {
     try {
-        const actividades = await prisma.actividad.findMany({
+        const actividadesRaw = await prisma.actividad.findMany({
             include: {
-                hito: {
-                    include: {
-                        programa: {
-                            include: {
-                                objetivo: true
-                            }
-                        }
-                    }
-                },
-                asignaciones: {
-                    include: {
-                        localidad: true,
-                        responsable: true
-                    }
-                },
-                evidencias: true,
-                comentarios: {
-                    include: { autor: true },
-                    orderBy: { fechaCreacion: 'asc' }
-                }
+                hito: { include: { programa: { include: { objetivo: true } } } },
+                asignaciones: { include: { localidad: true, responsable: true } },
+                evidencias: { include: { subidoPor: true } },
+                comentarios: { include: { autor: true } }
             }
         });
+        const userIds = [...new Set(actividadesRaw.map(a => a.creadoPor).filter(id => id && id !== 'SYSTEM'))];
+        const users = await prisma.usuario.findMany({ where: { id: { in: userIds } } });
+        const userMap = new Map(users.map(u => [u.id, u.nombre]));
+        const actividades = actividadesRaw.map(a => ({
+            ...a,
+            nombreCreador: a.creadoPor === 'SYSTEM' ? 'Sistema / Importaci\u00f3n' : (userMap.get(a.creadoPor) || 'Usuario Desconocido')
+        }));
         res.json(actividades);
     }
     catch (error) {
@@ -41,36 +33,110 @@ router.get('/', auth_middleware_1.azureADAuth, async (req, res) => {
 // Crear Actividad
 router.post('/', auth_middleware_1.azureADAuth, (0, auth_middleware_1.requireRole)(['ADMIN']), async (req, res) => {
     try {
-        const { hitoId, codigoCompleto, nombre, descripcion, indicadorMeta, indicadorUnidad, prioridad, fechaInicio, fechaLimite } = req.body;
+        const { hitoId, codigoCompleto, nombre, descripcion, indicadorMeta, indicadorUnidad, prioridad, fechaInicio, fechaLimite, crearNuevoProducto, crearNuevaAspiracion, nuevoProductoCodigo, nuevoProductoNombre, aspiracionId, nuevaAspiracionCodigo, nuevaAspiracionNombre, localidadesIds, // array of strings
+        esRepetitiva, numRepeticiones, fechasLimites } = req.body;
         const userId = req.user.id;
-        // TODO: La asignaciÃ³n de localidad deberÃ­a hacerse mediante endpoints separados o incluir localidadId en el body, 
-        // pero por defecto lo crearemos sin asignaciÃ³n o con las localidades existentes si se proveen.
-        const nuevaActividad = await prisma.actividad.create({
-            data: {
-                hitoId,
-                codigoCompleto: codigoCompleto || `ACT-${Date.now()}`,
-                nombre,
-                descripcion,
-                indicadorMeta: parseFloat(indicadorMeta) || 0,
-                indicadorUnidad: indicadorUnidad || 'Unidades',
-                prioridad: prioridad || 'MEDIA',
-                fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
-                fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
-                creadoPor: userId,
-                tiposEvidenciaRequeridos: ['documento']
+        let finalHitoId = hitoId;
+        let baseProductCode = "P00";
+        // Si se est\u00e1 creando un producto nuevo desde la UI
+        if (crearNuevoProducto) {
+            let targetAspiracionId = aspiracionId;
+            if (crearNuevaAspiracion) {
+                let plan = await prisma.plan.findFirst({ where: { estado: 'ACTIVO' } });
+                if (!plan)
+                    plan = await prisma.plan.create({ data: { nombre: 'Plan Estrat\u00e9gico', ano: new Date().getFullYear(), estado: 'ACTIVO', creadoPor: userId } });
+                const nuevaAsp = await prisma.objetivoEstrategico.create({
+                    data: { planId: plan.id, codigo: nuevaAspiracionCodigo, nombre: nuevaAspiracionNombre, orden: 99 }
+                });
+                targetAspiracionId = nuevaAsp.id;
             }
-        });
-        // Auto-asignar a todas las localidades
-        const localidades = await prisma.localidad.findMany();
-        if (localidades.length > 0) {
-            await prisma.asignacionLocalidad.createMany({
-                data: localidades.map(loc => ({
-                    actividadId: nuevaActividad.id,
-                    localidadId: loc.id
-                }))
+            const nuevoProg = await prisma.programa.create({
+                data: { objetivoId: targetAspiracionId, codigo: nuevoProductoCodigo, nombre: nuevoProductoNombre }
             });
+            baseProductCode = nuevoProductoCodigo;
+            const nuevoHito = await prisma.hito.create({
+                data: { programaId: nuevoProg.id, codigo: 'H1', nombre: 'General', fechaLimite: fechaLimite ? new Date(fechaLimite) : new Date() }
+            });
+            finalHitoId = nuevoHito.id;
         }
-        res.status(201).json(nuevaActividad);
+        else {
+            // Buscar el c\u00f3digo del producto para autogenerar
+            const existingHito = await prisma.hito.findUnique({ where: { id: finalHitoId }, include: { programa: true } });
+            if (existingHito) {
+                baseProductCode = existingHito.programa.codigo;
+            }
+        }
+        const repeticionesCount = (esRepetitiva && numRepeticiones > 1) ? parseInt(numRepeticiones) : 1;
+        const metaPerAct = (parseFloat(indicadorMeta) || 0) / repeticionesCount;
+        // Conteo para autogenerar c\u00f3digos secuenciales
+        const conteo = await prisma.actividad.count({
+            where: { hitoId: finalHitoId }
+        });
+        let baseCode = codigoCompleto;
+        if (!baseCode) {
+            baseCode = `${baseProductCode}.${conteo + 1}`;
+        }
+        let primaryActividad = null;
+        for (let i = 0; i < repeticionesCount; i++) {
+            let currentCode = baseCode;
+            let currentName = nombre;
+            let currentFechaLimite = fechaLimite ? new Date(fechaLimite) : null;
+            if (fechasLimites && Array.isArray(fechasLimites) && fechasLimites[i]) {
+                currentFechaLimite = new Date(fechasLimites[i]);
+            }
+            if (repeticionesCount > 1) {
+                currentCode = `${baseCode}-${i + 1}`;
+                currentName = `${nombre} (Repetici\u00f3n ${i + 1}/${repeticionesCount})`;
+            }
+            const act = await prisma.actividad.create({
+                data: {
+                    hitoId: finalHitoId,
+                    codigoCompleto: currentCode,
+                    nombre: currentName,
+                    descripcion,
+                    indicadorMeta: metaPerAct,
+                    indicadorUnidad: indicadorUnidad || 'Unidades',
+                    prioridad: prioridad || 'MEDIA',
+                    fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
+                    fechaLimite: currentFechaLimite,
+                    creadoPor: userId,
+                    tiposEvidenciaRequeridos: ['documento'],
+                    correosNotificacion: Array.isArray(req.body.correosNotificacion) ? req.body.correosNotificacion : (req.body.correosNotificacion ? req.body.correosNotificacion.split(',').map((c) => c.trim()).filter(Boolean) : [])
+                }
+            });
+            if (i === 0)
+                primaryActividad = act;
+            // Asignar localidades
+            let targetLocs = [];
+            if (localidadesIds && Array.isArray(localidadesIds) && localidadesIds.length > 0) {
+                targetLocs = localidadesIds;
+            }
+            else {
+                // Si no mandan nada, quiz\u00e1s quieran todas (o ninguna). Para retrocompatibilidad y requerimiento: "No todas se repiten, pueden ser \u00fanicas"
+                // Let's assume if it's empty, they meant NONE. But wait, if they don't select, it won't show in the kanban.
+                // Let's get ALL if empty to be safe, or just what they select.
+                const allLocs = await prisma.localidad.findMany();
+                targetLocs = allLocs.map(l => l.id);
+            }
+            if (targetLocs.length > 0) {
+                await prisma.asignacionLocalidad.createMany({
+                    data: targetLocs.map(lId => ({
+                        actividadId: act.id,
+                        localidadId: lId
+                    }))
+                });
+                // Enviar correo a los responsables de las localidades asignadas
+                for (const lId of targetLocs) {
+                    const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: lId } } } });
+                    const correosLoc = usuariosLoc.map(u => u.email).filter(e => e);
+                    const allEmailsLoc = [...new Set([...correosLoc, ...(act.correosNotificacion || [])])];
+                    if (allEmailsLoc.length > 0) {
+                        await (0, mail_service_1.enviarNotificacion)(allEmailsLoc, `Nueva Actividad Asignada: ${act.nombre}`, `Se te ha asignado una nueva actividad en el sistema Transformaci\u00f3n Bogot\u00e1:<br><br><b>Actividad:</b> ${act.nombre}<br><b>C\u00f3digo:</b> ${act.codigoCompleto}<br><br>Por favor ingresa a la plataforma para revisarla.`);
+                    }
+                }
+            }
+        }
+        res.status(201).json(primaryActividad);
     }
     catch (error) {
         console.error('Error creando actividad:', error);
@@ -98,18 +164,58 @@ router.post('/importar', auth_middleware_1.azureADAuth, (0, auth_middleware_1.re
             }
             if (actividades && Array.isArray(actividades)) {
                 for (const act of actividades) {
-                    const { codigoProducto, codigoActividad, nombre, descripcion, fechaInicio, fechaLimite, indicadorMeta, indicadorUnidad, prioridad } = act;
-                    const programa = await tx.programa.findFirst({
-                        where: { codigo: codigoProducto },
-                        include: { hitos: true }
-                    });
+                    const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites, correosNotificacion } = act;
+                    if (!nombre) {
+                        throw new Error('El nombre de la actividad es obligatorio');
+                    }
+                    // Parse Aspiracion
+                    let objCodigo = "A0";
+                    let objNombre = aspiracion || "Aspiracion General";
+                    if (aspiracion && typeof aspiracion === 'string' && aspiracion.includes('.')) {
+                        objCodigo = aspiracion.split('.')[0].trim();
+                        objNombre = aspiracion.split('.').slice(1).join('.').trim();
+                    }
+                    // Parse Producto
+                    let progCodigo = "P00";
+                    let progNombre = producto || "Producto General";
+                    if (producto && typeof producto === 'string') {
+                        const match = producto.match(/^([P|p|A-Z0-9]+)\s+(.*)/);
+                        if (match) {
+                            progCodigo = match[1].toUpperCase();
+                            progNombre = match[2].trim();
+                        }
+                        else {
+                            progCodigo = producto.split(' ')[0].toUpperCase();
+                            progNombre = producto;
+                        }
+                    }
+                    // 1. Find or create Plan
+                    let plan = await tx.plan.findFirst({ where: { estado: 'ACTIVO' } });
+                    if (!plan) {
+                        plan = await tx.plan.create({ data: { nombre: 'Plan Estrategico', ano: new Date().getFullYear(), estado: 'ACTIVO', creadoPor: req.user?.id || 'admin' } });
+                    }
+                    // 2. Find or create Objetivo (Aspiracion)
+                    let objetivo = await tx.objetivoEstrategico.findFirst({ where: { planId: plan.id, codigo: objCodigo } });
+                    if (!objetivo) {
+                        objetivo = await tx.objetivoEstrategico.create({ data: { planId: plan.id, codigo: objCodigo, nombre: objNombre, orden: 1 } });
+                    }
+                    // 3. Find or create Programa (Producto)
+                    let programa = await tx.programa.findFirst({ where: { objetivoId: objetivo.id, codigo: progCodigo } });
                     if (!programa) {
-                        throw new Error(`Programa con código ${codigoProducto} no encontrado`);
+                        programa = await tx.programa.create({ data: { objetivoId: objetivo.id, codigo: progCodigo, nombre: progNombre } });
                     }
-                    if (!programa.hitos || programa.hitos.length === 0) {
-                        throw new Error(`Programa con código ${codigoProducto} no tiene hitos asociados`);
+                    // 4. Find or create Hito
+                    let hito = await tx.hito.findFirst({ where: { programaId: programa.id } });
+                    if (!hito) {
+                        hito = await tx.hito.create({ data: { programaId: programa.id, codigo: 'H1', nombre: 'Hito General', fechaLimite: new Date() } });
                     }
-                    const hito = programa.hitos[0];
+                    // Tratar el valorActividad
+                    let meta = 100;
+                    if (valorActividad) {
+                        const v = parseFloat(valorActividad.toString().replace('%', ''));
+                        if (!isNaN(v))
+                            meta = v;
+                    }
                     await tx.actividad.create({
                         data: {
                             hitoId: hito.id,
@@ -118,11 +224,12 @@ router.post('/importar', auth_middleware_1.azureADAuth, (0, auth_middleware_1.re
                             descripcion: descripcion || null,
                             fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
                             fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
-                            indicadorMeta: indicadorMeta ? parseFloat(indicadorMeta) : 0,
-                            indicadorUnidad: indicadorUnidad || '',
-                            prioridad: prioridad || 'MEDIA',
-                            creadoPor: req.user?.id || 'import-script',
-                            tiposEvidenciaRequeridos: ['documento']
+                            indicadorMeta: meta,
+                            indicadorUnidad: '%',
+                            prioridad: 'MEDIA',
+                            creadoPor: req.user?.id || 'admin',
+                            correosNotificacion: correosNotificacion || [],
+                            estado: 'PENDIENTE'
                         }
                     });
                 }
@@ -199,8 +306,16 @@ router.patch('/asignacion/:id/estadoLocal', auth_middleware_1.azureADAuth, async
         const { estadoLocal } = req.body;
         const asig = await prisma.asignacionLocalidad.update({
             where: { id },
-            data: { estadoLocal }
+            data: { estadoLocal },
+            include: { actividad: true, localidad: true }
         });
+        // Notificar a los administradores
+        const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN' } });
+        const correosAdmins = admins.map(a => a.email).filter(e => e);
+        const allEmails = [...new Set([...correosAdmins, ...(asig.actividad.correosNotificacion || [])])];
+        if (allEmails.length > 0) {
+            await (0, mail_service_1.enviarNotificacion)(allEmails, `Actividad actualizada por Localidad: ${asig.actividad.nombre}`, `La localidad <b>${asig.localidad.nombre}</b> ha cambiado el estado de la actividad a <b>${estadoLocal}</b>.<br><br>Por favor revisa la plataforma.`);
+        }
         res.json(asig);
     }
     catch (error) {
@@ -213,15 +328,38 @@ router.patch('/asignacion/:id/estadoValidacion', auth_middleware_1.azureADAuth, 
     try {
         const { id } = req.params;
         const { estadoValidacion } = req.body;
-        // Si validan como COMPLETADA, cerramos tambiÃ©n el estadoLocal para que quede todo sincronizado
+        const asigCurrent = await prisma.asignacionLocalidad.findUnique({
+            where: { id },
+            include: { actividad: true }
+        });
+        if (!asigCurrent) {
+            return res.status(404).json({ error: 'Asignaci\u00f3n no encontrada' });
+        }
         let updateData = { estadoValidacion };
-        if (estadoValidacion === 'VALIDADA_COMPLETADA') {
-            updateData.estadoLocal = 'COMPLETA_SIN_VALIDAR'; // O dejarlo en algo que indique cerrado
+        // Calculate score (porcentajeAvance) based on the validation status
+        const meta = asigCurrent.actividad.indicadorMeta || 0;
+        if (estadoValidacion === 'VALIDADA_SIN_AVANCE') {
+            updateData.porcentajeAvance = 0;
+        }
+        else if (estadoValidacion === 'VALIDADA_EN_CURSO') {
+            updateData.porcentajeAvance = meta * 0.5;
+        }
+        else if (estadoValidacion === 'VALIDADA_COMPLETADA') {
+            updateData.porcentajeAvance = meta;
+            updateData.estadoLocal = 'COMPLETA_SIN_VALIDAR';
         }
         const asig = await prisma.asignacionLocalidad.update({
             where: { id },
-            data: updateData
+            data: updateData,
+            include: { actividad: true, localidad: true }
         });
+        // Notificar a los responsables de la localidad
+        const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: asig.localidadId } } } });
+        const correosLoc = usuariosLoc.map(u => u.email).filter(e => e);
+        const allEmailsLoc = [...new Set([...correosLoc, ...(asig.actividad.correosNotificacion || [])])];
+        if (allEmailsLoc.length > 0) {
+            await (0, mail_service_1.enviarNotificacion)(allEmailsLoc, `Actividad Validada por Admin: ${asig.actividad.nombre}`, `Un administrador ha cambiado el estado de revisi\u00f3n de tu actividad a <b>${estadoValidacion}</b> con un avance del ${updateData.porcentajeAvance || 0}%.<br><br>Revisa la plataforma para m\u00e1s detalles.`);
+        }
         res.json(asig);
     }
     catch (error) {
@@ -233,7 +371,7 @@ router.patch('/asignacion/:id/estadoValidacion', auth_middleware_1.azureADAuth, 
 router.patch('/:id', auth_middleware_1.azureADAuth, (0, auth_middleware_1.requireRole)(['ADMIN']), async (req, res) => {
     try {
         const { id } = req.params;
-        const { descripcion, fechaInicio, fechaLimite, nombre, hitoId, codigoCompleto } = req.body;
+        const { descripcion, fechaInicio, fechaLimite, nombre, hitoId, codigoCompleto, correosNotificacion } = req.body;
         const dataToUpdate = {};
         if (descripcion !== undefined)
             dataToUpdate.descripcion = descripcion;
@@ -247,6 +385,11 @@ router.patch('/:id', auth_middleware_1.azureADAuth, (0, auth_middleware_1.requir
             dataToUpdate.hitoId = hitoId;
         if (codigoCompleto !== undefined)
             dataToUpdate.codigoCompleto = codigoCompleto;
+        if (correosNotificacion !== undefined) {
+            dataToUpdate.correosNotificacion = Array.isArray(correosNotificacion)
+                ? correosNotificacion
+                : correosNotificacion.split(',').map((c) => c.trim()).filter(Boolean);
+        }
         const actividad = await prisma.actividad.update({
             where: { id },
             data: dataToUpdate

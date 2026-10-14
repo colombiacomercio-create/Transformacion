@@ -61,8 +61,8 @@ const ejecutarConReintentos = async (fn, reintentos = 3, retraso = 1000) => {
  */
 const generarBorradorReporte = async (localidadNombre, objetivoNombre, cifrasActividades, alertasActivas, comentarios, actividadesRezagadas, alertasFichaResultados) => {
     const totalAvance = cifrasActividades.reduce((sum, act) => sum + act.avance, 0) / (cifrasActividades.length || 1);
-    const fallbackAvances = `En la localidad de ${localidadNombre}, el objetivo "${objetivoNombre}" presenta un avance consolidado promedio del ${totalAvance.toFixed(1)}%. Se destaca la ejecuciÃ³n de ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} actividades completadas de un total de ${cifrasActividades.length} programadas.`;
-    const fallbackAlertas = `Se registran ${alertasActivas.length} cuellos de botella activos en el periodo. Se sugiere priorizar la revisiÃ³n de evidencias pendientes y la articulaciÃ³n con los responsables asignados.`;
+    const fallbackAvances = `En la localidad de ${localidadNombre}, el objetivo "${objetivoNombre}" presenta un avance consolidado promedio del ${totalAvance.toFixed(1)}%. Se destaca la ejecución de ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} actividades completadas de un total de ${cifrasActividades.length} programadas.`;
+    const fallbackAlertas = `Se registran ${alertasActivas.length} cuellos de botella activos en el periodo. Se sugiere priorizar la revisión de evidencias pendientes y la articulación con los responsables asignados.`;
     const client = obtenerClienteGemini();
     if (!client) {
         return { avancesDraft: `[Borrador local] ${fallbackAvances}`, alertasDraft: `[Borrador local] ${fallbackAlertas}` };
@@ -73,28 +73,26 @@ const generarBorradorReporte = async (localidadNombre, objetivoNombre, cifrasAct
             generationConfig: { responseMimeType: 'application/json' }
         });
         const prompt = `
-        ActÃºa como un analista experto en polÃ­ticas pÃºblicas para el sistema RADAR.
-        Genera un borrador de reporte cualitativo mensual para la localidad de "${localidadNombre}" sobre el objetivo estratÃ©gico: "${objetivoNombre}".
+        Actúa como un analista experto en políticas públicas para el sistema RADAR.
+        Debes generar un borrador narrativo de los "Principales Avances" y "Alertas y Recomendaciones" del objetivo: "${objetivoNombre}" para la localidad de "${localidadNombre}".
+        
+        INSTRUCCIONES CLAVE:
+        1. Debes MENCIONAR EXPLÍCITAMENTE la localidad ("${localidadNombre}") en ambos textos (avances y alertas), indicando qué ocurre específicamente allí.
+        2. Si hay múltiples observaciones, divídelas en varios PÁRRAFOS utilizando saltos de línea dobles para facilitar la lectura. No entregues un solo bloque de texto.
+        3. Escribe de manera ejecutiva, clara y directa.
 
-        1. Cifras de Actividades (programado vs ejecutado):
-        ${JSON.stringify(cifrasActividades, null, 2)}
+        DATOS DISPONIBLES:
+        - Avance promedio local: ${totalAvance.toFixed(1)}%
+        - Actividades completadas: ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} de ${cifrasActividades.length}
+        - Alertas activas: ${JSON.stringify(alertasActivas)}
+        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas)}
+        - Comentarios del equipo: ${comentarios.join(' | ')}
+        - Alerta Ficha Resultados (Global): ${alertasFichaResultados}
 
-        2. Comentarios / Reportes registrados en las actividades:
-        ${comentarios.length > 0 ? comentarios.map(c => `- ${c}`).join('\n') : 'No hay comentarios registrados.'}
-
-        3. Actividades Vencidas / Rezagadas (Con retraso acumulado):
-        ${actividadesRezagadas.length > 0 ? actividadesRezagadas.map(a => `- Actividad ${a.codigo}: "${a.nombre}" (Retraso acumulado de ${a.diasRetraso} dÃ­as)`).join('\n') : 'No hay actividades rezagadas.'}
-
-        4. Alertas del panel de alertas (FichaAlerta):
-        ${JSON.stringify(alertasActivas, null, 2)}
-
-        5. Observaciones/alertas de la Ficha de Resultados para este objetivo:
-        ${alertasFichaResultados || 'No hay alertas registradas en la Ficha de Resultados.'}
-
-        Genera dos secciones estructuradas en formato JSON plano:
+        Devuelve ÚNICAMENTE un JSON con este formato (asegúrate de escapar las comillas si es necesario):
         {
-          "avances": "RedacciÃ³n clara, formal y ejecutiva de los principales logros (mÃ¡ximo 150 palabras). Sintetiza los avances numÃ©ricos y analiza cualitativamente los comentarios de las actividades para resaltar lo ejecutado.",
-          "alertas": "IdentificaciÃ³n analÃ­tica de los cuellos de botella y recomendaciones especÃ­ficas de mitigaciÃ³n (mÃ¡ximo 150 palabras). Relaciona las actividades rezagadas, las alertas del panel y las observaciones de la Ficha de Resultados."
+          "avances": "texto con los avances, mencionando la localidad, separado en párrafos cortos...",
+          "alertas": "texto con las alertas y recomendaciones, mencionando la localidad, separado en párrafos cortos..."
         }
         `;
         const response = await ejecutarConReintentos(() => model.generateContent(prompt));
