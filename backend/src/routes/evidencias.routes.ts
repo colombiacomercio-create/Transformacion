@@ -22,7 +22,7 @@ const upload = multer({
 router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']), upload.single('archivo'), async (req: AuthRequest, res) => {
   try {
     const { actividadId } = req.params;
-    const { tipoEvidencia, descripcion, localidadId, comentarioAdjunto } = req.body;
+    const { tipoEvidencia, descripcion, localidadId, comentarioAdjunto, nuevoEstado } = req.body;
     
     if (!req.file) {
       return res.status(400).json({ error: 'No se envió ningún archivo' });
@@ -65,6 +65,45 @@ router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']
         autorId: req.user.id
       }
     });
+
+    // Si se especificó cambio de estado al cargar la evidencia
+    if (nuevoEstado) {
+      let normalizedEstado: any = 'NO_INICIADA';
+      let actEstado: any = 'PENDIENTE';
+      if (nuevoEstado === 'COMPLETA_SIN_VALIDAR' || nuevoEstado === 'COMPLETADA') {
+        normalizedEstado = 'COMPLETA_SIN_VALIDAR';
+        actEstado = 'COMPLETADA';
+      } else if (nuevoEstado === 'EN_CURSO_SIN_VALIDAR' || nuevoEstado === 'EN_CURSO') {
+        normalizedEstado = 'EN_CURSO_SIN_VALIDAR';
+        actEstado = 'EN_PROGRESO';
+      } else {
+        normalizedEstado = 'NO_INICIADA';
+        actEstado = 'PENDIENTE';
+      }
+
+      const asig = await prisma.asignacionLocalidad.findFirst({
+        where: { actividadId, localidadId: locFinalId }
+      });
+      if (asig) {
+        const act = await prisma.actividad.findUnique({ where: { id: actividadId } });
+        const meta = act?.indicadorMeta || 0;
+        let avance = 0;
+        if (normalizedEstado === 'COMPLETA_SIN_VALIDAR') avance = meta;
+        else if (normalizedEstado === 'EN_CURSO_SIN_VALIDAR') avance = meta * 0.5;
+
+        await prisma.asignacionLocalidad.update({
+          where: { id: asig.id },
+          data: {
+            estadoLocal: normalizedEstado,
+            ...(asig.estadoValidacion === 'PENDIENTE_REVISION' ? { porcentajeAvance: avance } : {})
+          }
+        });
+        await prisma.actividad.update({
+          where: { id: actividadId },
+          data: { estado: actEstado }
+        });
+      }
+    }
 
     // Disparar prechequeo de IA de forma asíncrona en segundo plano sin bloquear respuesta HTTP
     import('../services/ai.service').then(async (aiService) => {

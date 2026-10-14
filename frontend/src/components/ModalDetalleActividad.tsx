@@ -39,11 +39,8 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   // States for Gestor Evidence Form
   const [comentarioEvidencia, setComentarioEvidencia] = useState('');
   const [evidenciaFile, setEvidenciaFile] = useState<File | null>(null);
+  const [estadoAlSubir, setEstadoAlSubir] = useState<string>('EN_CURSO_SIN_VALIDAR');
 
-  const [estadoPendiente, setEstadoPendiente] = useState<string | null>(null);
-  const [comentarioEstado, setComentarioEstado] = useState('');
-  const [evidenciaEstado, setEvidenciaEstado] = useState<File | null>(null);
-  const [procesandoEstado, setProcesandoEstado] = useState(false);
   const [nuevoResponsableInput, setNuevoResponsableInput] = useState('');
   const [guardandoResponsables, setGuardandoResponsables] = useState(false);
   const [usuariosSistema, setUsuariosSistema] = useState<any[]>([]);
@@ -207,6 +204,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     formData.append('descripcion', 'Subida local manual');
     formData.append('comentarioAdjunto', comentarioEvidencia.trim());
     formData.append('localidadId', curLocId);
+    formData.append('nuevoEstado', estadoAlSubir);
 
     setUploading(true);
     try {
@@ -227,7 +225,8 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
       setComentarioEvidencia('');
       setEvidenciaFile(null);
-      alert('Evidencia cargada con éxito y registrada en el hilo de comentarios.');
+      const estadoLabel = estadoAlSubir === 'COMPLETA_SIN_VALIDAR' ? 'Completada' : estadoAlSubir === 'EN_CURSO_SIN_VALIDAR' ? 'En Curso' : 'Sin iniciar';
+      alert(`Evidencia cargada con éxito, registrada en el hilo de comentarios y estado de actividad actualizado a "${estadoLabel}".`);
       onRefresh();
     } catch(err: any) {
       console.error(err);
@@ -447,56 +446,21 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
   const handleUpdateEstadoLocal = async (estadoLocal: string) => {
     if (!asigActual) return;
-    setEstadoPendiente(estadoLocal);
-  };
-
-  const confirmarCambioEstadoLocal = async (e: React.FormEvent) => {
-     e.preventDefault();
-     if (!asigActual || !estadoPendiente) return;
-     if (!evidenciaEstado || !comentarioEstado.trim()) {
-        alert("Debes adjuntar un archivo de evidencia y escribir un comentario técnico.");
-        return;
-     }
-     
-     setProcesandoEstado(true);
-     try {
-       // 1. Subir evidencia
-       const formData = new FormData();
-       formData.append('archivo', evidenciaEstado);
-       formData.append('tipoEvidencia', 'documento');
-       formData.append('localidadId', asigActual.localidadId);
-       formData.append('descripcion', 'Soporte de cambio de estado');
-       formData.append('comentarioAdjunto', comentarioEstado);
-
-       await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/evidencias/upload/${actividad.id}`, {
-         method: 'POST',
-         body: formData
-       });
-
-       // 2. Subir Comentario (aunque el upload ya crea uno, creamos este para ser explícitos sobre el cambio de estado)
-       await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/comentarios`, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-            texto: `[Cambio de Estado a ${estadoPendiente.replace(/_/g, ' ')}]`,
-            localidadId: asigActual.localidadId
-         })
-       });
-
-       // 3. Cambiar estado local
-       await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/asignacion/${asigActual.id}/estadoLocal`, {
-         method: 'PATCH',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ estadoLocal: estadoPendiente })
-       });
-       
-       setEstadoPendiente(null);
-       setComentarioEstado('');
-       setEvidenciaEstado(null);
-       setProcesandoEstado(false);
-       onRefresh();
-       setTab('evidencias_comentarios'); // Ir a la tab unificada para ver el éxito
-     } catch(err) { console.error(err); setProcesandoEstado(false); }
+    try {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/asignacion/${asigActual.id}/estadoLocal`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estadoLocal })
+      });
+      if (res.ok) {
+        onRefresh();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Error actualizando estado');
+      }
+    } catch(err) {
+      console.error(err);
+    }
   };
 
   const handleUpdateEstadoValidacion = async (estadoValidacion: string) => {
@@ -593,86 +557,88 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
         )}
 
         {esAdmin && (
-          <div className="bg-orange-50 px-6 py-3 border-b border-orange-100 flex items-center justify-between">
+          <div className="bg-orange-50 px-6 py-3 border-b border-orange-100 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-orange-800">Caja de Auditoría (ADMIN):</span>
+              <span className="text-xs text-orange-700">Localidad: <strong>{asigActual?.localidad?.nombre || 'General'}</strong></span>
             </div>
             
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500 uppercase">Cambiar Estado de Validación:</span>
+              <span className="text-xs font-bold text-gray-600 uppercase">Estado de Validación:</span>
               <select 
                 value={asigActual?.estadoValidacion || 'PENDIENTE_REVISION'}
                 onChange={e => handleUpdateEstadoValidacion(e.target.value)}
-                className={`border text-sm font-bold px-2 py-1 rounded outline-none ${asigActual?.estadoValidacion === 'VALIDADA_COMPLETADA' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-white border-gray-300'}`}
+                className={`border text-sm font-bold px-3 py-1.5 rounded outline-none cursor-pointer ${
+                  asigActual?.estadoValidacion === 'VALIDADA_COMPLETADA' ? 'bg-green-100 text-green-800 border-green-200' :
+                  asigActual?.estadoValidacion === 'VALIDADA_EN_CURSO' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                  asigActual?.estadoValidacion === 'VALIDADA_SIN_AVANCE' ? 'bg-red-100 text-red-800 border-red-200' :
+                  'bg-white border-gray-300 text-gray-700'
+                }`}
               >
                 <option value="PENDIENTE_REVISION">Pendiente de Revisión</option>
-                <option value="VALIDADA_COMPLETADA">Validada y Completada</option>
-                <option value="VALIDADA_EN_CURSO">Validada en Curso</option>
-                <option value="VALIDADA_SIN_AVANCE">Validada Sin Avance</option>
+                <option value="VALIDADA_COMPLETADA">Validada y Completada (100% puntaje)</option>
+                <option value="VALIDADA_EN_CURSO">Validada en Curso (50% puntaje)</option>
+                <option value="VALIDADA_SIN_AVANCE">Validada Sin Avance (0% puntaje)</option>
               </select>
             </div>
           </div>
         )}
 
-        {!esAdmin && (
-          <div className="bg-blue-50 px-6 py-3 border-b border-blue-100 flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-blue-800">Mi Reporte Local - {asigActual?.localidad?.nombre || 'General'}</span>
-              <span className="text-xs text-blue-600 font-medium flex items-center gap-1">Estado de Revisión: <span className="font-bold underline">{getEstadoValidacionLabel(asigActual?.estadoValidacion || 'PENDIENTE_REVISION')}</span></span>
+        {/* Banner de estado de la actividad / reporte */}
+        <div className="bg-blue-50 px-6 py-3 border-b border-blue-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-blue-900">Estado de la Actividad ({asigActual?.localidad?.nombre || 'General'})</span>
+            <div className="flex items-center gap-2 text-xs text-blue-700 font-medium">
+              <span>Validación Admin: <strong className="underline">{getEstadoValidacionLabel(asigActual?.estadoValidacion || 'PENDIENTE_REVISION')}</strong></span>
+              {asigActual && (
+                <span className="font-bold text-blue-900 bg-blue-100/70 px-2 py-0.5 rounded">
+                  Calificación: {asigActual.porcentajeAvance ?? 0}% de {actividad.indicadorMeta || 0}%
+                </span>
+              )}
             </div>
-            {isReadonly ? (
-               <div className="text-sm font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full border border-green-200">
-                 Actividad Cerrada (Solo Lectura)
-               </div>
-            ) : (
-              <div className="flex flex-col gap-2 relative">
-                <div className="flex gap-2 items-center justify-end">
-                   <span className="text-xs font-bold text-gray-500 uppercase">Mi Estado:</span>
-                   <select 
-                     value={estadoPendiente || asigActual?.estadoLocal || 'NO_INICIADA'}
-                     onChange={e => handleUpdateEstadoLocal(e.target.value)}
-                     className={`border text-sm font-bold px-2 py-1.5 rounded outline-none ${(estadoPendiente || asigActual?.estadoLocal) === 'COMPLETA_SIN_VALIDAR' ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-white border-gray-300'} transition-colors`}
-                   >
-                     <option value="NO_INICIADA">No Iniciada (Default)</option>
-                     <option value="EN_CURSO_SIN_VALIDAR">En Curso sin Validar</option>
-                     <option value="COMPLETA_SIN_VALIDAR">Completa sin Validar (Enviar)</option>
-                   </select>
-                </div>
-              </div>
-            )}
           </div>
-        )}
 
-        {estadoPendiente && estadoPendiente !== asigActual?.estadoLocal && !isReadonly && (
-           <form onSubmit={confirmarCambioEstadoLocal} className="bg-yellow-50 px-6 py-4 border-b border-yellow-200 shadow-inner flex flex-col gap-3">
-              <h4 className="font-bold text-yellow-800 text-sm flex items-center gap-2">
-                 <AlertCircle className="w-4 h-4"/>
-                 Requisito para Reportar Cambio de Estado
-              </h4>
-              <p className="text-xs text-yellow-700">Para actualizar esta actividad a <strong>{estadoPendiente.replace(/_/g, ' ')}</strong>, es obligatorio cargar el soporte de la ejecución.</p>
-              <textarea 
-                required
-                placeholder="Escribe el comentario / justificación del avance..."
-                className="w-full text-sm border-yellow-300 rounded p-2 focus:ring-2 focus:ring-yellow-400 outline-none"
-                value={comentarioEstado}
-                onChange={e => setComentarioEstado(e.target.value)}
-              />
-              <div className="flex justify-between items-center">
-                 <input 
-                   required
-                   type="file" 
-                   onChange={e => setEvidenciaEstado(e.target.files ? e.target.files[0] : null)}
-                   className="text-sm bg-white border border-yellow-300 p-1.5 rounded w-full max-w-xs"
-                 />
-                 <div className="flex gap-2">
-                    <button type="button" onClick={() => setEstadoPendiente(null)} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-200 rounded">Cancelar</button>
-                    <button type="submit" disabled={procesandoEstado} className="px-4 py-1.5 text-xs bg-bogota-primary text-white font-bold rounded shadow hover:bg-red-700 transition disabled:opacity-50">
-                       {procesandoEstado ? 'Subiendo...' : 'Reportar Avance a Revisión'}
-                    </button>
-                 </div>
-              </div>
-           </form>
-        )}
+          {isReadonly ? (
+            <div className="text-xs font-bold text-green-800 bg-green-100 px-3 py-1.5 rounded-full border border-green-200">
+              ✓ Validada y Completada (Solo Lectura)
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-600 uppercase">Estado:</span>
+              {evidenciasAMostrar.length > 0 || esAdmin ? (
+                <select 
+                  value={asigActual?.estadoLocal || 'NO_INICIADA'}
+                  onChange={e => handleUpdateEstadoLocal(e.target.value)}
+                  className={`border text-sm font-bold px-3 py-1.5 rounded outline-none transition-colors cursor-pointer ${
+                    asigActual?.estadoLocal === 'COMPLETA_SIN_VALIDAR' ? 'bg-green-100 text-green-800 border-green-200' :
+                    asigActual?.estadoLocal === 'EN_CURSO_SIN_VALIDAR' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                    'bg-white text-gray-700 border-gray-300'
+                  }`}
+                >
+                  <option value="NO_INICIADA">Sin iniciar</option>
+                  <option value="EN_CURSO_SIN_VALIDAR">En Curso</option>
+                  <option value="COMPLETA_SIN_VALIDAR">Completada</option>
+                </select>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <select 
+                    disabled 
+                    value={asigActual?.estadoLocal || 'NO_INICIADA'}
+                    className="border text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
+                    title="Carga un archivo de evidencia con su comentario obligatorio para habilitar el cambio de estado"
+                  >
+                    <option value="NO_INICIADA">Sin iniciar</option>
+                    <option value="EN_CURSO_SIN_VALIDAR">En Curso</option>
+                    <option value="COMPLETA_SIN_VALIDAR">Completada</option>
+                  </select>
+                  <span className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-medium flex items-center gap-1">
+                    🔒 Carga evidencia + comentario para habilitar cambio
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         
         {/* Tabs */}
         <div className="flex border-b border-gray-200 px-6 mt-2">
@@ -845,30 +811,45 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                       value={comentarioEvidencia}
                       onChange={e => setComentarioEvidencia(e.target.value)}
                     />
-                    <div className="flex flex-wrap gap-3 items-center justify-between">
-                      <input 
-                        required 
-                        type="file" 
-                        className="text-xs border border-gray-300 p-1.5 rounded bg-white w-full sm:max-w-xs cursor-pointer"
-                        onChange={e => setEvidenciaFile(e.target.files ? e.target.files[0] : null)}
-                      />
-                      <button 
-                        type="submit" 
-                        disabled={uploading || !evidenciaFile || !comentarioEvidencia.trim()} 
-                        className="bg-bogota-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 inline-flex items-center gap-1.5 shadow"
-                      >
-                        {uploading ? (
-                          <>
-                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Subiendo y Notificando...
-                          </>
-                        ) : (
-                          <>
-                            <Paperclip className="w-3.5 h-3.5" />
-                            Subir Archivo y Notificar
-                          </>
-                        )}
-                      </button>
+                    <div className="flex flex-wrap gap-3 items-center justify-between pt-1">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-gray-700">Cambiar estado a:</label>
+                        <select 
+                          value={estadoAlSubir} 
+                          onChange={e => setEstadoAlSubir(e.target.value)} 
+                          className="text-xs border border-gray-300 rounded px-2.5 py-1.5 font-bold bg-white text-gray-800 outline-none focus:ring-1 focus:ring-bogota-primary cursor-pointer"
+                        >
+                          <option value="EN_CURSO_SIN_VALIDAR">En Curso</option>
+                          <option value="COMPLETA_SIN_VALIDAR">Completada</option>
+                          <option value="NO_INICIADA">Sin iniciar</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <input 
+                          required 
+                          type="file" 
+                          className="text-xs border border-gray-300 p-1.5 rounded bg-white w-full sm:max-w-xs cursor-pointer"
+                          onChange={e => setEvidenciaFile(e.target.files ? e.target.files[0] : null)}
+                        />
+                        <button 
+                          type="submit" 
+                          disabled={uploading || !evidenciaFile || !comentarioEvidencia.trim()} 
+                          className="bg-bogota-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 inline-flex items-center gap-1.5 shadow"
+                        >
+                          {uploading ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Subiendo y Notificando...
+                            </>
+                          ) : (
+                            <>
+                              <Paperclip className="w-3.5 h-3.5" />
+                              Subir Soporte y Actualizar Estado
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </form>
                 </div>

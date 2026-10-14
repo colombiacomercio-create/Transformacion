@@ -124,19 +124,19 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
        if (filtroFecha === 'ESTE_MES') return limit >= hoy && limit <= mesProximo;
     }
     if (filtroEstado !== 'TODOS') {
-       // Buscar si ALGUNA asignacion cumple (Para Gestores será la de ellos, para Admin mira el global)
        const asignacionesAValidar = userData?.rol !== 'ADMIN' 
          ? a.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId))
          : a.asignaciones;
-         
-       if (filtroEstado === 'PENDIENTES') {
-          if (!asignacionesAValidar?.some((asig:any) => asig.estadoLocal === 'NO_INICIADA')) return false;
-       }
+
+       const isComp = a.estado === 'COMPLETADA' || asignacionesAValidar?.some((asig:any) => asig.estadoValidacion === 'VALIDADA_COMPLETADA' || asig.estadoLocal === 'COMPLETA_SIN_VALIDAR');
+       const isCur = !isComp && (a.estado === 'EN_PROGRESO' || asignacionesAValidar?.some((asig:any) => asig.estadoValidacion === 'VALIDADA_EN_CURSO' || asig.estadoLocal === 'EN_CURSO_SIN_VALIDAR'));
+       const isSin = !isComp && !isCur;
+
+       if (filtroEstado === 'COMPLETADA' && !isComp) return false;
+       if (filtroEstado === 'EN_CURSO' && !isCur) return false;
+       if ((filtroEstado === 'SIN_INICIAR' || filtroEstado === 'PENDIENTES') && !isSin) return false;
        if (filtroEstado === 'EN_REVISION') {
           if (!asignacionesAValidar?.some((asig:any) => asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' && asig.estadoValidacion === 'PENDIENTE_REVISION')) return false;
-       }
-       if (filtroEstado === 'COMPLETADA') {
-          if (!asignacionesAValidar?.some((asig:any) => asig.estadoValidacion === 'VALIDADA_COMPLETADA')) return false;
        }
     }
     
@@ -267,9 +267,10 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
             className="border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm outline-none cursor-pointer w-full focus:ring-2 focus:ring-bogota-secondary focus:border-bogota-secondary"
           >
             <option value="TODOS">Estado: Todos</option>
-            <option value="PENDIENTES">Pendientes de Iniciar</option>
+            <option value="SIN_INICIAR">Sin Iniciar</option>
+            <option value="EN_CURSO">En Curso</option>
+            <option value="COMPLETADA">Completada</option>
             <option value="EN_REVISION">En Revision Admin</option>
-            <option value="COMPLETADA">Validada y Completada</option>
           </select>
           <select 
             value={filtroFecha}
@@ -324,74 +325,109 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
               </div>
               
               <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-3 custom-scrollbar">
-                {actividadesFiltradas.filter(a => (a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General') === col.id).map(actividad => (
-                  <div key={actividad.id} onClick={() => setActividadSeleccionada(actividad)} className={`bg-white p-4 rounded-xl shadow-sm border border-[#E5E7EB] hover:shadow-md hover:border-gray-300 transition-all cursor-pointer relative group flex flex-col gap-2 border-l-4 ${actividad.estado === 'VENCIDA' ? 'border-l-red-500' : actividad.estado === 'COMPLETA_SIN_VALIDAR' || actividad.estado === 'COMPLETADA' ? 'border-l-green-500' : 'border-l-yellow-400'}`}>
-                    <div className="text-[11px] text-gray-500 font-bold uppercase flex items-center gap-1">
-                      📍 {actividad.asignaciones?.map((a:any) => a.localidad?.nombre).join(', ') || 'GLOBAL'}
-                    </div>
-                    
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="text-[12px] font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded truncate max-w-[85%]" title={actividad.codigoCompleto || 'SIN CODIGO'}>
-                        {actividad.codigoCompleto || 'SIN CODIGO'}
-                      </span>
-                      <button className="text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <h4 className="font-semibold text-gray-900 text-[14px] leading-snug">
-                      {actividad.nombre}
-                    </h4>
+                {actividadesFiltradas.filter(a => (a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General') === col.id).map(actividad => {
+                  const isCompletada = actividad.estado === 'COMPLETADA' || actividad.asignaciones?.some((asig: any) => asig.estadoValidacion === 'VALIDADA_COMPLETADA' || asig.estadoLocal === 'COMPLETA_SIN_VALIDAR');
+                  const isVencida = !isCompletada && actividad.fechaLimite && new Date(actividad.fechaLimite) < hoy;
+                  const isEnCurso = !isCompletada && !isVencida && (actividad.estado === 'EN_PROGRESO' || actividad.asignaciones?.some((asig: any) => asig.estadoValidacion === 'VALIDADA_EN_CURSO' || asig.estadoLocal === 'EN_CURSO_SIN_VALIDAR'));
 
-                    {/* Responsables Asignados */}
-                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                      {actividad.correosNotificacion && actividad.correosNotificacion.length > 0 ? (
-                        <div 
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md max-w-full truncate" 
-                          title={`Responsables: ${actividad.correosNotificacion.join(', ')}`}
-                        >
-                          <span>👤</span>
-                          <span className="truncate">
-                            {actividad.correosNotificacion.length === 1 
-                              ? actividad.correosNotificacion[0].split('@')[0] 
-                              : `${actividad.correosNotificacion[0].split('@')[0]} (+${actividad.correosNotificacion.length - 1})`}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-gray-400 italic flex items-center gap-1">
-                          <span>👤</span> Sin asignar
+                  const meta = actividad.indicadorMeta || 0;
+                  let puntaje = 0;
+                  if (isCompletada) {
+                    puntaje = meta;
+                  } else if (isEnCurso) {
+                    puntaje = meta * 0.5;
+                  } else {
+                    puntaje = 0;
+                  }
+                  const pctBarra = meta > 0 ? Math.min(100, Math.round((puntaje / meta) * 100)) : 0;
+
+                  const borderClass = isVencida ? 'border-l-red-500' : isCompletada ? 'border-l-green-500' : 'border-l-yellow-400';
+
+                  return (
+                    <div key={actividad.id} onClick={() => setActividadSeleccionada(actividad)} className={`bg-white p-4 rounded-xl shadow-sm border border-[#E5E7EB] hover:shadow-md hover:border-gray-300 transition-all cursor-pointer relative group flex flex-col gap-2 border-l-4 ${borderClass}`}>
+                      <div className="flex items-center justify-between gap-1 text-[11px]">
+                        <span className="text-gray-500 font-bold uppercase flex items-center gap-1 truncate max-w-[65%]" title={actividad.asignaciones?.map((a:any) => a.localidad?.nombre).join(', ') || 'GLOBAL'}>
+                          📍 {actividad.asignaciones?.map((a:any) => a.localidad?.nombre).join(', ') || 'GLOBAL'}
                         </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-[12px] text-gray-500 mt-2 border-t border-gray-100 pt-3">
-                      <div className="flex items-center gap-1.5" title="Fecha limite">
-                        {actividad.estado === 'VENCIDA' ? (
-                          <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-                        ) : actividad.estado === 'COMPLETADA' ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                        {isVencida ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 shrink-0">Vencida</span>
+                        ) : isCompletada ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 shrink-0">Completada</span>
+                        ) : isEnCurso ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800 shrink-0">En Curso</span>
                         ) : (
-                          <Clock className="w-3.5 h-3.5 text-orange-500" />
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 shrink-0">Sin iniciar</span>
                         )}
-                        <span className="font-medium text-gray-600">
-                          {actividad.fechaLimite ? new Date(actividad.fechaLimite).toISOString().split('T')[0] : 'Sin fecha'}
-                        </span>
                       </div>
                       
-                      <div className="flex items-center gap-1.5 font-medium text-gray-600" title="Evidencias Cargadas">
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>{actividad.evidencias?.length || 0}/{actividad.tiposEvidenciaRequeridos?.length || 1}</span>
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-[12px] font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded truncate max-w-[85%]" title={actividad.codigoCompleto || 'SIN CODIGO'}>
+                          {actividad.codigoCompleto || 'SIN CODIGO'}
+                        </span>
+                        <button className="text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
                       </div>
+                      
+                      <h4 className="font-semibold text-gray-900 text-[14px] leading-snug">
+                        {actividad.nombre}
+                      </h4>
 
-                      <div className="flex items-center gap-2" title="Progreso">
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div className="bg-bogota-secondary h-2 rounded-full" style={{ width: `${actividad.indicadorMeta ? Math.min(100, Math.round(actividad.indicadorMeta)) : 0}%` }}></div>
+                      {/* Responsables Asignados */}
+                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                        {actividad.correosNotificacion && actividad.correosNotificacion.length > 0 ? (
+                          <div 
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md max-w-full truncate" 
+                            title={`Responsables: ${actividad.correosNotificacion.join(', ')}`}
+                          >
+                            <span>👤</span>
+                            <span className="truncate">
+                              {actividad.correosNotificacion.length === 1 
+                                ? actividad.correosNotificacion[0].split('@')[0] 
+                                : `${actividad.correosNotificacion[0].split('@')[0]} (+${actividad.correosNotificacion.length - 1})`}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 italic flex items-center gap-1">
+                            <span>👤</span> Sin asignar
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-[12px] text-gray-500 mt-2 border-t border-gray-100 pt-3">
+                        <div className="flex items-center gap-1.5" title="Fecha limite">
+                          {isVencida ? (
+                            <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                          ) : isCompletada ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                          ) : (
+                            <Clock className="w-3.5 h-3.5 text-orange-500" />
+                          )}
+                          <span className="font-medium text-gray-600">
+                            {actividad.fechaLimite ? new Date(actividad.fechaLimite).toISOString().split('T')[0] : 'Sin fecha'}
+                          </span>
                         </div>
-                        <span className="font-medium text-gray-700 text-[11px]">{Math.round(actividad.indicadorMeta || 0)}%</span>
+                        
+                        <div className="flex items-center gap-1.5 font-medium text-gray-600" title="Evidencias Cargadas">
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>{actividad.evidencias?.length || 0}/{actividad.tiposEvidenciaRequeridos?.length || 1}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2" title={`Puntaje: ${puntaje}% de ${meta}%`}>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all ${isCompletada ? 'bg-green-500' : isEnCurso ? 'bg-yellow-500' : 'bg-gray-400'}`} 
+                              style={{ width: `${pctBarra}%` }}
+                            />
+                          </div>
+                          <span className="font-bold text-gray-700 text-[11px]">
+                            {puntaje % 1 === 0 ? puntaje : puntaje.toFixed(1)}% / {meta % 1 === 0 ? meta : meta.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {actividadesFiltradas.filter(a => (a.hito?.programa ? `${a.hito.programa.codigo} ${a.hito.programa.nombre}` : 'General') === col.id).length === 0 && (
                   <div className="h-24 border-2 border-dashed border-gray-300 bg-white/50 rounded-lg flex items-center justify-center text-gray-400 text-sm">

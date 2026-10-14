@@ -345,37 +345,77 @@ router.post('/:id/comentarios', azureADAuth, async (req: AuthRequest, res: Respo
   }
 });
 
-// Cambiar Estado Local de una AsignaciÃ³n
+// Cambiar Estado Local de una Asignación
 router.patch('/asignacion/:id/estadoLocal', azureADAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { estadoLocal } = req.body;
+
+    const asigCurrent = await prisma.asignacionLocalidad.findUnique({
+      where: { id },
+      include: { actividad: true }
+    });
+
+    if (!asigCurrent) {
+      return res.status(404).json({ error: 'Asignación no encontrada' });
+    }
+
+    let normalizedEstado: any = 'NO_INICIADA';
+    let actEstado: any = 'PENDIENTE';
+    const meta = asigCurrent.actividad?.indicadorMeta || 0;
+    let avance = 0;
+
+    if (estadoLocal === 'COMPLETA_SIN_VALIDAR' || estadoLocal === 'COMPLETADA') {
+      normalizedEstado = 'COMPLETA_SIN_VALIDAR';
+      actEstado = 'COMPLETADA';
+      avance = meta;
+    } else if (estadoLocal === 'EN_CURSO_SIN_VALIDAR' || estadoLocal === 'EN_CURSO') {
+      normalizedEstado = 'EN_CURSO_SIN_VALIDAR';
+      actEstado = 'EN_PROGRESO';
+      avance = meta * 0.5;
+    } else {
+      normalizedEstado = 'NO_INICIADA';
+      actEstado = 'PENDIENTE';
+      avance = 0;
+    }
+
     const asig = await prisma.asignacionLocalidad.update({
-        where: { id },
-        data: { estadoLocal },
-        include: { actividad: true, localidad: true }
+      where: { id },
+      data: {
+        estadoLocal: normalizedEstado,
+        // Si no está validada por admin, reflejar el porcentaje de acuerdo con el reporte
+        ...(asigCurrent.estadoValidacion === 'PENDIENTE_REVISION' ? { porcentajeAvance: avance } : {})
+      },
+      include: { actividad: true, localidad: true }
+    });
+
+    if (asigCurrent.actividadId) {
+      await prisma.actividad.update({
+        where: { id: asigCurrent.actividadId },
+        data: { estado: actEstado }
       });
-      
-      // Notificar a los administradores
-      const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN' } });
-      const correosAdmins = admins.map(a => a.email).filter(e => e);
-      const allEmails = [...new Set([...correosAdmins, ...(asig.actividad.correosNotificacion || [])])];
-      if (allEmails.length > 0) {
-          await enviarNotificacion(
-              allEmails, 
-              `Actividad actualizada por Localidad: ${asig.actividad.nombre}`, 
-              `La localidad <b>${asig.localidad.nombre}</b> ha cambiado el estado de la actividad a <b>${estadoLocal}</b>.<br><br>Por favor revisa la plataforma.`
-          );
-      }
-      
-      res.json(asig);
+    }
+
+    // Notificar a los administradores
+    const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN' } });
+    const correosAdmins = admins.map(a => a.email).filter(e => e);
+    const allEmails = [...new Set([...correosAdmins, ...(asig.actividad.correosNotificacion || [])])];
+    if (allEmails.length > 0) {
+      await enviarNotificacion(
+        allEmails, 
+        `Actividad actualizada por Localidad: ${asig.actividad.nombre}`, 
+        `La localidad <b>${asig.localidad.nombre}</b> ha cambiado el estado de la actividad a <b>${normalizedEstado}</b>.<br><br>Por favor revisa la plataforma.`
+      );
+    }
+
+    res.json(asig);
   } catch (error) {
     console.error('Error actualizando estado local:', error);
     res.status(500).json({ error: 'Error actualizando estado local' });
   }
 });
 
-// Cambiar Estado ValidaciÃ³n de una AsignaciÃ³n (Solo ADMIN)
+// Cambiar Estado Validación de una Asignación (Solo ADMIN)
 router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMIN']), async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
@@ -387,20 +427,28 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
       });
 
       if (!asigCurrent) {
-          return res.status(404).json({ error: 'Asignaci\u00f3n no encontrada' });
+          return res.status(404).json({ error: 'Asignación no encontrada' });
       }
 
       let updateData: any = { estadoValidacion };
+      let nuevoEstadoActividad: any = null;
       
       // Calculate score (porcentajeAvance) based on the validation status
       const meta = asigCurrent.actividad.indicadorMeta || 0;
       if (estadoValidacion === 'VALIDADA_SIN_AVANCE') {
           updateData.porcentajeAvance = 0;
+          updateData.estadoLocal = 'NO_INICIADA';
+          nuevoEstadoActividad = 'PENDIENTE';
       } else if (estadoValidacion === 'VALIDADA_EN_CURSO') {
           updateData.porcentajeAvance = meta * 0.5;
+          updateData.estadoLocal = 'EN_CURSO_SIN_VALIDAR';
+          nuevoEstadoActividad = 'EN_PROGRESO';
       } else if (estadoValidacion === 'VALIDADA_COMPLETADA') {
           updateData.porcentajeAvance = meta;
           updateData.estadoLocal = 'COMPLETA_SIN_VALIDAR';
+          nuevoEstadoActividad = 'COMPLETADA';
+      } else if (estadoValidacion === 'PENDIENTE_REVISION') {
+          updateData.porcentajeAvance = 0;
       }
 
       const asig = await prisma.asignacionLocalidad.update({
@@ -408,6 +456,13 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
         data: updateData,
         include: { actividad: true, localidad: true }
       });
+
+      if (nuevoEstadoActividad && asigCurrent.actividadId) {
+        await prisma.actividad.update({
+          where: { id: asigCurrent.actividadId },
+          data: { estado: nuevoEstadoActividad }
+        });
+      }
       
       // Notificar a los responsables de la localidad
       const usuariosLoc = await prisma.usuario.findMany({ where: { localidades: { some: { id: asig.localidadId } } } });
@@ -417,7 +472,7 @@ router.patch('/asignacion/:id/estadoValidacion', azureADAuth, requireRole(['ADMI
           await enviarNotificacion(
               allEmailsLoc,
               `Actividad Validada por Admin: ${asig.actividad.nombre}`,
-              `Un administrador ha cambiado el estado de revisi\u00f3n de tu actividad a <b>${estadoValidacion}</b> con un avance del ${updateData.porcentajeAvance || 0}%.<br><br>Revisa la plataforma para m\u00e1s detalles.`
+              `Un administrador ha cambiado el estado de revisión de tu actividad a <b>${estadoValidacion}</b> con un avance del ${updateData.porcentajeAvance || 0}%.<br><br>Revisa la plataforma para más detalles.`
           );
       }
       

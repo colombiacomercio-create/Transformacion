@@ -78,11 +78,12 @@ export default function Dashboard({ userData }: { userData?: any }) {
                  asp = 'A4. Rollo Legendario';
               }
             a.asignaciones?.forEach((asig: any) => {
-                const completada = asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' || asig.estadoValidacion === 'VALIDADA_COMPLETADA' || asig.estadoLocal === 'COMPLETADA_LOCAL';
+                const completada = asig.estadoLocal === 'COMPLETA_SIN_VALIDAR' || asig.estadoValidacion === 'VALIDADA_COMPLETADA' || asig.estadoLocal === 'COMPLETADA_LOCAL' || a.estado === 'COMPLETADA';
+                const enCurso = asig.estadoLocal === 'EN_CURSO_SIN_VALIDAR' || asig.estadoValidacion === 'VALIDADA_EN_CURSO' || a.estado === 'EN_PROGRESO';
                 
                 let valAvance = 0;
                 if (completada) valAvance = 100;
-                else if (asig.estadoLocal === 'EN_CURSO_SIN_VALIDAR') valAvance = 50;
+                else if (enCurso) valAvance = 50;
 
                 if (esProgramada) programadasLocales++;
                 if (completada && esProgramada) ejecutadasLocales++;
@@ -150,21 +151,27 @@ export default function Dashboard({ userData }: { userData?: any }) {
             const tableList: any[] = [];
             
             actsLoc.forEach((a:any) => {
-               const st = a.asignaciones.find((asig:any) => asig.localidadId === localidadFiltro)?.estadoLocal || 'NO_INICIADA';
-               if(st.includes('COMPLETA')) comp++;
-               else if(st.includes('CURSO')) cur++;
+               const asig = a.asignaciones?.find((asig:any) => asig.localidadId === localidadFiltro);
+               const st = asig?.estadoLocal || 'NO_INICIADA';
+               const isComp = st.includes('COMPLETA') || asig?.estadoValidacion === 'VALIDADA_COMPLETADA' || a.estado === 'COMPLETADA';
+               const isCur = st.includes('CURSO') || asig?.estadoValidacion === 'VALIDADA_EN_CURSO' || a.estado === 'EN_PROGRESO';
+               if(isComp) comp++;
+               else if(isCur) cur++;
                else no++;
-               tableList.push({ id: a.id, codigo: a.codigoCompleto, nombre: a.nombre, estado: st });
+               tableList.push({ id: a.id, codigo: a.codigoCompleto, nombre: a.nombre, estado: isComp ? 'COMPLETADA' : isCur ? 'EN_CURSO' : 'NO_INICIADA' });
             });
 
             const prodStats = new Map();
             const objStats = new Map();
 
             actsLoc.forEach((a:any) => {
-               const st = a.asignaciones.find((asig:any) => asig.localidadId === localidadFiltro)?.estadoLocal || 'NO_INICIADA';
+               const asig = a.asignaciones?.find((asig:any) => asig.localidadId === localidadFiltro);
+               const st = asig?.estadoLocal || 'NO_INICIADA';
+               const isComp = st.includes('COMPLETA') || asig?.estadoValidacion === 'VALIDADA_COMPLETADA' || a.estado === 'COMPLETADA';
+               const isCur = st.includes('CURSO') || asig?.estadoValidacion === 'VALIDADA_EN_CURSO' || a.estado === 'EN_PROGRESO';
                let av = 0;
-               if(st.includes('COMPLETA')) av = 100;
-               else if(st.includes('CURSO')) av = 50;
+               if(isComp) av = 100;
+               else if(isCur) av = 50;
 
                // Dynamic Programa / Producto calculation
                const p = a.hito?.programa;
