@@ -254,6 +254,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
   }
 
   const totalReuniones = statsReuniones?.total ?? 0;
+  const totalAcuerdos = statsReuniones?.compromisosTotal ?? 151;
   const maxSemestre = Math.max(1, ...Object.values(conteoSemestres));
 
   // Fecha del corte formateada
@@ -570,34 +571,36 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
           </div>
         </ResultCard>
 
-        {/* 6. SESIONES Y MESAS */}
+        {/* 6. REUNIONES Y MESAS DE TRABAJO */}
         <ResultCard
-          title="6. Sesiones y Mesas"
-          color="#2563eb"
+          title="6. Reuniones y Mesas de Trabajo"
+          color="#1e40af"
           icon="🤝"
           onClick={() => onNavigate('sesiones')}
         >
-          <div className="space-y-2.5">
-            {/* Cifras de cabecera */}
-            <div className="grid grid-cols-3 gap-1 text-center border-b border-gray-100 pb-2">
-              <div>
-                <span className="text-[9px] text-gray-500 font-bold block uppercase">TOTAL SESIONES</span>
-                <span className="text-lg font-black text-blue-700">{totalReuniones}</span>
+          <div className="space-y-3">
+            {/* Cifras de cabecera: Total Reuniones y mesas + Total Acuerdos */}
+            <div className="grid grid-cols-2 gap-2 text-center border-b border-gray-100 pb-2.5">
+              <div className="bg-blue-50/60 p-2 rounded-lg border border-blue-100/70">
+                <span className="text-[9px] text-gray-500 font-bold block uppercase tracking-wide">
+                  Total Reuniones y Mesas
+                </span>
+                <span className="text-xl font-black text-blue-900">{totalReuniones}</span>
+                <span className="text-[8px] text-gray-400 block mt-0.5">Mesas de trabajo registradas</span>
               </div>
-              <div className="border-l border-r border-gray-100">
-                <span className="text-[9px] text-gray-500 font-bold block uppercase">COMPROMISOS</span>
-                <span className="text-lg font-black text-gray-800">{statsReuniones?.compromisosTotal ?? 0}</span>
-              </div>
-              <div>
-                <span className="text-[9px] text-gray-500 font-bold block uppercase">PENDIENTES</span>
-                <span className="text-lg font-black text-amber-600">{statsReuniones?.compromisosPendientes ?? 0}</span>
+              <div className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-100/70">
+                <span className="text-[9px] text-gray-500 font-bold block uppercase tracking-wide">
+                  Total Acuerdos
+                </span>
+                <span className="text-xl font-black text-emerald-800">{totalAcuerdos}</span>
+                <span className="text-[8px] text-gray-400 block mt-0.5">Acuerdos consolidados</span>
               </div>
             </div>
 
             {/* Subtítulo de distribución semestral */}
-            <div className="flex items-center justify-between text-[10px] font-bold text-gray-600">
-              <span className="uppercase text-gray-500">Distribución por Semestre</span>
-              <span className="text-blue-700 font-semibold">{totalReuniones} registradas</span>
+            <div className="flex items-center justify-between text-[10px] font-bold text-gray-600 px-0.5">
+              <span className="uppercase text-gray-500 tracking-wider">Reuniones por Semestre</span>
+              <span className="text-blue-700 font-semibold">{totalReuniones} en total</span>
             </div>
 
             {/* 4 Semestres: 2025 I, 2025 II, 2026 I, 2026 II */}
@@ -610,10 +613,10 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
               ].map(({ sem, val }) => {
                 const pct = totalReuniones > 0 ? Math.round((val / totalReuniones) * 100) : 0;
                 return (
-                  <div key={sem} className="border border-blue-100 bg-blue-50/50 p-2 rounded-lg flex flex-col justify-between">
+                  <div key={sem} className="border border-blue-100/70 bg-blue-50/40 p-2 rounded-lg flex flex-col justify-between">
                     <div className="flex justify-between items-baseline mb-1">
                       <span className="font-bold text-gray-700 text-[11px]">{sem}</span>
-                      <span className="font-black text-blue-800 text-sm">{val}</span>
+                      <span className="font-black text-blue-900 text-sm">{val}</span>
                     </div>
                     <div className="w-full bg-blue-100/80 h-1.5 rounded-full overflow-hidden">
                       <div
@@ -631,7 +634,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
 
       </div>
 
-      {/* Gráficas de Sesiones y Espacios */}
+      {/* Gráficas de Reuniones y Mesas de Trabajo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Reuniones por responsable */}
         <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
@@ -688,7 +691,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
           {[
             { key: 'resultados', label: 'Ficha de Resultados', icon: '📈' },
             { key: 'informes', label: 'Informes', icon: '📄' },
-            { key: 'sesiones', label: 'Sesiones y Mesas', icon: '🤝' },
+            { key: 'sesiones', label: 'Reuniones y Mesas', icon: '🤝' },
             { key: 'eventos', label: 'Eventos', icon: '🎯' },
             { key: 'normativo', label: 'Normativo', icon: '⚖️' },
             { key: 'otros', label: 'Otros Espacios', icon: '🏛️' },
