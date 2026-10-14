@@ -17,7 +17,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
       asignacionesOrdenadas = asignacionesOrdenadas.filter((a: any) => userData.localidadesAsignadas?.includes(a.localidadId));
   }
   
-  const [tab, setTab] = useState<'detalles'|'comentarios'|'evidencias'>('detalles');
+  const [tab, setTab] = useState<'detalles' | 'evidencias_comentarios'>('detalles');
   const [locSelected, setLocSelected] = useState<string>(asignacionesOrdenadas[0]?.localidadId || '');
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [postingComment, setPostingComment] = useState(false);
@@ -101,22 +101,97 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     return hitos.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, {numeric: true}));
   };
 
+  const enviarNotificacionComentario = async (comentarioTexto: string, archivoAdjuntoNombre?: string | null) => {
+    try {
+      const ADMINS_ROLLO = ['armando.escobar@gobiernobogota.gov.co', 'maria.jaimes@gobiernobogota.gov.co'];
+      const currentUserEmail = (userData?.email || '').toLowerCase().trim();
+      const currentUserName = userData?.nombre || currentUserEmail.split('@')[0] || 'Usuario';
+      
+      const esAdminRollo = ADMINS_ROLLO.some(adminEmail => adminEmail.toLowerCase() === currentUserEmail);
+
+      let destinatarios: string[] = [];
+
+      if (esAdminRollo) {
+        // Si el comentario es de Armando Escobar o María Lucía Jaimes, notificar a los responsables de la actividad
+        destinatarios = (actividad.correosNotificacion || []).map((e: string) => (typeof e === 'string' ? e.trim().toLowerCase() : '')).filter(Boolean);
+        if (asigActual?.asignadoA?.email) {
+          destinatarios.push(asigActual.asignadoA.email.trim().toLowerCase());
+        }
+        actividad.asignaciones?.forEach((a: any) => {
+          if (a.asignadoA?.email) {
+            destinatarios.push(a.asignadoA.email.trim().toLowerCase());
+          }
+        });
+      } else {
+        // Si el comentario es de cualquier otra persona, notificar a Armando Escobar y María Lucía Jaimes (y al creador si existe)
+        destinatarios = [...ADMINS_ROLLO];
+        if (actividad.creadoPor && actividad.creadoPor !== 'SYSTEM' && actividad.creadorEmail) {
+          destinatarios.push(actividad.creadorEmail.toLowerCase().trim());
+        }
+      }
+
+      // Filtrar correo del mismo autor (no auto-notificarse) y deduplicar
+      const cleanDestinatarios = Array.from(new Set(
+        destinatarios
+          .filter(e => e && e !== currentUserEmail)
+      ));
+
+      if (cleanDestinatarios.length === 0) {
+        console.log("No hay destinatarios distintos para notificar este comentario.");
+        return;
+      }
+
+      if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+        console.log(`Modo Bypass: Notificación de comentario simulada para ${cleanDestinatarios.join(', ')}`);
+        return;
+      }
+
+      const { sendEmailGraphAPI } = await import('../utils/api');
+      const { generarCuerpoCorreoComentario, asuntoCorreoComentario } = await import('../utils/mailTemplate');
+
+      const subject = asuntoCorreoComentario(actividad.codigoCompleto, actividad.nombre);
+      const body = generarCuerpoCorreoComentario({
+        actividadNombre: actividad.nombre,
+        codigo: actividad.codigoCompleto,
+        autorNombre: currentUserName,
+        comentario: comentarioTexto,
+        localidadNombre: asigActual?.localidad?.nombre,
+        archivoAdjunto: archivoAdjuntoNombre,
+        actividadId: actividad.id
+      });
+
+      await sendEmailGraphAPI(cleanDestinatarios, subject, body);
+      console.log(`Notificación de comentario enviada con éxito a: ${cleanDestinatarios.join(', ')}`);
+    } catch (mailErr) {
+      console.error("Error enviando notificación de comentario por Microsoft Graph:", mailErr);
+    }
+  };
+
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoComentario.trim()) return;
     setPostingComment(true);
+    const textoParaEnviar = nuevoComentario.trim();
     try {
-      await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/comentarios`, {
+      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/comentarios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ texto: nuevoComentario, localidadId: curLocId })
+        body: JSON.stringify({ texto: textoParaEnviar, localidadId: curLocId })
       });
+      if (!res.ok) {
+        throw new Error('Error al publicar comentario');
+      }
+
+      // Enviar notificación oficial por correo
+      await enviarNotificacionComentario(textoParaEnviar, null);
+
       setNuevoComentario('');
       onRefresh(); // Refresh parent to get new comments
-    } catch(err) {
+    } catch(err: any) {
       console.error(err);
+      alert('Error publicando comentario: ' + (err.message || err));
     }
     setPostingComment(false);
   };
@@ -130,7 +205,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     formData.append('archivo', evidenciaFile);
     formData.append('tipoEvidencia', 'documento');
     formData.append('descripcion', 'Subida local manual');
-    formData.append('comentarioAdjunto', comentarioEvidencia);
+    formData.append('comentarioAdjunto', comentarioEvidencia.trim());
     formData.append('localidadId', curLocId);
 
     setUploading(true);
@@ -143,9 +218,16 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
          const d = await res.json();
          throw new Error(d.error || 'Error subiendo archivo');
       }
+
+      const nombreArchivoSubido = evidenciaFile.name;
+      const comentarioTexto = comentarioEvidencia.trim();
+
+      // Enviar notificación oficial por correo con el soporte adjunto
+      await enviarNotificacionComentario(comentarioTexto, nombreArchivoSubido);
+
       setComentarioEvidencia('');
       setEvidenciaFile(null);
-      // Let it disappear automatically (reset file input is tricky but we clear state)
+      alert('Evidencia cargada con éxito y registrada en el hilo de comentarios.');
       onRefresh();
     } catch(err: any) {
       console.error(err);
@@ -413,7 +495,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
        setEvidenciaEstado(null);
        setProcesandoEstado(false);
        onRefresh();
-       setTab('evidencias'); // Ir a la tab de evidencias para ver el éxito
+       setTab('evidencias_comentarios'); // Ir a la tab unificada para ver el éxito
      } catch(err) { console.error(err); setProcesandoEstado(false); }
   };
 
@@ -438,7 +520,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col h-[85vh]">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl flex flex-col h-[85vh]">
         <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50 rounded-t-xl">
           <div>
              <span className="text-xs font-bold text-bogota-primary bg-bogota-primary/10 px-2 py-1 rounded inline-block mb-2">
@@ -594,14 +676,17 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
         
         {/* Tabs */}
         <div className="flex border-b border-gray-200 px-6 mt-2">
-           <button onClick={() => setTab('detalles')} className={`pb-3 pt-2 font-medium mr-8 border-b-2 transition-colors ${tab === 'detalles' ? 'border-bogota-primary text-bogota-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
+           <button 
+             onClick={() => setTab('detalles')} 
+             className={`pb-3 pt-2 font-medium mr-8 border-b-2 transition-colors ${tab === 'detalles' ? 'border-bogota-primary text-bogota-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+           >
              Detalles
            </button>
-           <button onClick={() => setTab('comentarios')} className={`pb-3 pt-2 font-medium mr-8 border-b-2 transition-colors flex items-center gap-2 ${tab === 'comentarios' ? 'border-bogota-primary text-bogota-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
-             <MessageSquare className="w-4 h-4"/> Comentarios Locales ({comentariosAMostrar.length})
-           </button>
-           <button onClick={() => setTab('evidencias')} className={`pb-3 pt-2 font-medium border-b-2 transition-colors flex items-center gap-2 ${tab === 'evidencias' ? 'border-bogota-primary text-bogota-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
-             <Paperclip className="w-4 h-4"/> Archivos Locales ({evidenciasAMostrar.length})
+           <button 
+             onClick={() => setTab('evidencias_comentarios')} 
+             className={`pb-3 pt-2 font-medium border-b-2 transition-colors flex items-center gap-2 ${tab === 'evidencias_comentarios' ? 'border-bogota-primary text-bogota-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+           >
+             <Paperclip className="w-4 h-4"/> Evidencias y Comentarios ({evidenciasAMostrar.length + comentariosAMostrar.length})
            </button>
         </div>
 
@@ -735,136 +820,234 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
             </div>
           )}
 
-          {tab === 'comentarios' && (
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto space-y-4 pb-4 pr-2">
-                 {comentariosAMostrar.length === 0 && (
-                   <div className="text-center text-gray-400 mt-10">No hay comentarios en el hilo de esta localidad.</div>
-                 )}
-                 {comentariosAMostrar.map((c: any) => (
-                   <div key={c.id} className={`p-4 rounded-xl max-w-[85%] ${c.autorId === (actividad.creadoPor || 'admin-mock-id') ? 'ml-auto bg-blue-50 border border-blue-100 rounded-tr-none' : 'bg-gray-50 border border-gray-100 rounded-tl-none'}`}>
-                     <div className="flex justify-between items-baseline mb-1 gap-4">
-                       <span className={`font-bold text-sm ${c.autorId === (actividad.creadoPor || 'admin-mock-id') ? 'text-blue-700' : 'text-bogota-primary'}`}>{c.autor?.nombre || 'Alguien'}</span>
-                       <span className="text-xs text-gray-400">{new Date(c.fechaCreacion).toLocaleString()}</span>
-                     </div>
-                     <p className="text-gray-700 text-sm whitespace-pre-wrap">{c.texto}</p>
-                   </div>
-                 ))}
-              </div>
-              {!isReadonly ? (
-                <form onSubmit={handlePostComment} className="flex gap-2 pt-4 border-t mt-auto">
-                   <input 
-                     type="text" 
-                     value={nuevoComentario}
-                     onChange={e => setNuevoComentario(e.target.value)}
-                     placeholder="Escribe una actualización para esta localidad..."
-                     className="flex-1 border rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-bogota-primary/30"
-                   />
-                   <button disabled={postingComment} type="submit" className="bg-bogota-primary text-white p-2 rounded-lg hover:bg-red-700 disabled:opacity-50">
-                      <Send className="w-5 h-5" />
-                   </button>
-                </form>
-              ) : (
-                <div className="pt-4 border-t mt-auto text-center text-sm font-bold text-gray-400 bg-gray-50 p-2 rounded-lg">
-                  Hilo de chat bloqueado. La actividad ya fue validada.
-                </div>
-              )}
-            </div>
-          )}
-
-          {tab === 'evidencias' && (
+          {tab === 'evidencias_comentarios' && (
             <div className="space-y-6">
+              {/* Formulario para cargar soporte y evidencia obligatoria */}
               {!isReadonly && (
-                <div className="border border-gray-200 bg-gray-50 p-6 rounded-xl flex flex-col justify-center">
-                   <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><FileText className="w-5 h-5 text-gray-500" /> Cargar nueva evidencia</h3>
-                   <p className="text-sm text-gray-500 mb-4 max-w-md">Para el archivo seleccionado es estrictamente necesario que agregues una descripción del trabajo ejecutado.</p>
-                   
-                   <form onSubmit={handleFileUpload} className="flex flex-col gap-4">
-                     <textarea 
-                       required 
-                       placeholder="Describe brevemente en detalle lo que demuestra este reporte/archivo..."
-                       className="w-full border rounded-lg p-3 outline-none text-sm h-20 resize-none focus:ring-2 focus:ring-bogota-primary/30"
-                       value={comentarioEvidencia}
-                       onChange={e => setComentarioEvidencia(e.target.value)}
-                     />
-                     <div className="flex gap-4 items-center justify-between">
-                       <input 
-                         required 
-                         type="file" 
-                         className="text-sm border border-gray-200 p-2 rounded bg-white w-full max-w-xs"
-                         onChange={e => setEvidenciaFile(e.target.files ? e.target.files[0] : null)}
-                       />
-                       <button type="submit" disabled={uploading} className="bg-bogota-primary text-white font-bold px-6 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 inline-flex items-center gap-2 shadow">
-                         {uploading ? 'Procesando...' : 'Subir Archivo'}
-                       </button>
-                     </div>
-                   </form>
+                <div className="border border-red-100 bg-red-50/40 p-4 rounded-xl flex flex-col gap-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                      <FileText className="w-4 h-4 text-bogota-primary" /> Cargar Nueva Evidencia y Justificación
+                    </h3>
+                    <span className="text-[11px] font-semibold text-bogota-primary bg-red-100/70 px-2 py-0.5 rounded">
+                      {asigActual?.localidad?.nombre || 'General'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Al cargar un soporte es <strong>obligatorio</strong> incluir una justificación o comentario sobre la evidencia. Se registrará automáticamente en el hilo con fecha y hora, y se notificará por correo.
+                  </p>
+                  
+                  <form onSubmit={handleFileUpload} className="flex flex-col gap-3">
+                    <textarea 
+                      required 
+                      placeholder="Escribe el comentario obligatorio sobre la evidencia o avance ejecutado..."
+                      className="w-full border border-gray-300 rounded-lg p-2.5 outline-none text-sm h-20 resize-none focus:ring-2 focus:ring-bogota-primary/30 bg-white"
+                      value={comentarioEvidencia}
+                      onChange={e => setComentarioEvidencia(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-3 items-center justify-between">
+                      <input 
+                        required 
+                        type="file" 
+                        className="text-xs border border-gray-300 p-1.5 rounded bg-white w-full sm:max-w-xs cursor-pointer"
+                        onChange={e => setEvidenciaFile(e.target.files ? e.target.files[0] : null)}
+                      />
+                      <button 
+                        type="submit" 
+                        disabled={uploading || !evidenciaFile || !comentarioEvidencia.trim()} 
+                        className="bg-bogota-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 inline-flex items-center gap-1.5 shadow"
+                      >
+                        {uploading ? (
+                          <>
+                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Subiendo y Notificando...
+                          </>
+                        ) : (
+                          <>
+                            <Paperclip className="w-3.5 h-3.5" />
+                            Subir Archivo y Notificar
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               )}
 
-              <div className="space-y-3 mt-8">
-                 <h4 className="font-bold text-gray-700">Archivos Cargados ({asigActual?.localidad?.nombre || 'General'})</h4>
-                 {evidenciasAMostrar.length === 0 && (
-                   <p className="text-sm text-gray-400">Sin archivos adjuntos en el expediente local.</p>
-                 )}
-                 {evidenciasAMostrar.map((ev: any) => {
-                    const statusColor = 
-                      ev.prechequeoEstado === 'APTO' ? 'bg-green-100 text-green-800 border-green-200' :
-                      ev.prechequeoEstado === 'NO_APTO' ? 'bg-red-100 text-red-800 border-red-200' :
-                      ev.prechequeoEstado === 'DUDOSO' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                      'bg-gray-100 text-gray-800 border-gray-200';
-                      
-                    return (
-                      <div key={ev.id} className="flex flex-col p-4 border rounded-xl hover:bg-gray-50 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Paperclip className="w-5 h-5"/></div>
-                            <div>
-                              <p className="font-medium text-sm text-gray-800">{ev.nombreArchivo}</p>
-                              <p className="text-xs text-gray-400">Subido el {new Date(ev.fechaSubida).toLocaleDateString()}</p>
+              {/* Vista dividida: Archivos cargados e Hilo de conversación/chat */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                
+                {/* Columna Izquierda: Archivos y Soportes */}
+                <div className="flex flex-col border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                  <div className="flex items-center justify-between mb-3 border-b pb-2">
+                    <h4 className="font-bold text-gray-700 text-sm flex items-center gap-2">
+                      <Paperclip className="w-4 h-4 text-bogota-primary" />
+                      Archivos Cargados ({evidenciasAMostrar.length})
+                    </h4>
+                    <span className="text-xs text-gray-500 font-medium">{asigActual?.localidad?.nombre || 'General'}</span>
+                  </div>
+
+                  {evidenciasAMostrar.length === 0 ? (
+                    <div className="p-8 text-center text-gray-400 text-xs">
+                      Sin archivos adjuntos en el expediente de esta localidad.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                      {evidenciasAMostrar.map((ev: any) => {
+                        const statusColor = 
+                          ev.prechequeoEstado === 'APTO' ? 'bg-green-100 text-green-800 border-green-200' :
+                          ev.prechequeoEstado === 'NO_APTO' ? 'bg-red-100 text-red-800 border-red-200' :
+                          ev.prechequeoEstado === 'DUDOSO' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                          'bg-gray-100 text-gray-800 border-gray-200';
+                        
+                        const fileUrl = ev.urlArchivo?.startsWith('http') 
+                          ? ev.urlArchivo 
+                          : `${(import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace('/api', '')}${ev.urlArchivo}`;
+
+                        return (
+                          <div key={ev.id} className="p-3 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition flex flex-col gap-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2 min-w-0">
+                                <div className="p-1.5 bg-red-50 text-bogota-primary rounded shrink-0">
+                                  <Paperclip className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-xs text-gray-800 truncate" title={ev.nombreArchivo}>
+                                    {ev.nombreArchivo}
+                                  </p>
+                                  <p className="text-[11px] text-gray-400">
+                                    Subido: {new Date(ev.fechaSubida).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}
+                                  </p>
+                                </div>
+                              </div>
+                              <a 
+                                href={fileUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="text-bogota-primary text-xs font-bold hover:underline shrink-0 px-2 py-0.5 bg-red-50 rounded"
+                              >
+                                Ver
+                              </a>
                             </div>
+
+                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusColor}`}>
+                                Pre-chequeo IA: {ev.prechequeoEstado || 'PENDIENTE'}
+                              </span>
+                              {!ev.prechequeoEstado && (
+                                <button 
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/evidencias/prechequear`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ evidenciaId: ev.id })
+                                      });
+                                      if (res.ok) {
+                                        alert("Análisis de evidencia completado. Por favor recarga el detalle para ver los resultados.");
+                                        onRefresh();
+                                      } else {
+                                        alert("No se pudo iniciar el pre-chequeo. Asegúrate de configurar la clave de API.");
+                                      }
+                                    } catch(e) {
+                                      console.error(e);
+                                    }
+                                  }}
+                                  className="text-[10px] bg-purple-700 hover:bg-purple-800 text-white font-bold py-0.5 px-2 rounded transition-colors flex items-center gap-1 shadow-sm"
+                                >
+                                  <Sparkles className="w-3 h-3"/>
+                                  Analizar IA
+                                </button>
+                              )}
+                            </div>
+
+                            {ev.prechequeoFeedback && (
+                              <div className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded border border-gray-200 flex flex-col gap-0.5">
+                                <p className="font-bold flex items-center gap-1 text-gray-800">
+                                  <Sparkles className="w-3 h-3 text-purple-700"/> Diagnóstico IA ({ev.prechequeoPuntaje || 0}% coherencia):
+                                </p>
+                                <p className="text-gray-600">{ev.prechequeoFeedback}</p>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusColor}`}>
-                              Pre-chequeo IA: {ev.prechequeoEstado || 'PENDIENTE'}
-                            </span>
-                            <a href={ev.urlArchivo?.startsWith('http') ? ev.urlArchivo : `${(import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace('/api', '')}${ev.urlArchivo}`} target="_blank" rel="noreferrer" className="text-bogota-primary text-sm font-bold hover:underline">Ver</a>
-                          </div>
-                        </div>
-                        {ev.prechequeoFeedback && (
-                          <div className="text-xs text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-200 mt-1 flex flex-col gap-0.5">
-                            <p className="font-bold flex items-center gap-1 text-gray-800"><Sparkles className="w-3.5 h-3.5 text-purple-700"/> Diagnóstico IA ({ev.prechequeoPuntaje || 0}% de coherencia):</p>
-                            <p>{ev.prechequeoFeedback}</p>
-                          </div>
-                        )}
-                        {!ev.prechequeoEstado && (
-                          <button 
-                            onClick={async () => {
-                              try {
-                                const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/evidencias/prechequear`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ evidenciaId: ev.id })
-                                });
-                                if (res.ok) {
-                                  alert("Análisis de evidencia completado. Por favor recarga el detalle para ver los resultados.");
-                                  onRefresh();
-                                } else {
-                                  alert("No se pudo iniciar el pre-chequeo. Asegúrate de configurar la clave de API.");
-                                }
-                              } catch(e) {
-                                console.error(e);
-                              }
-                            }}
-                            className="text-[10px] bg-purple-700 hover:bg-purple-800 text-white font-bold py-1 px-2.5 rounded self-start mt-1 transition-colors flex items-center gap-1 shadow-sm"
-                          >
-                            <Sparkles className="w-3 h-3"/>
-                            Correr Pre-chequeo IA
-                          </button>
-                        )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Columna Derecha: Hilo de Comentarios y Chat */}
+                <div className="flex flex-col border border-gray-200 rounded-xl p-4 bg-gray-50/50 flex-1">
+                  <div className="flex items-center justify-between mb-3 border-b pb-2">
+                    <h4 className="font-bold text-gray-700 text-sm flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-bogota-primary" />
+                      Hilo de Chat ({comentariosAMostrar.length})
+                    </h4>
+                    <span className="text-xs text-gray-500 font-medium">Con fecha y hora</span>
+                  </div>
+
+                  {/* Lista de comentarios */}
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[310px] min-h-[160px]">
+                    {comentariosAMostrar.length === 0 ? (
+                      <div className="p-8 text-center text-gray-400 text-xs">
+                        No hay comentarios en el hilo de esta localidad.
                       </div>
-                    );
-                  })}
+                    ) : (
+                      comentariosAMostrar.map((c: any) => {
+                        const esEvidencia = c.texto?.startsWith('📎 Evidencia adjunta:');
+                        const esCreadorOAdmin = c.autorId === (actividad.creadoPor || 'admin-mock-id');
+                        return (
+                          <div 
+                            key={c.id} 
+                            className={`p-3 rounded-xl text-xs border ${
+                              esEvidencia 
+                                ? 'bg-amber-50/70 border-amber-200' 
+                                : esCreadorOAdmin 
+                                  ? 'bg-blue-50/80 border-blue-100 ml-2' 
+                                  : 'bg-white border-gray-200 mr-2'
+                            }`}
+                          >
+                            <div className="flex justify-between items-baseline mb-1 gap-2">
+                              <span className={`font-bold ${esCreadorOAdmin ? 'text-blue-700' : 'text-bogota-primary'}`}>
+                                {c.autor?.nombre || 'Usuario'}
+                              </span>
+                              <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                                {new Date(c.fechaCreacion).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{c.texto}</p>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Redactar comentario rápido */}
+                  {!isReadonly ? (
+                    <form onSubmit={handlePostComment} className="flex gap-2 pt-3 border-t mt-3">
+                      <input 
+                        type="text" 
+                        value={nuevoComentario}
+                        onChange={e => setNuevoComentario(e.target.value)}
+                        placeholder="Escribe un comentario..."
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-bogota-primary/30 bg-white"
+                      />
+                      <button 
+                        disabled={postingComment || !nuevoComentario.trim()} 
+                        type="submit" 
+                        className="bg-bogota-primary text-white p-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition shadow-sm"
+                        title="Enviar comentario y notificar"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="pt-2 border-t mt-3 text-center text-xs font-bold text-gray-400 bg-gray-100 p-2 rounded-lg">
+                      Hilo de chat bloqueado. La actividad ya fue validada.
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}

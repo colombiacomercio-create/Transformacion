@@ -56,6 +56,16 @@ router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']
       }
     });
 
+    // Registrar comentario en el hilo de chat con el archivo adjunto
+    await prisma.comentario.create({
+      data: {
+        texto: `📎 Evidencia adjunta: ${req.file.originalname}\n${comentarioAdjunto}`,
+        actividadId,
+        localidadId: locFinalId,
+        autorId: req.user.id
+      }
+    });
+
     // Disparar prechequeo de IA de forma asíncrona en segundo plano sin bloquear respuesta HTTP
     import('../services/ai.service').then(async (aiService) => {
       try {

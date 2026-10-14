@@ -77,6 +77,15 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, (0, auth_midd
                 comentarioAdjunto
             }
         });
+        // Registrar comentario en el hilo de chat con el archivo adjunto
+        await prisma.comentario.create({
+            data: {
+                texto: `📎 Evidencia adjunta: ${req.file.originalname}\n${comentarioAdjunto}`,
+                actividadId,
+                localidadId: locFinalId,
+                autorId: req.user.id
+            }
+        });
         // Disparar prechequeo de IA de forma asíncrona en segundo plano sin bloquear respuesta HTTP
         Promise.resolve().then(() => __importStar(require('../services/ai.service'))).then(async (aiService) => {
             try {
