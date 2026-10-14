@@ -184,15 +184,18 @@ interface Props { userData: any; onNavigate: (s: any) => void; }
 export default function TablaGestionResultados({ onNavigate }: Props) {
   const [ultimaFicha, setUltimaFicha] = useState<any>(null);
   const [statsReuniones, setStatsReuniones] = useState<any>(null);
+  const [statsReuniones2026, setStatsReuniones2026] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null),
       fetchApi(`${API}/api/reuniones/stats`).then(r => r.json()).catch(() => null),
-    ]).then(([ficha, stats]) => {
+      fetchApi(`${API}/api/reuniones/stats?desde=2026-01-01`).then(r => r.json()).catch(() => null),
+    ]).then(([ficha, stats, s2026]) => {
       setUltimaFicha(ficha);
       setStatsReuniones(stats);
+      setStatsReuniones2026(s2026);
       setLoading(false);
     });
   }, []);
@@ -207,18 +210,32 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
     ? Object.entries(statsReuniones.porTipoContraparte).map(([k, v]) => ({ name: LABELS_CONTRAPARTE[k] || k, value: v as number }))
     : [];
 
-  const agrupadoTematica: Record<string, number> = {};
-  if (statsReuniones?.porTematica) {
-    Object.entries(statsReuniones.porTematica).forEach(([k, v]) => {
-      const norm = normalizeTematica(k);
-      agrupadoTematica[norm] = (agrupadoTematica[norm] || 0) + (v as number);
-    });
-  }
+  // Exclusivo 2026 para reuniones por temática
+  const fuenteTematica2026 = statsReuniones?.porTematica2026 || statsReuniones2026?.porTematica || {};
 
-  const dataBarTematica = Object.entries(agrupadoTematica)
+  const agrupadoTematica: Record<string, number> = {};
+  const dataFuente = Object.keys(fuenteTematica2026).length > 0 ? fuenteTematica2026 : (statsReuniones?.porTematica || {});
+  Object.entries(dataFuente).forEach(([k, v]) => {
+    const norm = normalizeTematica(k);
+    agrupadoTematica[norm] = (agrupadoTematica[norm] || 0) + (v as number);
+  });
+
+  // Ordenamos temáticas prioritarias y garantizamos que Residuos y Espacio Público siempre estén incluidos
+  const tematicasOrdenadas = Object.entries(agrupadoTematica)
+    .filter(([name]) => name !== 'Otros')
     .map(([name, reuniones]) => ({ name, reuniones }))
-    .sort((a, b) => b.reuniones - a.reuniones)
-    .slice(0, 10);
+    .sort((a, b) => b.reuniones - a.reuniones);
+
+  const topTematicas = tematicasOrdenadas.slice(0, 10);
+  const nombresTop = new Set(topTematicas.map(t => t.name));
+
+  ['P04 Residuos', 'P05 Espacio Público'].forEach(obligatorio => {
+    if (!nombresTop.has(obligatorio) && agrupadoTematica[obligatorio]) {
+      topTematicas.push({ name: obligatorio, reuniones: agrupadoTematica[obligatorio] });
+    }
+  });
+
+  const dataBarTematica = topTematicas;
 
   const dataMes = statsReuniones?.porMes
     ? Object.entries(statsReuniones.porMes).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({ mes: k, reuniones: v as number }))
@@ -675,28 +692,31 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
         {/* Reuniones por temática */}
         <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-sm text-gray-700">Reuniones por Temática</h3>
-            <span className="text-[10px] text-gray-500 font-semibold bg-gray-100 px-2 py-0.5 rounded">
-              Top 10 temáticas
+            <div>
+              <h3 className="font-bold text-sm text-gray-700">Reuniones por Temática</h3>
+              <p className="text-[10px] text-gray-400">Vigencia 2026</p>
+            </div>
+            <span className="text-[10px] text-red-700 font-bold bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+              Año 2026
             </span>
           </div>
           {dataBarTematica.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={280}>
               <BarChart
                 data={dataBarTematica}
                 layout="vertical"
-                margin={{ left: 10, right: 20, top: 5, bottom: 5 }}
+                margin={{ left: 10, right: 25, top: 5, bottom: 5 }}
               >
                 <XAxis type="number" tick={{ fontSize: 10 }} />
                 <YAxis
                   dataKey="name"
                   type="category"
-                  width={135}
+                  width={140}
                   tick={{ fontSize: 9, fill: '#374151', fontWeight: 600 }}
                   interval={0}
                 />
                 <Tooltip
-                  formatter={(val: any) => [`${val} reuniones`, 'Total']}
+                  formatter={(val: any) => [`${val} reuniones`, 'Total 2026']}
                   contentStyle={{ fontSize: '11px', borderRadius: '8px' }}
                 />
                 <Bar dataKey="reuniones" fill="#e3002b" radius={[0, 4, 4, 0]} />

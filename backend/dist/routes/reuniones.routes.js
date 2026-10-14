@@ -91,25 +91,36 @@ router.get('/stats', auth_middleware_1.azureADAuth, async (req, res) => {
                     },
                 } : {}),
             },
-            select: { tipoReunion: true, tipoContraparte: true, tematica: true, responsable: true, fecha: true },
+            select: { tipoReunion: true, tipoContraparte: true, tematica: true, subtematica: true, objeto: true, responsable: true, fecha: true },
         });
         const porTipoContraparte = {};
         const porResponsable = {};
         const porTipoReunion = {};
         const porTematica = {};
+        const porTematica2026 = {};
         const porMes = {};
         for (const r of reuniones) {
             porTipoContraparte[r.tipoContraparte] = (porTipoContraparte[r.tipoContraparte] || 0) + 1;
             porResponsable[r.responsable] = (porResponsable[r.responsable] || 0) + 1;
             porTipoReunion[r.tipoReunion] = (porTipoReunion[r.tipoReunion] || 0) + 1;
-            const t = r.tematica || 'GLOBAL';
+            let t = r.tematica || 'GLOBAL';
+            if (t === 'OTRO' || t === 'GLOBAL' || !t) {
+                const full = `${r.subtematica || ''} ${r.objeto || ''}`.toLowerCase();
+                if (/residuo|lrec|basura/i.test(full))
+                    t = 'P04';
+                else if (/espacio.*p[uú]blico|recuperaci[oó]n|organizaci[oó]n.*espacio/i.test(full))
+                    t = 'P05';
+            }
             porTematica[t] = (porTematica[t] || 0) + 1;
+            if (r.fecha >= new Date('2026-01-01T00:00:00Z') && r.fecha <= new Date('2026-12-31T23:59:59Z')) {
+                porTematica2026[t] = (porTematica2026[t] || 0) + 1;
+            }
             const mes = r.fecha.toISOString().slice(0, 7);
             porMes[mes] = (porMes[mes] || 0) + 1;
         }
         const compromisosTotal = await prisma.compromisoReunion.count();
         const compromisosPendientes = await prisma.compromisoReunion.count({ where: { cumplido: false } });
-        res.json({ total: reuniones.length, porTipoContraparte, porResponsable, porTipoReunion, porTematica, porMes, compromisosTotal, compromisosPendientes });
+        res.json({ total: reuniones.length, porTipoContraparte, porResponsable, porTipoReunion, porTematica, porTematica2026, porMes, compromisosTotal, compromisosPendientes });
     }
     catch (error) {
         res.status(500).json({ error: 'Error obteniendo estadísticas' });
