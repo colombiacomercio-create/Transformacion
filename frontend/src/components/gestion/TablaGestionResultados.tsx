@@ -28,6 +28,33 @@ const getAvancePct = (real: number | undefined, prog: number | undefined): numbe
   return Math.round(((real || 0) / prog) * 100);
 };
 
+// Normalización de temáticas para consolidar variantes históricas
+const normalizeTematica = (t: string): string => {
+  if (!t) return 'Global';
+  const s = t.trim();
+  if (/^p0?8\b|rollo/i.test(s)) return 'P08 Rollos Legendarios';
+  if (/^p0?1\b|ingenier/i.test(s)) return 'P01 Ingeniería Detalle';
+  if (/^p0?5\b|organizaci.*espacio/i.test(s)) return 'P05 Espacio Público';
+  if (/^p0?4\b|residuos/i.test(s)) return 'P04 Residuos';
+  if (/^p0?3\b|obras/i.test(s)) return 'P03 Obras Locales';
+  if (/^p0?6\b|equipos.*seguridad/i.test(s)) return 'P06 Equipos Seguridad';
+  if (/^p0?7\b|ivc/i.test(s)) return 'P07 Operativos IVC';
+  if (/^p0?2\b|planeaci/i.test(s)) return 'P02 Comité Planeación';
+  if (/^ov2\b|canales/i.test(s)) return 'OV2 Canales Atención';
+  if (/^pv1\b|memoria/i.test(s)) return 'PV1 Memoria Local';
+  if (/^p0?9\b|comportamiento/i.test(s)) return 'P09 Comportamientos';
+  if (/^global$/i.test(s)) return 'Global';
+  if (/ejecuci[oó]n presupuestal/i.test(s)) return 'Ejecución Presupuestal';
+  if (/entornos inspiradores/i.test(s)) return 'Entornos Inspiradores';
+  if (/actuaciones/i.test(s)) return 'Actuaciones Adm.';
+  if (/conflictividad/i.test(s)) return 'Conflictividades';
+  if (/ddhh/i.test(s)) return 'Objetivo 5 DDHH';
+  if (/nivel_central/i.test(s)) return 'Nivel Central';
+  if (/gobernanza/i.test(s)) return 'Gobernanza / Estrategia';
+  if (/rutina/i.test(s)) return 'Rutina Transformación';
+  return s === 'OTRO' ? 'Otros' : s;
+};
+
 // Componente Semicircle Gauge vectorial (similar al panel de resultados)
 function SemiGauge({
   valPct,
@@ -180,9 +207,18 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
     ? Object.entries(statsReuniones.porTipoContraparte).map(([k, v]) => ({ name: LABELS_CONTRAPARTE[k] || k, value: v as number }))
     : [];
 
-  const dataBarResponsable = statsReuniones?.porResponsable
-    ? Object.entries(statsReuniones.porResponsable).map(([k, v]) => ({ name: k, reuniones: v as number }))
-    : [];
+  const agrupadoTematica: Record<string, number> = {};
+  if (statsReuniones?.porTematica) {
+    Object.entries(statsReuniones.porTematica).forEach(([k, v]) => {
+      const norm = normalizeTematica(k);
+      agrupadoTematica[norm] = (agrupadoTematica[norm] || 0) + (v as number);
+    });
+  }
+
+  const dataBarTematica = Object.entries(agrupadoTematica)
+    .map(([name, reuniones]) => ({ name, reuniones }))
+    .sort((a, b) => b.reuniones - a.reuniones)
+    .slice(0, 10);
 
   const dataMes = statsReuniones?.porMes
     ? Object.entries(statsReuniones.porMes).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({ mes: k, reuniones: v as number }))
@@ -636,16 +672,34 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
 
       {/* Gráficas de Reuniones y Mesas de Trabajo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Reuniones por responsable */}
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-          <h3 className="font-bold text-sm text-gray-700 mb-3">Reuniones por Responsable</h3>
-          {dataBarResponsable.length > 0 ? (
+        {/* Reuniones por temática */}
+        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-sm text-gray-700">Reuniones por Temática</h3>
+            <span className="text-[10px] text-gray-500 font-semibold bg-gray-100 px-2 py-0.5 rounded">
+              Top 10 temáticas
+            </span>
+          </div>
+          {dataBarTematica.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={dataBarResponsable} margin={{ left: 0, right: 10 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Bar dataKey="reuniones" fill="#e3002b" radius={[4, 4, 0, 0]} />
+              <BarChart
+                data={dataBarTematica}
+                layout="vertical"
+                margin={{ left: 10, right: 20, top: 5, bottom: 5 }}
+              >
+                <XAxis type="number" tick={{ fontSize: 10 }} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={135}
+                  tick={{ fontSize: 9, fill: '#374151', fontWeight: 600 }}
+                  interval={0}
+                />
+                <Tooltip
+                  formatter={(val: any) => [`${val} reuniones`, 'Total']}
+                  contentStyle={{ fontSize: '11px', borderRadius: '8px' }}
+                />
+                <Bar dataKey="reuniones" fill="#e3002b" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : <EmptyChart />}
