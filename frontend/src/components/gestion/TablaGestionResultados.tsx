@@ -157,18 +157,15 @@ interface Props { userData: any; onNavigate: (s: any) => void; }
 export default function TablaGestionResultados({ onNavigate }: Props) {
   const [ultimaFicha, setUltimaFicha] = useState<any>(null);
   const [statsReuniones, setStatsReuniones] = useState<any>(null);
-  const [statsAlertas, setStatsAlertas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetchApi(`${API}/api/ficha-resultados/ultima`).then(r => r.json()).catch(() => null),
       fetchApi(`${API}/api/reuniones/stats`).then(r => r.json()).catch(() => null),
-      fetchApi(`${API}/api/fichas-alertas`).then(r => r.json()).catch(() => []),
-    ]).then(([ficha, stats, alertas]) => {
+    ]).then(([ficha, stats]) => {
       setUltimaFicha(ficha);
       setStatsReuniones(stats);
-      setStatsAlertas(Array.isArray(alertas) ? alertas : []);
       setLoading(false);
     });
   }, []);
@@ -178,10 +175,6 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-bogota-primary" />
     </div>
   );
-
-  const alertasCriticas = statsAlertas.filter((a: any) => a.estado !== 'RESUELTA' && a.sugerenciaSeveridad === 'CRITICA').length;
-  const alertasModeradas = statsAlertas.filter((a: any) => a.estado !== 'RESUELTA' && (a.sugerenciaSeveridad === 'MODERADA' || !a.sugerenciaSeveridad)).length;
-  const alertasResueltas = statsAlertas.filter((a: any) => a.estado === 'RESUELTA').length;
 
   const dataPieContraparte = statsReuniones?.porTipoContraparte
     ? Object.entries(statsReuniones.porTipoContraparte).map(([k, v]) => ({ name: LABELS_CONTRAPARTE[k] || k, value: v as number }))
@@ -195,7 +188,7 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
     ? Object.entries(statsReuniones.porMes).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({ mes: k, reuniones: v as number }))
     : [];
 
-  // Cálculos de las 5 fichas de resultados solicitadas:
+  // Cálculos de las fichas de resultados:
   // 1. Ejecución Presupuestal
   const compReal = ultimaFicha?.compromisosPct ?? 0;
   const compProg = ultimaFicha?.metaCompromisosPct ?? 0;
@@ -237,6 +230,31 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
   const vehiculosEntregados = vehiculosPolicia + vehiculosSdscj;
   const vehAvance = getAvancePct(vehiculosEntregados, vehiculosProg || vehiculosMeta);
   const convHeaderColor = '#16a34a';
+
+  // 6. Sesiones y Mesas (Distribución semestral)
+  const conteoSemestres: Record<string, number> = {
+    '2025 I': 0,
+    '2025 II': 0,
+    '2026 I': 0,
+    '2026 II': 0,
+  };
+
+  if (statsReuniones?.porMes) {
+    Object.entries(statsReuniones.porMes).forEach(([mes, val]) => {
+      const [y, m] = mes.split('-').map(Number);
+      if (y && m) {
+        const sem = `${y} ${m <= 6 ? 'I' : 'II'}`;
+        if (conteoSemestres[sem] !== undefined) {
+          conteoSemestres[sem] += (val as number);
+        } else {
+          conteoSemestres[sem] = (val as number);
+        }
+      }
+    });
+  }
+
+  const totalReuniones = statsReuniones?.total ?? 0;
+  const maxSemestre = Math.max(1, ...Object.values(conteoSemestres));
 
   // Fecha del corte formateada
   const fechaCorteStr = ultimaFicha?.periodo
@@ -552,66 +570,61 @@ export default function TablaGestionResultados({ onNavigate }: Props) {
           </div>
         </ResultCard>
 
-        {/* 6. GESTIÓN OPERATIVA Y ALERTAS */}
+        {/* 6. SESIONES Y MESAS */}
         <ResultCard
-          title="6. Operación y Alertas"
-          color="#334155"
-          icon="⚡"
-          onClick={() => onNavigate('alertas')}
+          title="6. Sesiones y Mesas"
+          color="#2563eb"
+          icon="🤝"
+          onClick={() => onNavigate('sesiones')}
         >
           <div className="space-y-2.5">
-            {/* Alertas */}
-            <div className="border border-red-100 bg-red-50/40 rounded-lg p-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold text-red-900 flex items-center gap-1">
-                  🚨 SEGUIMIENTO ALERTAS
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onNavigate('alertas'); }}
-                  className="text-[9px] text-red-700 font-semibold hover:underline"
-                >
-                  Ver Alertas →
-                </button>
+            {/* Cifras de cabecera */}
+            <div className="grid grid-cols-3 gap-1 text-center border-b border-gray-100 pb-2">
+              <div>
+                <span className="text-[9px] text-gray-500 font-bold block uppercase">TOTAL SESIONES</span>
+                <span className="text-lg font-black text-blue-700">{totalReuniones}</span>
               </div>
-              <div className="grid grid-cols-3 gap-1 text-center">
-                <div className="bg-white rounded p-1 shadow-2xs border border-red-100">
-                  <span className="block font-black text-sm text-red-600">{alertasCriticas}</span>
-                  <span className="text-[9px] text-gray-500 font-semibold block">Críticas</span>
-                </div>
-                <div className="bg-white rounded p-1 shadow-2xs border border-amber-100">
-                  <span className="block font-black text-sm text-amber-600">{alertasModeradas}</span>
-                  <span className="text-[9px] text-gray-500 font-semibold block">Moderadas</span>
-                </div>
-                <div className="bg-white rounded p-1 shadow-2xs border border-emerald-100">
-                  <span className="block font-black text-sm text-emerald-600">{alertasResueltas}</span>
-                  <span className="text-[9px] text-gray-500 font-semibold block">Cerradas</span>
-                </div>
+              <div className="border-l border-r border-gray-100">
+                <span className="text-[9px] text-gray-500 font-bold block uppercase">COMPROMISOS</span>
+                <span className="text-lg font-black text-gray-800">{statsReuniones?.compromisosTotal ?? 0}</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-gray-500 font-bold block uppercase">PENDIENTES</span>
+                <span className="text-lg font-black text-amber-600">{statsReuniones?.compromisosPendientes ?? 0}</span>
               </div>
             </div>
 
-            {/* Sesiones y Mesas */}
-            <div className="border border-blue-100 bg-blue-50/40 rounded-lg p-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold text-blue-900 flex items-center gap-1">
-                  🤝 SESIONES Y MESAS
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onNavigate('sesiones'); }}
-                  className="text-[9px] text-blue-700 font-semibold hover:underline"
-                >
-                  Ver Mesas →
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-1 text-center">
-                <div className="bg-white rounded p-1 shadow-2xs border border-blue-100">
-                  <span className="block font-black text-sm text-blue-700">{statsReuniones?.total ?? 0}</span>
-                  <span className="text-[9px] text-gray-500 font-semibold block">Reuniones</span>
-                </div>
-                <div className="bg-white rounded p-1 shadow-2xs border border-blue-100">
-                  <span className="block font-black text-sm text-blue-700">{statsReuniones?.compromisosPendientes ?? 0}</span>
-                  <span className="text-[9px] text-gray-500 font-semibold block">Compromisos pend.</span>
-                </div>
-              </div>
+            {/* Subtítulo de distribución semestral */}
+            <div className="flex items-center justify-between text-[10px] font-bold text-gray-600">
+              <span className="uppercase text-gray-500">Distribución por Semestre</span>
+              <span className="text-blue-700 font-semibold">{totalReuniones} registradas</span>
+            </div>
+
+            {/* 4 Semestres: 2025 I, 2025 II, 2026 I, 2026 II */}
+            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+              {[
+                { sem: '2025 I', val: conteoSemestres['2025 I'] || 0 },
+                { sem: '2025 II', val: conteoSemestres['2025 II'] || 0 },
+                { sem: '2026 I', val: conteoSemestres['2026 I'] || 0 },
+                { sem: '2026 II', val: conteoSemestres['2026 II'] || 0 },
+              ].map(({ sem, val }) => {
+                const pct = totalReuniones > 0 ? Math.round((val / totalReuniones) * 100) : 0;
+                return (
+                  <div key={sem} className="border border-blue-100 bg-blue-50/50 p-2 rounded-lg flex flex-col justify-between">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="font-bold text-gray-700 text-[11px]">{sem}</span>
+                      <span className="font-black text-blue-800 text-sm">{val}</span>
+                    </div>
+                    <div className="w-full bg-blue-100/80 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.round((val / maxSemestre) * 100))}%` }}
+                      />
+                    </div>
+                    <span className="text-[8px] text-gray-500 mt-1 text-right font-medium">{pct}% del total</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </ResultCard>
