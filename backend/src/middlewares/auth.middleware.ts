@@ -71,7 +71,7 @@ export const azureADAuth = async (req: AuthRequest, res: Response, next: NextFun
         // Crear usuario institucional con rol GESTOR por defecto para habilitar carga de evidencias
         dbUser = await prisma.usuario.create({
           data: {
-            email: userEmail,
+            email: emailLower,
             nombre: decoded?.name || userEmail.split('@')[0],
             rol: defaultRol
           }
