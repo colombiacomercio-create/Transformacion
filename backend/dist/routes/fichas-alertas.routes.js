@@ -11,10 +11,21 @@ router.get('/', auth_middleware_1.azureADAuth, async (req, res) => {
         const user = req.user;
         let filtro = {};
         if (user.rol === 'GESTOR') {
-            const asignaciones = await prisma.asignacionLocalidad.findMany({ where: { responsableId: user.id } });
-            const checkUserGestor = (asignaciones.length === 0 && user.id === 'gestor-local-123') ? await prisma.localidad.findFirst() : null;
-            const localIds = checkUserGestor ? [checkUserGestor.id] : asignaciones.map(a => a.localidadId);
-            filtro = { OR: [{ localidadId: { in: localIds } }, { localidadId: null }] };
+            const userEmailLower = (user.email || '').toLowerCase().trim();
+            const [localidadesPrincipal, asignaciones, actividadesConCorreo] = await Promise.all([
+                prisma.localidad.findMany({ where: { responsablePrincipalId: user.id }, select: { id: true } }),
+                prisma.asignacionLocalidad.findMany({ where: { responsableId: user.id }, select: { localidadId: true } }),
+                prisma.actividad.findMany({
+                    where: { correosNotificacion: { has: userEmailLower } },
+                    select: { asignaciones: { select: { localidadId: true } } }
+                })
+            ]);
+            const localIds = Array.from(new Set([
+                ...localidadesPrincipal.map(l => l.id),
+                ...asignaciones.map(a => a.localidadId),
+                ...actividadesConCorreo.flatMap(a => a.asignaciones.map(as => as.localidadId))
+            ]));
+            filtro = { OR: [{ localidadId: { in: localIds } }, { localidadId: null }, { correosResponsables: { has: user.email } }] };
         }
         else if (user.rol === 'OBSERVADOR') {
             filtro = { correosResponsables: { has: user.email } };
