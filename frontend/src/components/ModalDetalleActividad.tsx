@@ -52,6 +52,13 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   const [nuevoResponsableInput, setNuevoResponsableInput] = useState('');
   const [guardandoResponsables, setGuardandoResponsables] = useState(false);
   const [usuariosSistema, setUsuariosSistema] = useState<any[]>([]);
+  const [listaResponsables, setListaResponsables] = useState<string[]>(actividad.correosNotificacion || []);
+
+  useEffect(() => {
+    if (actividad?.correosNotificacion) {
+      setListaResponsables(actividad.correosNotificacion);
+    }
+  }, [actividad?.correosNotificacion]);
 
   useEffect(() => {
     fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/auth/usuarios`)
@@ -83,6 +90,12 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
             }
             if (data.correosNotificacion && Array.isArray(data.correosNotificacion)) {
               actividad.correosNotificacion = data.correosNotificacion;
+              setListaResponsables(data.correosNotificacion);
+              setEditData(prev => ({
+                ...prev,
+                correosNotificacion: data.correosNotificacion.join(', ')
+              }));
+              onRefresh();
             }
           }
         })
@@ -338,6 +351,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
       // Actualizar estado local inmediatamente
       actividad.correosNotificacion = updatedList;
+      setListaResponsables(updatedList);
       setEditData(prev => ({
         ...prev,
         correosNotificacion: updatedList.join(', ')
@@ -399,6 +413,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
       }
 
       actividad.correosNotificacion = updatedList;
+      setListaResponsables(updatedList);
       setEditData(prev => ({
         ...prev,
         correosNotificacion: updatedList.join(', ')
@@ -845,12 +860,12 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                           <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
                              <span>👤</span> Responsables Asignados
                              <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                                {actividad.correosNotificacion?.length || 0}
+                                {listaResponsables?.length || 0}
                              </span>
                           </h3>
                           <p className="text-xs text-gray-400 mt-0.5">Puedes asignar uno o varios responsables; puedes agregar o quitar en cualquier momento.</p>
                        </div>
-                       {actividad.correosNotificacion?.length > 0 && (
+                       {listaResponsables && listaResponsables.length > 0 && (
                           <button
                              type="button"
                              onClick={handleReenviarNotificacion}
@@ -864,8 +879,8 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
 
                     {/* Chips de Responsables Asignados */}
                     <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
-                       {actividad.correosNotificacion && actividad.correosNotificacion.length > 0 ? (
-                          actividad.correosNotificacion.map((email: string) => (
+                       {listaResponsables && listaResponsables.length > 0 ? (
+                          listaResponsables.map((email: string) => (
                              <div 
                                 key={email} 
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 shadow-2xs transition-colors"

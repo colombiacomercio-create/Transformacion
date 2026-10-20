@@ -590,6 +590,31 @@ router.patch('/:id/responsables', azureADAuth, async (req: AuthRequest, res: Res
       where: { id },
       data: { correosNotificacion: cleanList }
     });
+
+    // 1. Promover automáticamente a GESTOR si algún usuario en la lista tiene rol OBSERVADOR
+    await prisma.usuario.updateMany({
+      where: {
+        email: { in: cleanList, mode: 'insensitive' },
+        rol: 'OBSERVADOR'
+      },
+      data: { rol: 'GESTOR' }
+    });
+
+    // 2. Pre-crear como GESTOR en Usuario si no existen aún en BD
+    for (const email of cleanList) {
+      const exists = await prisma.usuario.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } }
+      });
+      if (!exists) {
+        await prisma.usuario.create({
+          data: {
+            email: email.toLowerCase().trim(),
+            nombre: email.split('@')[0],
+            rol: 'GESTOR'
+          }
+        });
+      }
+    }
     
     res.json(actividad);
   } catch (error: any) {
@@ -612,9 +637,18 @@ router.patch('/:id', azureADAuth, async (req: AuthRequest, res: Response) => {
     if (hitoId !== undefined) dataToUpdate.hitoId = hitoId;
     if (codigoCompleto !== undefined) dataToUpdate.codigoCompleto = codigoCompleto;
     if (correosNotificacion !== undefined) {
-      dataToUpdate.correosNotificacion = Array.isArray(correosNotificacion) 
-         ? correosNotificacion 
-         : correosNotificacion.split(',').map((c: string) => c.trim()).filter(Boolean);
+      const cleanList = Array.isArray(correosNotificacion) 
+         ? correosNotificacion.map((c: any) => (typeof c === 'string' ? c.trim().toLowerCase() : '')).filter(Boolean)
+         : correosNotificacion.split(',').map((c: string) => c.trim().toLowerCase()).filter(Boolean);
+      dataToUpdate.correosNotificacion = Array.from(new Set(cleanList));
+
+      await prisma.usuario.updateMany({
+        where: {
+          email: { in: dataToUpdate.correosNotificacion, mode: 'insensitive' },
+          rol: 'OBSERVADOR'
+        },
+        data: { rol: 'GESTOR' }
+      });
     }
 
     const actividad = await prisma.actividad.update({
@@ -641,7 +675,7 @@ router.post('/:id/acceder-enlace', azureADAuth, async (req: AuthRequest, res: Re
       },
       include: {
         asignaciones: {
-          select: { localidadId: true }
+          select: { id: true, localidadId: true, responsableId: true }
         }
       }
     });
@@ -675,7 +709,17 @@ router.post('/:id/acceder-enlace', azureADAuth, async (req: AuthRequest, res: Re
       console.log(`[Acceso Enlace] Correo ${emailLower} añadido a correosNotificacion de ${actividad.codigoCompleto}`);
     }
 
-    // 3. Localidades de la actividad para mapear en perfil
+    // 3. Si la asignación de localidad tiene responsableId nulo, vincular al usuario que accede
+    const asigSinResp = actividad.asignaciones.find(a => !a.responsableId);
+    if (asigSinResp) {
+      await prisma.asignacionLocalidad.update({
+        where: { id: asigSinResp.id },
+        data: { responsableId: user.id }
+      });
+      console.log(`[Acceso Enlace] Asignación de localidad vinculada a usuario ${user.id} (${emailLower})`);
+    }
+
+    // 4. Localidades de la actividad para mapear en perfil
     const localidadesDeActividad = actividad.asignaciones.map(asig => asig.localidadId);
 
     res.json({

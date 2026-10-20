@@ -109,8 +109,10 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
 
   let actividadesFiltradas = actividades.filter(a => {
     if (userData?.rol !== 'ADMIN') {
+      const uEmail = (userData?.email || '').toLowerCase().trim();
+      const estaEnCorreos = uEmail && (a.correosNotificacion || []).some((c: string) => (typeof c === 'string' ? c.toLowerCase().trim() : '') === uEmail);
       const tieneAsig = a.asignaciones?.some((asig: any) => userData.localidadesAsignadas?.includes(asig.localidadId));
-      if (!tieneAsig) return false;
+      if (!tieneAsig && !estaEnCorreos) return false;
     }
 
     if (filtroTexto && !a.codigoCompleto?.toLowerCase().includes(filtroTexto.toLowerCase()) && !a.nombre.toLowerCase().includes(filtroTexto.toLowerCase())) return false;
@@ -124,7 +126,9 @@ export default function KanbanBoard({ userData }: { userData?: any }) {
        if (filtroFecha === 'ESTE_MES') return limit >= hoy && limit <= mesProximo;
     }
     if (filtroEstado !== 'TODOS') {
-       const asignacionesAValidar = userData?.rol !== 'ADMIN' 
+       const uEmail = (userData?.email || '').toLowerCase().trim();
+       const esResponsable = uEmail && (a.correosNotificacion || []).some((c: string) => (typeof c === 'string' ? c.toLowerCase().trim() : '') === uEmail);
+       const asignacionesAValidar = (userData?.rol !== 'ADMIN' && !esResponsable)
          ? a.asignaciones?.filter((asig:any) => userData.localidadesAsignadas?.includes(asig.localidadId))
          : a.asignaciones;
 
