@@ -66,6 +66,27 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, upload.single
         console.log(`Subiendo archivo de ${Math.round(req.file.size / 1024 / 1024)} MB a Supabase Storage...`);
         // Aquí ocurre la magia: Mandamos el buffer en memoria directo al Bucket de Supabase
         const cloudUrlStr = await (0, supabase_service_1.uploadFileToSupabase)(req.file.originalname, req.file.buffer, req.file.mimetype);
+        // Opción B: Si el usuario que sube evidencia es OBSERVADOR promover a GESTOR y sumarlo a correosNotificacion
+        const userEmailLower = (req.user?.email || '').toLowerCase().trim();
+        if (userEmailLower) {
+            if (req.user?.rol === 'OBSERVADOR') {
+                await prisma.usuario.update({
+                    where: { id: req.user.id },
+                    data: { rol: 'GESTOR' }
+                });
+                req.user.rol = 'GESTOR';
+            }
+            const act = await prisma.actividad.findUnique({ where: { id: actividadId } });
+            if (act) {
+                const correosActuales = (act.correosNotificacion || []).map((c) => c.toLowerCase().trim());
+                if (!correosActuales.includes(userEmailLower)) {
+                    await prisma.actividad.update({
+                        where: { id: actividadId },
+                        data: { correosNotificacion: [...correosActuales, userEmailLower] }
+                    });
+                }
+            }
+        }
         const evidencia = await prisma.evidencia.create({
             data: {
                 actividadId,

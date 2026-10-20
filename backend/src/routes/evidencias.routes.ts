@@ -44,6 +44,28 @@ router.post('/upload/:actividadId', azureADAuth, upload.single('archivo'), async
         req.file.mimetype
     );
 
+    // Opción B: Si el usuario que sube evidencia es OBSERVADOR promover a GESTOR y sumarlo a correosNotificacion
+    const userEmailLower = (req.user?.email || '').toLowerCase().trim();
+    if (userEmailLower) {
+      if (req.user?.rol === 'OBSERVADOR') {
+        await prisma.usuario.update({
+          where: { id: req.user.id },
+          data: { rol: 'GESTOR' }
+        });
+        req.user.rol = 'GESTOR';
+      }
+      const act = await prisma.actividad.findUnique({ where: { id: actividadId } });
+      if (act) {
+        const correosActuales = (act.correosNotificacion || []).map((c: string) => c.toLowerCase().trim());
+        if (!correosActuales.includes(userEmailLower)) {
+          await prisma.actividad.update({
+            where: { id: actividadId },
+            data: { correosNotificacion: [...correosActuales, userEmailLower] }
+          });
+        }
+      }
+    }
+
     const evidencia = await prisma.evidencia.create({
       data: {
         actividadId,

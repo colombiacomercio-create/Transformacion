@@ -292,6 +292,27 @@ router.post('/:id/comentarios', auth_middleware_1.azureADAuth, async (req, res) 
             },
             include: { autor: true }
         });
+        // Opción B: Si el autor es OBSERVADOR promover a GESTOR y sumar su correo a correosNotificacion
+        const userEmailLower = (req.user?.email || '').toLowerCase().trim();
+        if (userEmailLower) {
+            if (req.user?.rol === 'OBSERVADOR') {
+                await prisma.usuario.update({
+                    where: { id: req.user.id },
+                    data: { rol: 'GESTOR' }
+                });
+                req.user.rol = 'GESTOR';
+            }
+            const act = await prisma.actividad.findUnique({ where: { id } });
+            if (act) {
+                const correosActuales = (act.correosNotificacion || []).map((c) => c.toLowerCase().trim());
+                if (!correosActuales.includes(userEmailLower)) {
+                    await prisma.actividad.update({
+                        where: { id },
+                        data: { correosNotificacion: [...correosActuales, userEmailLower] }
+                    });
+                }
+            }
+        }
         res.json(comentario);
     }
     catch (error) {
@@ -517,6 +538,64 @@ router.patch('/:id', auth_middleware_1.azureADAuth, async (req, res) => {
     catch (error) {
         console.error('Error actualizando actividad:', error);
         res.status(500).json({ error: 'Error actualizando actividad' });
+    }
+});
+// POST /api/actividades/:id/acceder-enlace — Auto-promoción a GESTOR y co-responsable al acceder por link reenviado (Opción B)
+router.post('/:id/acceder-enlace', auth_middleware_1.azureADAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = req.user;
+        if (!user)
+            return res.status(401).json({ error: 'No autenticado' });
+        const actividad = await prisma.actividad.findFirst({
+            where: {
+                OR: [{ id }, { codigoCompleto: id }]
+            },
+            include: {
+                asignaciones: {
+                    select: { localidadId: true }
+                }
+            }
+        });
+        if (!actividad) {
+            return res.status(404).json({ error: 'Actividad no encontrada' });
+        }
+        const emailLower = (user.email || '').toLowerCase().trim();
+        let rolActualizado = user.rol;
+        // 1. Elevar rol a GESTOR si es OBSERVADOR
+        if (user.rol === 'OBSERVADOR') {
+            await prisma.usuario.update({
+                where: { id: user.id },
+                data: { rol: 'GESTOR' }
+            });
+            rolActualizado = 'GESTOR';
+            req.user.rol = 'GESTOR';
+            console.log(`[Acceso Enlace] Usuario ${user.email} promovido a GESTOR al acceder a ${actividad.codigoCompleto}`);
+        }
+        // 2. Opción B: Sumar automáticamente al usuario a correosNotificacion si no está presente
+        let correosNotificacionActuales = (actividad.correosNotificacion || []).map((c) => c.toLowerCase().trim());
+        if (emailLower && !correosNotificacionActuales.includes(emailLower)) {
+            correosNotificacionActuales.push(emailLower);
+            await prisma.actividad.update({
+                where: { id: actividad.id },
+                data: { correosNotificacion: correosNotificacionActuales }
+            });
+            console.log(`[Acceso Enlace] Correo ${emailLower} añadido a correosNotificacion de ${actividad.codigoCompleto}`);
+        }
+        // 3. Localidades de la actividad para mapear en perfil
+        const localidadesDeActividad = actividad.asignaciones.map(asig => asig.localidadId);
+        res.json({
+            ok: true,
+            rol: rolActualizado,
+            actividadId: actividad.id,
+            codigoCompleto: actividad.codigoCompleto,
+            correosNotificacion: correosNotificacionActuales,
+            localidadesAgregadas: localidadesDeActividad
+        });
+    }
+    catch (error) {
+        console.error('Error en acceder-enlace:', error);
+        res.status(500).json({ error: error.message || 'Error procesando acceso por enlace' });
     }
 });
 exports.default = router;
