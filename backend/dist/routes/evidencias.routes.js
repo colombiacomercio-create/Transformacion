@@ -62,7 +62,28 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, upload.single
         if (!comentarioAdjunto || comentarioAdjunto.trim() === '') {
             return res.status(400).json({ error: 'Debe agregar un comentario obligatorio describiendo la ejecución' });
         }
-        const locFinalId = localidadId || (await prisma.localidad.findFirst())?.id;
+        // Resolver localidadId de manera robusta (evita errores con 'undefined' o strings no-UUID)
+        let locFinalId = '';
+        const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+        if (isUuid(localidadId)) {
+            locFinalId = localidadId.trim();
+        }
+        else {
+            const asig = await prisma.asignacionLocalidad.findFirst({
+                where: { actividadId },
+                select: { localidadId: true }
+            });
+            if (asig?.localidadId) {
+                locFinalId = asig.localidadId;
+            }
+            else {
+                const primeraLoc = await prisma.localidad.findFirst({ select: { id: true } });
+                locFinalId = primeraLoc?.id || '';
+            }
+        }
+        if (!locFinalId) {
+            return res.status(400).json({ error: 'No se encontró localidad asociada para registrar la evidencia' });
+        }
         console.log(`Subiendo archivo de ${Math.round(req.file.size / 1024 / 1024)} MB a Supabase Storage...`);
         // Aquí ocurre la magia: Mandamos el buffer en memoria directo al Bucket de Supabase
         const cloudUrlStr = await (0, supabase_service_1.uploadFileToSupabase)(req.file.originalname, req.file.buffer, req.file.mimetype);
@@ -125,7 +146,7 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, upload.single
                 actEstado = 'PENDIENTE';
             }
             const asig = await prisma.asignacionLocalidad.findFirst({
-                where: { actividadId, localidadId: locFinalId }
+                where: { actividadId, ...(locFinalId ? { localidadId: locFinalId } : {}) }
             });
             if (asig) {
                 const act = await prisma.actividad.findUnique({ where: { id: actividadId } });
@@ -172,19 +193,14 @@ router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, upload.single
                 console.error("⚠️ Error disparando pre-chequeo automático de IA:", err);
             }
         }).catch(err => console.error("⚠️ Error importando servicio de IA para prechequeo:", err));
-        // Crear en el hilo de comentarios para que sea visible de inmediato
-        await prisma.comentario.create({
-            data: {
-                actividadId,
-                localidadId: locFinalId,
-                autorId: req.user.id,
-                texto: `[Adjuntó evidencia en la Nube Corporativa: ${req.file.originalname}] ${comentarioAdjunto}`
-            }
-        });
         res.status(201).json(evidencia);
     }
     catch (error) {
-        res.status(500).json({ error: 'Error cargando la evidencia' });
+        console.error('[Evidencias Upload Error]:', error);
+        res.status(500).json({
+            error: 'Error cargando la evidencia',
+            detalles: error?.message || String(error)
+        });
     }
 });
 exports.default = router;

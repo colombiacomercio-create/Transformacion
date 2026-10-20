@@ -1,14 +1,21 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+let supabaseClient: SupabaseClient | null = null;
 
-// Inicializamos el cliente de Supabase
-const supabase = createClient(supabaseUrl, supabaseKey);
+function getSupabaseClient(): SupabaseClient | null {
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+    if (!supabaseUrl || !supabaseKey) return null;
+    if (!supabaseClient) {
+        supabaseClient = createClient(supabaseUrl, supabaseKey);
+    }
+    return supabaseClient;
+}
 
 export const uploadFileToSupabase = async (fileName: string, fileBuffer: Buffer, mimeType: string): Promise<string> => {
     try {
-        if (!supabaseUrl || !supabaseKey) {
+        const client = getSupabaseClient();
+        if (!client) {
             console.warn("⚠️ URL o Clave de Supabase no registradas en .env. Simulando carga segura...");
             return `https://tu-proyecto.supabase.co/storage/v1/object/public/evidencias/simulado_${Date.now()}_${fileName}`;
         }
@@ -18,7 +25,7 @@ export const uploadFileToSupabase = async (fileName: string, fileBuffer: Buffer,
         const filePath = `${Date.now()}_${safeName}`;
 
         // Subir al 'Bucket' llamado 'evidencias'
-        const { data, error } = await supabase.storage
+        const { data, error } = await client.storage
             .from('evidencias')
             .upload(filePath, fileBuffer, {
                 contentType: mimeType,
@@ -30,7 +37,7 @@ export const uploadFileToSupabase = async (fileName: string, fileBuffer: Buffer,
         }
 
         // Generar y retornar el acceso HTTP (Link público del archivo)
-        const { data: publicUrlData } = supabase.storage
+        const { data: publicUrlData } = client.storage
             .from('evidencias')
             .getPublicUrl(filePath);
 

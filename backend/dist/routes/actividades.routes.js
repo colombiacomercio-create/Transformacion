@@ -277,11 +277,23 @@ router.post('/:id/comentarios', auth_middleware_1.azureADAuth, async (req, res) 
         const { id } = req.params;
         const { texto, localidadId } = req.body;
         const userId = req.user.id;
-        let locId = localidadId;
-        if (!locId) {
+        let locId = '';
+        const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+        if (isUuid(localidadId)) {
+            locId = localidadId.trim();
+        }
+        else {
             const asig = await prisma.asignacionLocalidad.findFirst({ where: { actividadId: id } });
-            if (asig)
+            if (asig) {
                 locId = asig.localidadId;
+            }
+            else {
+                const primeraLoc = await prisma.localidad.findFirst({ select: { id: true } });
+                locId = primeraLoc?.id || '';
+            }
+        }
+        if (!locId) {
+            return res.status(400).json({ error: 'No se encontró localidad asociada para registrar el comentario' });
         }
         const comentario = await prisma.comentario.create({
             data: {

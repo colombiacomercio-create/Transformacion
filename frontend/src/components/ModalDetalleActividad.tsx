@@ -12,7 +12,7 @@ interface Props {
 export default function ModalDetalleActividad({ actividad, onClose, onRefresh, userData }: Props) {
   const esAdmin = userData?.rol === 'ADMIN';
   
-  let asignacionesOrdenadas = [...(actividad.asignaciones || [])].sort((a: any, b: any) => a.localidad?.nombre.localeCompare(b.localidad?.nombre));
+  let asignacionesOrdenadas = [...(actividad.asignaciones || [])].sort((a: any, b: any) => (a.localidad?.nombre || '').localeCompare(b.localidad?.nombre || ''));
   if (userData?.rol === 'GESTOR' && userData.localidadesAsignadas && userData.localidadesAsignadas.length > 0) {
       const filtradas = asignacionesOrdenadas.filter((a: any) => userData.localidadesAsignadas?.includes(a.localidadId));
       if (filtradas.length > 0) {
@@ -21,7 +21,7 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   }
   
   const [tab, setTab] = useState<'detalles' | 'evidencias_comentarios'>('detalles');
-  const [locSelected, setLocSelected] = useState<string>(asignacionesOrdenadas[0]?.localidadId || '');
+  const [locSelected, setLocSelected] = useState<string>(asignacionesOrdenadas[0]?.localidadId || actividad.asignaciones?.[0]?.localidadId || '');
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [postingComment, setPostingComment] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -90,11 +90,22 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     }
   }, [actividad?.id]);
 
-  const curLocId = locSelected || asignacionesOrdenadas[0]?.localidadId;
-  const asigActual = asignacionesOrdenadas.find((a: any) => a.localidadId === curLocId);
+  const curLocId = locSelected || asignacionesOrdenadas[0]?.localidadId || actividad.asignaciones?.[0]?.localidadId || '';
+  const asigActual = asignacionesOrdenadas.find((a: any) => a.localidadId === curLocId) || actividad.asignaciones?.find((a: any) => a.localidadId === curLocId) || actividad.asignaciones?.[0];
   
-  const comentariosAMostrar = actividad.comentarios?.filter((c: any) => c.localidadId === curLocId) || [];
-  const evidenciasAMostrar = actividad.evidencias?.filter((e: any) => e.localidadId === curLocId) || [];
+  useEffect(() => {
+    const defaultLoc = asignacionesOrdenadas[0]?.localidadId || actividad.asignaciones?.[0]?.localidadId || '';
+    if (!locSelected && defaultLoc) {
+      setLocSelected(defaultLoc);
+    }
+  }, [actividad, asignacionesOrdenadas, locSelected]);
+
+  const comentariosAMostrar = curLocId 
+    ? actividad.comentarios?.filter((c: any) => !c.localidadId || c.localidadId === curLocId) || []
+    : actividad.comentarios || [];
+  const evidenciasAMostrar = curLocId 
+    ? actividad.evidencias?.filter((e: any) => !e.localidadId || e.localidadId === curLocId) || []
+    : actividad.evidencias || [];
 
   const isReadonly = asigActual?.estadoValidacion === 'VALIDADA_COMPLETADA';
 
@@ -205,13 +216,14 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     if (!nuevoComentario.trim()) return;
     setPostingComment(true);
     const textoParaEnviar = nuevoComentario.trim();
+    const effectiveLocId = curLocId || asigActual?.localidadId || actividad.asignaciones?.[0]?.localidadId || '';
     try {
       const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/actividades/${actividad.id}/comentarios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ texto: textoParaEnviar, localidadId: curLocId })
+        body: JSON.stringify({ texto: textoParaEnviar, localidadId: effectiveLocId || undefined })
       });
       if (!res.ok) {
         throw new Error('Error al publicar comentario');
@@ -234,12 +246,16 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     if (!evidenciaFile) return alert('Seleccione un archivo');
     if (!comentarioEvidencia.trim()) return alert('Debe proporcionar un comentario obligatorio sobre la ejecución.');
 
+    const effectiveLocId = curLocId || asigActual?.localidadId || actividad.asignaciones?.[0]?.localidadId || '';
+
     const formData = new FormData();
     formData.append('archivo', evidenciaFile);
     formData.append('tipoEvidencia', 'documento');
     formData.append('descripcion', 'Subida local manual');
     formData.append('comentarioAdjunto', comentarioEvidencia.trim());
-    formData.append('localidadId', curLocId);
+    if (effectiveLocId) {
+      formData.append('localidadId', effectiveLocId);
+    }
     formData.append('nuevoEstado', estadoAlSubir);
 
     setUploading(true);
@@ -249,8 +265,8 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
         body: formData
       });
       if (!res.ok) {
-         const d = await res.json();
-         throw new Error(d.error || 'Error subiendo archivo');
+         const d = await res.json().catch(() => ({}));
+         throw new Error(d.detalles ? `${d.error}: ${d.detalles}` : (d.error || 'Error subiendo archivo'));
       }
 
       const nombreArchivoSubido = evidenciaFile.name;
