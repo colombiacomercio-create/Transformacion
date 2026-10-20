@@ -21,9 +21,23 @@ router.get('/me', auth_middleware_1.azureADAuth, async (req, res) => {
             select: { localidadId: true },
             distinct: ['localidadId']
         });
+        // Obtener localidades de actividades donde el usuario está en correosNotificacion
+        const userEmailLower = (user.email || '').toLowerCase();
+        const actividadesConCorreo = await prisma.actividad.findMany({
+            where: {
+                correosNotificacion: { has: userEmailLower }
+            },
+            select: {
+                asignaciones: {
+                    select: { localidadId: true }
+                }
+            }
+        });
+        const localidadesDeActividades = actividadesConCorreo.flatMap(a => a.asignaciones.map(asig => asig.localidadId));
         const localidadesSet = new Set([
             ...localidadesPrincipal.map(l => l.id),
-            ...asignaciones.map(a => a.localidadId)
+            ...asignaciones.map(a => a.localidadId),
+            ...localidadesDeActividades
         ]);
         res.json({
             id: user.id,

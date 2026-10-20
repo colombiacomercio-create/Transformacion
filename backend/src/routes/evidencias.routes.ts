@@ -19,7 +19,8 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 } 
 });
 
-router.post('/upload/:actividadId', azureADAuth, requireRole(['ADMIN', 'GESTOR']), upload.single('archivo'), async (req: AuthRequest, res) => {
+// Cualquier usuario autenticado puede cargar evidencia y comentar avance sobre una actividad
+router.post('/upload/:actividadId', azureADAuth, upload.single('archivo'), async (req: AuthRequest, res) => {
   try {
     const { actividadId } = req.params;
     const { tipoEvidencia, descripcion, localidadId, comentarioAdjunto, nuevoEstado } = req.body;

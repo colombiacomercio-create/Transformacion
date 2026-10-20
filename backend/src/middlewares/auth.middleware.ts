@@ -62,17 +62,41 @@ export const azureADAuth = async (req: AuthRequest, res: Response, next: NextFun
       console.log('Usuario no encontrado, creando:', userEmail);
       
       try {
-        // Crear usuario automÃ¡ticamente como OBSERVADOR
+        const emailLower = userEmail.toLowerCase();
+        let defaultRol: 'ADMIN' | 'GESTOR' | 'OBSERVADOR' = 'GESTOR';
+        if (emailLower.includes('miguel.parra') || emailLower.startsWith('admin.')) {
+          defaultRol = 'ADMIN';
+        }
+
+        // Crear usuario institucional con rol GESTOR por defecto para habilitar carga de evidencias
         dbUser = await prisma.usuario.create({
           data: {
             email: userEmail,
             nombre: decoded?.name || userEmail.split('@')[0],
-            rol: 'OBSERVADOR'
+            rol: defaultRol
           }
         });
       } catch (insertError) {
         console.error('Error creando usuario:', insertError);
         return res.status(500).json({ message: 'Error creando usuario.' });
+      }
+    } else if (dbUser.rol === 'OBSERVADOR') {
+      // Si el usuario ya existe como OBSERVADOR pero tiene actividades asignadas, promover automáticamente a GESTOR
+      try {
+        const emailLower = userEmail.toLowerCase();
+        const esResponsable = await prisma.actividad.findFirst({
+          where: { correosNotificacion: { has: emailLower } },
+          select: { id: true }
+        });
+        if (esResponsable) {
+          dbUser = await prisma.usuario.update({
+            where: { id: dbUser.id },
+            data: { rol: 'GESTOR' }
+          });
+          console.log(`Usuario ${userEmail} promovido automáticamente de OBSERVADOR a GESTOR.`);
+        }
+      } catch (err) {
+        console.error('Error actualizando rol de observador:', err);
       }
     }
 
@@ -90,7 +114,7 @@ export const azureADAuth = async (req: AuthRequest, res: Response, next: NextFun
 export const requireRole = (rolesPermitidos: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !rolesPermitidos.includes(req.user.rol)) {
-      return res.status(403).json({ message: 'Privilegios insuficientes para esta acciÃ³n.' });
+      return res.status(403).json({ message: 'Privilegios insuficientes para esta acción.' });
     }
     next();
   };

@@ -51,7 +51,8 @@ const upload = (0, multer_1.default)({
     // LÍMITE ESTRICTO APLICADO: 20 Megabytes máximo por archivo permitido
     limits: { fileSize: 20 * 1024 * 1024 }
 });
-router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, (0, auth_middleware_1.requireRole)(['ADMIN', 'GESTOR']), upload.single('archivo'), async (req, res) => {
+// Cualquier usuario autenticado puede cargar evidencia y comentar avance sobre una actividad
+router.post('/upload/:actividadId', auth_middleware_1.azureADAuth, upload.single('archivo'), async (req, res) => {
     try {
         const { actividadId } = req.params;
         const { tipoEvidencia, descripcion, localidadId, comentarioAdjunto, nuevoEstado } = req.body;
