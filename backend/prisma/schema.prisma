@@ -724,3 +724,18 @@ model MetadatoObra {
   id          Int      @id @default(autoincrement())
   fecha_corte String?
 }
+
+// ─── SOSTENIBILIDAD OPERACIÓN ESPACIO PÚBLICO (P04 y P05) ───────────────────
+
+model SostenibilidadSnapshot {
+  id               String   @id @default(uuid())
+  ultimaLectura    DateTime @default(now())
+  origen           String   @default("MANUAL") // "AUTOMATICO" | "MANUAL" | "SEMILLA"
+  ejecutadoPor     String?
+  surveyId         String?
+  totalRespuestas  Int      @default(96)
+  totalPriorizados Int      @default(108)
+  datosJson        Json
+  createdAt        DateTime @default(now())
+}
+

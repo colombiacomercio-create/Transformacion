@@ -22,6 +22,7 @@ const otros_espacios_routes_1 = __importDefault(require("./routes/otros-espacios
 const ai_routes_1 = __importDefault(require("./routes/ai.routes"));
 const obras_routes_1 = __importDefault(require("./routes/obras.routes"));
 const backup_routes_1 = __importDefault(require("./routes/backup.routes"));
+const sostenibilidad_routes_1 = __importDefault(require("./routes/sostenibilidad.routes"));
 const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -45,6 +46,7 @@ app.use('/api/otros-espacios', otros_espacios_routes_1.default);
 app.use('/api/ia', ai_routes_1.default);
 app.use('/api/obras', obras_routes_1.default);
 app.use('/api/backup', backup_routes_1.default);
+app.use('/api/sostenibilidad', sostenibilidad_routes_1.default);
 const client_1 = require("@prisma/client");
 const prismaClient = new client_1.PrismaClient();
 app.get('/api/localidades', async (req, res) => {

@@ -17,6 +17,7 @@ import otrosEspaciosRoutes from './routes/otros-espacios.routes';
 import aiRoutes from './routes/ai.routes';
 import obrasRoutes from './routes/obras.routes';
 import backupRoutes from './routes/backup.routes';
+import sostenibilidadRoutes from './routes/sostenibilidad.routes';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 
@@ -46,6 +47,7 @@ app.use('/api/otros-espacios', otrosEspaciosRoutes);
 app.use('/api/ia', aiRoutes);
 app.use('/api/obras', obrasRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/sostenibilidad', sostenibilidadRoutes);
 
 import { PrismaClient } from '@prisma/client';
 const prismaClient = new PrismaClient();

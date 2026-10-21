@@ -7,18 +7,20 @@ import SeccionEventos from './gestion/SeccionEventos';
 import SeccionAlertas from './gestion/SeccionAlertas';
 import SeccionNormativo from './gestion/SeccionNormativo';
 import SeccionOtrosEspacios from './gestion/SeccionOtrosEspacios';
+import SeccionSostenibilidadEP from './gestion/SeccionSostenibilidadEP';
 
-type Seccion = 'tablero' | 'resultados' | 'informes' | 'sesiones' | 'eventos' | 'alertas' | 'normativo' | 'otros';
+type Seccion = 'tablero' | 'resultados' | 'sostenibilidad' | 'informes' | 'sesiones' | 'eventos' | 'alertas' | 'normativo' | 'otros';
 
 const TABS: { key: Seccion; label: string; icon: string }[] = [
-  { key: 'tablero',    label: 'Tablero General',            icon: '📊' },
-  { key: 'resultados', label: 'Resultados',                  icon: '📈' },
-  { key: 'informes',   label: 'Informes',                    icon: '📄' },
-  { key: 'sesiones',   label: 'Sesiones y/o Mesas',          icon: '🤝' },
-  { key: 'eventos',    label: 'Eventos',                     icon: '🎯' },
-  { key: 'alertas',    label: 'Seguimiento Alertas',         icon: '🚨' },
-  { key: 'normativo',  label: 'Acompañamiento Normativo',    icon: '⚖️' },
-  { key: 'otros',      label: 'Otros Espacios',              icon: '🏛️' },
+  { key: 'tablero',        label: 'Tablero General',                icon: '📊' },
+  { key: 'resultados',     label: 'Resultados',                     icon: '📈' },
+  { key: 'sostenibilidad', label: 'Sostenibilidad Espacio Público', icon: '🌱' },
+  { key: 'informes',       label: 'Informes',                       icon: '📄' },
+  { key: 'sesiones',       label: 'Sesiones y/o Mesas',             icon: '🤝' },
+  { key: 'eventos',        label: 'Eventos',                        icon: '🎯' },
+  { key: 'alertas',        label: 'Seguimiento Alertas',            icon: '🚨' },
+  { key: 'normativo',      label: 'Acompañamiento Normativo',       icon: '⚖️' },
+  { key: 'otros',          label: 'Otros Espacios',                 icon: '🏛️' },
 ];
 
 interface Props {
@@ -59,14 +61,15 @@ export default function PanelGestionResultados({ userData }: Props) {
 
       {/* Contenido de la sección activa */}
       <div>
-        {seccionActiva === 'tablero'    && <TablaGestionResultados userData={userData} onNavigate={setSeccionActiva} />}
-        {seccionActiva === 'resultados' && <SeccionResultados userData={userData} />}
-        {seccionActiva === 'informes'   && <SeccionInformes userData={userData} />}
-        {seccionActiva === 'sesiones'   && <SeccionSesionesMesas userData={userData} />}
-        {seccionActiva === 'eventos'    && <SeccionEventos userData={userData} />}
-        {seccionActiva === 'alertas'    && <SeccionAlertas userData={userData} />}
-        {seccionActiva === 'normativo'  && <SeccionNormativo userData={userData} />}
-        {seccionActiva === 'otros'      && <SeccionOtrosEspacios userData={userData} />}
+        {seccionActiva === 'tablero'        && <TablaGestionResultados userData={userData} onNavigate={setSeccionActiva} />}
+        {seccionActiva === 'resultados'     && <SeccionResultados userData={userData} />}
+        {seccionActiva === 'sostenibilidad' && <SeccionSostenibilidadEP userData={userData} />}
+        {seccionActiva === 'informes'       && <SeccionInformes userData={userData} />}
+        {seccionActiva === 'sesiones'       && <SeccionSesionesMesas userData={userData} />}
+        {seccionActiva === 'eventos'        && <SeccionEventos userData={userData} />}
+        {seccionActiva === 'alertas'        && <SeccionAlertas userData={userData} />}
+        {seccionActiva === 'normativo'      && <SeccionNormativo userData={userData} />}
+        {seccionActiva === 'otros'          && <SeccionOtrosEspacios userData={userData} />}
       </div>
     </div>
   );

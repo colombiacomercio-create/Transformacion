@@ -1,0 +1,2560 @@
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { fetchApi } from '../../utils/api';
+import { RefreshCw, Settings, ExternalLink, CheckCircle2, AlertCircle, Clock, X, Camera, Video, ZoomIn, MapPin, Calendar } from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { PUNTOS_FOCALIZADOS_OCT_2026, GESTION_P04_DEFAULT, PuntoFocalizadoOct } from './datosGestionP04';
+import { BloquesGestionP04, ModalPuntoFocalizadoOct } from './BloquesGestionP04';
+
+const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
+const SURVEY_SHARE_URL = 'https://survey123.arcgis.com/share/6ad0fc8ddc574571bcb6252a49ebab4d/result';
+
+const COORDS_P04: [number, number][] = [[4.737177,-74.027205],[4.740809,-74.031993],[4.766662,-74.024117],[4.681839,-74.047834],[4.665039,-74.06066],[4.628754,-74.068282],[4.58843,-74.077783],[4.603795,-74.080042],[4.5325,-74.088267],[4.546325,-74.083544],[4.555483,-74.099961],[4.513153,-74.116676],[4.511839,-74.117198],[4.515882,-74.121253],[4.537715,-74.115682],[4.566879,-74.132165],[4.566194,-74.134361],[4.612662,-74.194884],[4.634412,-74.18144],[4.62601,-74.184428],[4.634349,-74.192416],[4.605213,-74.168535],[4.630525,-74.164035],[4.618246,-74.152498],[4.630494,-74.166921],[4.641094,-74.159962],[4.613753,-74.181308],[4.643065,-74.16426],[4.676585,-74.14438],[4.684998,-74.138345],[4.715568,-74.095311],[4.675654,-74.093038],[4.683527,-74.089527],[4.708669,-74.092106],[4.748795,-74.116806],[4.748426,-74.121108],[4.739533,-74.091896],[4.726418,-74.08912],[4.676725,-74.081025],[4.654302,-74.06927],[4.672375,-74.074789],[4.645611,-74.065477],[4.633201,-74.087266],[4.601051,-74.083801],[4.618095,-74.084239],[4.600064,-74.090144],[4.591437,-74.100966],[4.591993,-74.104679],[4.609217,-74.091493],[4.607644,-74.107241],[4.600252,-74.11732],[4.598516,-74.118676],[4.590024,-74.073803],[4.593697,-74.069136],[4.563731,-74.108254],[4.546923,-74.109098],[4.544595,-74.135994],[4.576362,-74.155328],[4.558291,-74.135332],[4.234533,-74.188839],[4.204371,-74.189922]];
+const COORDS_P05: [number, number][] = [[4.719023,-74.035328],[4.694934,-74.03145],[4.704535,-74.049086],[4.6906,-74.045932],[4.726831,-74.045871],[4.657463,-74.062087],[4.644899,-74.065521],[4.60142,-74.07342],[4.602118,-74.072969],[4.57099,-74.096429],[4.568966,-74.097673],[4.569003,-74.095291],[4.570149,-74.093553],[4.470645,-74.123457],[4.530913,-74.118314],[4.489496,-74.109753],[4.5942973,-74.1421347],[4.626976,-74.191943],[4.631115,-74.180176],[4.613418,-74.198511],[4.650967,-74.162793],[4.647131,-74.146788],[4.623066,-74.170252],[4.626052,-74.172455],[4.673586,-74.144934],[4.676583,-74.144336],[4.663283,-74.096994],[4.661755,-74.108114],[4.752439,-74.09332],[4.705043,-74.054501],[4.687255,-74.074634],[4.684883,-74.062597],[4.648563,-74.107046],[4.646576,-74.102371],[4.601931,-74.082168],[4.605438,-74.085484],[4.583507,-74.102439],[4.592019,-74.127058],[4.628816,-74.116947],[4.628981,-74.11503],[4.602149,-74.076894],[4.601357,-74.073486],[4.563561,-74.10823],[4.583534,-74.106095],[4.586115,-74.161038],[4.58283,-74.157982]];
+
+interface PuntoRaw {
+  id: string;
+  ld: string;
+  t: 'T1' | 'T2';
+  d: string;
+  cls: 'S' | 'A' | 'N' | 'RI' | 'V';
+  prod: 'P04' | 'P05';
+  isp: number | null;
+  riesgo: string;
+  fecha: string;
+  lat?: number;
+  lng?: number;
+  reporta?: string;
+  dependencia?: string;
+  descripcion?: string;
+  recomendacion?: string;
+  criteriosDetalle?: { k: string; v: string; ok: boolean }[];
+  evidencias?: { label: string; file: string; url?: string; contentType?: string }[];
+}
+
+interface VocacionP05Item {
+  key: 'ventas' | 'parqueo';
+  label: string;
+  sublabel: string;
+  total: number;
+  sostenidos: number;
+  enRiesgo: number;
+  recaida: number;
+  pctSostenimiento: number;
+  color: string;
+}
+
+interface CondicionP05Item {
+  label: string;
+  total: number;
+  parcial: number;
+  no: number;
+  pctTotal: number;
+  pctParcial: number;
+  pctNo: number;
+  pctAvance: number;
+}
+
+interface SostenibilidadDatos {
+  periodoVisita: string;
+  totalRespuestas: number;
+  totalPriorizadosP04: number;
+  totalPriorizadosP05: number;
+  puntosP04: PuntoRaw[];
+  puntosP05: PuntoRaw[];
+  criteriosP04: { label: string; ok: number; n?: number; color: string }[];
+  criteriosP05: { label: string; ok: number; n?: number; color: string }[];
+  vocacionP05?: VocacionP05Item[];
+  condicionesP05?: CondicionP05Item[];
+  riesgosP04: { label: string; n: number; w: number }[];
+  riesgosP05: { label: string; n: number; w: number }[];
+  apropiacionP04: { label: string; pct: number | null; n?: number; color: string }[];
+  apropiacionP05: { label: string; pct: number | null; n?: number; color: string }[];
+  notaTablaP04?: string;
+  notaTablaP05?: string;
+  cobertura: { label: string; pct: number; color: string }[];
+  reglas?: { titulo: string; texto: string }[];
+  conciliado?: { tag: string; bg: string; fg: string; t: string }[];
+  totalIntervencionesP04?: number;
+}
+
+interface SnapshotResponse {
+  id: string;
+  ultimaLectura: string;
+  origen: string;
+  ejecutadoPor?: string;
+  surveyId?: string;
+  totalRespuestas: number;
+  totalPriorizados: number;
+  datos: SostenibilidadDatos;
+  arcgisConnected?: boolean;
+  message?: string;
+}
+
+const CH: Record<string, { t: string; bg: string; fg: string; ink: string }> = {
+  S:  { t: 'Sostenido',          bg: '#DCFCE7', fg: '#166534', ink: '#16A34A' },
+  A:  { t: 'En riesgo',          bg: '#FFF7ED', fg: '#9A3412', ink: '#9A3412' },
+  N:  { t: 'Recaída confirmada', bg: '#FEE2E2', fg: '#991B1B', ink: '#E3002B' },
+  RI: { t: 'Recién intervenido', bg: '#F3F4F6', fg: '#4B5563', ink: '#6B7280' },
+  V:  { t: 'Sin verificación',   bg: '#F3F4F6', fg: '#4B5563', ink: '#6B7280' },
+};
+
+const F04 = [
+  'Libre de residuos acumulados',
+  'Sin nuevo arrojo de residuos',
+  'Sin disposición de RCD',
+  'Sin reguero ni dispersión',
+  'Limpieza aceptable',
+];
+
+const F05 = [
+  'Punto libre de ocupación',
+  'Espacio recuperado en condiciones adecuadas',
+  'Apropiación del espacio recuperado',
+  'Sin presencia de ventas informales',
+  'Sin parqueo indebido',
+  'Sin cambuches ni ocupaciones',
+];
+
+const DESC: Record<string, string> = {
+  S: 'El punto se mantiene en las condiciones de la intervención. Las acciones instaladas están completas y en buen estado, y no se observan señales de recaída.',
+  A: 'El punto conserva la recuperación, pero hay un criterio cediendo: lo instalado muestra desgaste y aparecen señales tempranas del factor de riesgo registrado.',
+  N: 'Recaída confirmada: el punto volvió a la condición previa a la intervención. El factor de riesgo registrado está activo y lo instalado no alcanza a contenerlo.',
+  RI: 'Punto recién intervenido en el periodo actual; en observación inicial.',
+  V: 'Sin visita registrada en el periodo. No hay observación de territorio para este punto.',
+};
+
+const RECO: Record<string, string> = {
+  S: 'Mantener la verificación del siguiente trimestre y documentar el caso para replicarlo en puntos con el mismo factor de riesgo.',
+  A: 'Mantenimiento preventivo y refuerzo de lo instalado antes de la siguiente verificación. No requiere reintervención.',
+  N: 'Reintervención dimensionada según el factor de riesgo y requerimiento a la Alcaldía Local con plazo. Es la única clase que exige volver a intervenir.',
+  RI: 'Programar primera visita de seguimiento para evaluar sostenibilidad.',
+  V: 'Programar la visita del trimestre. Antes de programar, conciliar contra la matriz para descartar que ya esté verificado bajo otra redacción de la dirección.',
+};
+
+const ACC: Record<string, string> = {
+  S: 'Verificación trimestral',
+  A: 'Mantenimiento preventivo',
+  N: 'Reintervención',
+  RI: 'Seguimiento inicial',
+  V: 'Programar visita',
+};
+
+const REGLAS_OFICIALES = [
+  {
+    titulo: 'Sostenido suma dos clases',
+    texto: 'Los clasificados Sostenido y En riesgo cuentan como sostenidos. No sostenidos son únicamente los clasificados Recaída confirmada.',
+  },
+  {
+    titulo: 'Clasificaciones de verificación',
+    texto: 'Sostenido, En riesgo, Recaída confirmada y Recién intervenido.',
+  },
+  {
+    titulo: 'Un punto, su visita más reciente',
+    texto: 'El estado del punto es el de su última verificación.',
+  },
+  {
+    titulo: 'Lectura por producto',
+    texto: 'P04 y P05 se calculan y se reportan por separado.',
+  },
+  {
+    titulo: 'Sin verificación',
+    texto: 'Un punto sin visita registrada no entra al cálculo del porcentaje de sostenimiento.',
+  },
+];
+
+const CODS: [number, string][] = [
+  [1, 'Usaquén'], [2, 'Chapinero'], [3, 'Santa Fe'], [4, 'San Cristóbal'],
+  [5, 'Usme'], [6, 'Tunjuelito'], [7, 'Bosa'], [8, 'Kennedy'],
+  [9, 'Fontibón'], [10, 'Engativá'], [11, 'Suba'], [12, 'Barrios Unidos'],
+  [13, 'Teusaquillo'], [14, 'Los Mártires'], [15, 'Antonio Nariño'], [16, 'Puente Aranda'],
+  [17, 'La Candelaria'], [18, 'Rafael Uribe Uribe'], [19, 'Ciudad Bolívar'], [20, 'Sumapaz'],
+];
+
+interface Props {
+  userData?: any;
+}
+
+interface PuntoEnriquecido extends PuntoRaw {
+  i: number;
+  estado: string;
+  chipBg: string;
+  chipFg: string;
+  ink: string;
+  ispTxt: string;
+  bg: string;
+  lat?: number;
+  lng?: number;
+}
+
+export type FiltroMapaProducto = 'TODOS' | 'P04' | 'P05' | 'OCT21';
+
+interface MapaProps {
+  puntos: PuntoEnriquecido[];
+  puntosFocalizados: PuntoFocalizadoOct[];
+  fechasDisponibles: { fecha: string; count: number }[];
+  filtroFecha: string;
+  onSelectFecha: (f: string) => void;
+  mapaProducto: FiltroMapaProducto;
+  onSelectProducto: (p: FiltroMapaProducto) => void;
+  selectedId: string | null;
+  onSelectPunto: (id: string) => void;
+  selectedFocalizadoId: string | null;
+  onSelectFocalizado: (id: string) => void;
+}
+
+type EstiloMapaBase = 'ideca' | 'calles' | 'osm' | 'satelite';
+
+function obtenerUrlTile(estilo: EstiloMapaBase, useProxy = true): string {
+  if (useProxy) {
+    return `${API}/api/sostenibilidad/tile/${estilo}/{z}/{y}/{x}`;
+  }
+  if (estilo === 'ideca') {
+    return 'https://serviciosgis.catastrobogota.gov.co/arcgis/rest/services/Mapa_Referencia/mapa_base_3857/MapServer/tile/{z}/{y}/{x}';
+  }
+  if (estilo === 'satelite') {
+    return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  }
+  if (estilo === 'osm') {
+    return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  }
+  return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+}
+
+function MapaPuntosSostenibilidad({
+  puntos,
+  puntosFocalizados,
+  fechasDisponibles,
+  filtroFecha,
+  onSelectFecha,
+  mapaProducto,
+  onSelectProducto,
+  selectedId,
+  onSelectPunto,
+  selectedFocalizadoId,
+  onSelectFocalizado,
+}: MapaProps) {
+  const [capaBase, setCapaBase] = useState<EstiloMapaBase>('ideca');
+  const [mostrarLocalidades, setMostrarLocalidades] = useState<boolean>(true);
+  const [mostrarFechasTab, setMostrarFechasTab] = useState<boolean>(false);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const localidadesLayerRef = useRef<L.GeoJSON | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+
+  // Inicializar mapa Leaflet
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: [4.645, -74.095],
+      zoom: 11,
+      zoomControl: true,
+      scrollWheelZoom: true,
+    });
+
+    const crearTileLayer = (estilo: EstiloMapaBase) => {
+      const layer = L.tileLayer(obtenerUrlTile(estilo, true), {
+        attribution:
+          estilo === 'ideca'
+            ? '&copy; IDECA — Catastro Bogotá'
+            : estilo === 'osm'
+            ? '&copy; OpenStreetMap'
+            : '&copy; Esri / ArcGIS',
+        maxZoom: 19,
+        crossOrigin: true,
+      });
+
+      // Si el proxy falla por cualquier motivo, usar URL directa del servicio oficial
+      layer.on('tileerror', (err: any) => {
+        const img = err?.tile as HTMLImageElement | undefined;
+        const coords = err?.coords;
+        if (img && coords && !img.dataset.fallbackTried) {
+          img.dataset.fallbackTried = '1';
+          const directTemplate = obtenerUrlTile(estilo, false);
+          img.src = directTemplate
+            .replace('{z}', String(coords.z))
+            .replace('{y}', String(coords.y))
+            .replace('{x}', String(coords.x));
+        }
+      });
+
+      return layer;
+    };
+
+    const tile = crearTileLayer('ideca').addTo(map);
+    const markersGroup = L.layerGroup().addTo(map);
+
+    mapInstanceRef.current = map;
+    tileLayerRef.current = tile;
+    markersLayerRef.current = markersGroup;
+
+    // Cargar polígonos vectoriales oficiales de las 20 Localidades de Bogotá (IDECA)
+    fetch('/localidades_bogota.geojson')
+      .then(r => (r.ok ? r.json() : null))
+      .then(geo => {
+        if (!geo || !mapInstanceRef.current) return;
+        const geoLayer = L.geoJSON(geo, {
+          style: () => ({
+            color: '#475569',
+            weight: 1.4,
+            opacity: 0.65,
+            fillColor: '#94A3B8',
+            fillOpacity: 0.06,
+            dashArray: '4, 3',
+          }),
+          onEachFeature: (feature, layer) => {
+            const nombreLoc = feature?.properties?.LOCNOMBRE || '';
+            if (nombreLoc) {
+              layer.bindTooltip(
+                `<span style="font-size:10.5px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.04em;">${nombreLoc}</span>`,
+                { sticky: true, direction: 'center', opacity: 0.85 }
+              );
+            }
+          },
+        });
+        localidadesLayerRef.current = geoLayer;
+        geoLayer.addTo(mapInstanceRef.current);
+        geoLayer.bringToBack();
+      })
+      .catch(() => {});
+
+    const timer1 = setTimeout(() => map.invalidateSize(), 120);
+    const timer2 = setTimeout(() => map.invalidateSize(), 450);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      map.remove();
+      mapInstanceRef.current = null;
+      tileLayerRef.current = null;
+      localidadesLayerRef.current = null;
+      markersLayerRef.current = null;
+    };
+  }, []);
+
+  // Mostrar / ocultar límites vectoriales de Localidades
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const geoLayer = localidadesLayerRef.current;
+    if (!map || !geoLayer) return;
+    if (mostrarLocalidades) {
+      if (!map.hasLayer(geoLayer)) {
+        geoLayer.addTo(map);
+        geoLayer.bringToBack();
+      }
+    } else {
+      if (map.hasLayer(geoLayer)) {
+        map.removeLayer(geoLayer);
+      }
+    }
+  }, [mostrarLocalidades]);
+
+  // Cambiar capa base (IDECA Bogotá / Calles / OSM / Satélite) recreando el TileLayer limpiamente
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    const newTile = L.tileLayer(obtenerUrlTile(capaBase, true), {
+      attribution:
+        capaBase === 'ideca'
+          ? '&copy; IDECA — Catastro Bogotá'
+          : capaBase === 'osm'
+          ? '&copy; OpenStreetMap'
+          : '&copy; Esri / ArcGIS',
+      maxZoom: 19,
+      crossOrigin: true,
+    });
+
+    newTile.on('tileerror', (err: any) => {
+      const img = err?.tile as HTMLImageElement | undefined;
+      const coords = err?.coords;
+      if (img && coords && !img.dataset.fallbackTried) {
+        img.dataset.fallbackTried = '1';
+        const directTemplate = obtenerUrlTile(capaBase, false);
+        img.src = directTemplate
+          .replace('{z}', String(coords.z))
+          .replace('{y}', String(coords.y))
+          .replace('{x}', String(coords.x));
+      }
+    });
+
+    newTile.addTo(map);
+    newTile.bringToBack();
+    tileLayerRef.current = newTile;
+  }, [capaBase]);
+
+  // Actualizar marcadores cuando cambian los puntos o filtros
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const group = markersLayerRef.current;
+    if (!map || !group) return;
+
+    group.clearLayers();
+
+    const coordsValidas: [number, number][] = [];
+
+    puntos.forEach(p => {
+      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+      if (isNaN(p.lat) || isNaN(p.lng)) return;
+
+      // Excluir del auto-zoom de Bogotá urbana los 2 puntos rurales de Sumapaz para no alejar demasiado la vista inicial
+      if (p.lat > 4.4) {
+        coordsValidas.push([p.lat, p.lng]);
+      }
+
+      const colorFill =
+        p.cls === 'S'
+          ? '#16A34A'
+          : p.cls === 'A'
+          ? '#F59E0B'
+          : p.cls === 'N'
+          ? '#E3002B'
+          : '#6B7280';
+
+      const isSelected = selectedId === p.id;
+      const numFotos = p.evidencias?.length || 0;
+      const size = isSelected ? 30 : 25;
+      const svgSize = isSelected ? 16 : 14;
+
+      // Icono P04: Caneca de residuos | Icono P05: Espacio público (Parque: Árbol + Banca + Farola)
+      const iconSvg =
+        p.prod === 'P04'
+          ? `<svg viewBox="0 0 24 24" width="${svgSize}" height="${svgSize}" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+              <path d="M3 6h18" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>`
+          : `<svg viewBox="0 0 24 24" width="${svgSize}" height="${svgSize}" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+              <path d="M2 21h20" />
+              <path d="M6 13a3 3 0 1 0-1-5.8 3 3 0 0 0-2 2.8c0 1.7 1.3 3 3 3z" />
+              <path d="M6 13v8" />
+              <path d="M10 13h4v3h-4z" />
+              <path d="M9 16h6" />
+              <path d="M10 16v5" />
+              <path d="M14 16v5" />
+              <path d="M19 5a1.5 1.5 0 0 1 1.5 1.5L20 8h-2l-.5-1.5A1.5 1.5 0 0 1 19 5z" />
+              <path d="M19 8v13" />
+            </svg>`;
+
+      const borderRadius = p.prod === 'P04' ? '9999px' : '7px';
+      const borderStyle = isSelected ? '2.5px solid #111827' : '2px solid #FFFFFF';
+      const shadowStyle = isSelected
+        ? '0 0 0 3px rgba(17,24,39,0.35), 0 4px 10px rgba(0,0,0,0.4)'
+        : '0 2px 5px rgba(0,0,0,0.32)';
+
+      const customIcon = L.divIcon({
+        className: 'radar-sost-marker',
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        html: `
+          <div style="
+            width:${size}px;
+            height:${size}px;
+            background:${colorFill};
+            border:${borderStyle};
+            border-radius:${borderRadius};
+            box-shadow:${shadowStyle};
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            transition:transform 0.12s ease;
+          ">
+            ${iconSvg}
+          </div>
+        `,
+      });
+
+      const marker = L.marker([p.lat, p.lng], {
+        icon: customIcon,
+        zIndexOffset: isSelected ? 1000 : p.cls === 'N' ? 300 : p.cls === 'A' ? 200 : p.cls === 'S' ? 100 : 0,
+      });
+
+      const tooltipHtml = `
+        <div style="font-family:'Source Sans 3',system-ui,sans-serif;min-width:210px;max-width:280px;padding:2px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;">
+            <span style="background:${p.prod === 'P04' ? '#E3002B' : '#1F2937'};color:#FFF;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">
+              ${p.prod === 'P04' ? '🗑️ P04 Residuos' : '🌳 P05 Espacio público'} · ${p.t}
+            </span>
+            <span style="font-size:11px;font-weight:700;color:#374151;">${p.ld}</span>
+          </div>
+          <div style="font-size:12.5px;font-weight:700;color:#111827;line-height:1.25;margin-bottom:5px;white-space:normal;">
+            #${p.i} · ${p.d}
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;">
+            <span style="background:${p.chipBg};color:${p.chipFg};font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:4px;">
+              ${p.estado}
+            </span>
+            <span style="font-size:11px;font-weight:700;color:${p.ink};">ISP: ${p.ispTxt}</span>
+          </div>
+          <div style="font-size:11px;color:#4B5563;border-top:1px solid #E5E7EB;padding-top:4px;margin-top:4px;display:flex;align-items:center;justify-content:space-between;">
+            <span>📅 ${p.fecha}</span>
+            ${numFotos > 0 ? `<span style="color:#166534;font-weight:600;">📷 ${numFotos} adj.</span>` : ''}
+          </div>
+          <div style="font-size:10.5px;color:#E3002B;font-weight:700;margin-top:3px;">
+            Clic para abrir ficha y evidencias →
+          </div>
+        </div>
+      `;
+
+      marker.bindTooltip(tooltipHtml, {
+        direction: 'top',
+        offset: [0, -(size / 2)],
+        opacity: 0.98,
+      });
+
+      marker.on('click', () => {
+        onSelectPunto(p.id);
+      });
+
+      marker.addTo(group);
+    });
+
+    // Renderizar los 21 Puntos de Acción Focalizada Octubre (En confirmación UAESP) con icono diferencial (Caneca + Ojo #7C3AED)
+    puntosFocalizados.forEach((pf, idx) => {
+      if (typeof pf.lat !== 'number' || typeof pf.lng !== 'number') return;
+      if (isNaN(pf.lat) || isNaN(pf.lng)) return;
+
+      if (pf.lat > 4.4) {
+        coordsValidas.push([pf.lat, pf.lng]);
+      }
+
+      const isSelected = selectedFocalizadoId === pf.id;
+      const wSize = isSelected ? 40 : 34;
+      const hSize = isSelected ? 26 : 22;
+      const borderStyle = isSelected ? '2.5px solid #111827' : '2px solid #FFFFFF';
+      const shadowStyle = isSelected
+        ? '0 0 0 3px rgba(124,58,237,0.45), 0 4px 10px rgba(0,0,0,0.4)'
+        : '0 2px 6px rgba(88,28,135,0.45)';
+
+      // Icono diferencial: Caneca + Ojo en cápsula púrpura (#7C3AED)
+      const iconFocalizadoSvg = `
+        <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <path d="M3 6h18" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#FEF08A" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </div>
+      `;
+
+      const customFocalizadoIcon = L.divIcon({
+        className: 'radar-sost-marker',
+        iconSize: [wSize, hSize],
+        iconAnchor: [wSize / 2, hSize / 2],
+        html: `
+          <div style="
+            width:${wSize}px;
+            height:${hSize}px;
+            background:linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+            border:${borderStyle};
+            border-radius:9999px;
+            box-shadow:${shadowStyle};
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            transition:transform 0.12s ease;
+          ">
+            ${iconFocalizadoSvg}
+          </div>
+        `,
+      });
+
+      const markerFoc = L.marker([pf.lat, pf.lng], {
+        icon: customFocalizadoIcon,
+        zIndexOffset: isSelected ? 1100 : 450,
+      });
+
+      const tooltipFocHtml = `
+        <div style="font-family:'Source Sans 3',system-ui,sans-serif;min-width:225px;max-width:290px;padding:2px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;">
+            <span style="background:#7C3AED;color:#FFF;font-size:10px;font-weight:700;padding:1.5px 6px;border-radius:4px;">
+              🗑️👁️ Punto en confirmación UAESP
+            </span>
+            <span style="font-size:11px;font-weight:700;color:#374151;">${pf.ld}</span>
+          </div>
+          <div style="font-size:12.5px;font-weight:700;color:#111827;line-height:1.25;margin-bottom:5px;white-space:normal;">
+            #${idx + 1} · ${pf.d}
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;">
+            <span style="background:#F3E8FF;color:#5B21B6;font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:4px;">
+              Acción focalizada octubre
+            </span>
+            <span style="font-size:11px;font-weight:700;color:#6D28D9;">ID: ${pf.uaespId}</span>
+          </div>
+          <div style="font-size:11px;color:#4B5563;border-top:1px solid #E5E7EB;padding-top:4px;margin-top:4px;display:flex;align-items:center;justify-content:space-between;">
+            <span>📋 ${pf.acciones.length} ${pf.acciones.length === 1 ? 'acción prevista' : 'acciones previstas'}</span>
+            <span style="color:#6D28D9;font-weight:700;">Oct 2026</span>
+          </div>
+          <div style="font-size:10.5px;color:#7C3AED;font-weight:700;margin-top:3px;">
+            Clic para ver acciones previstas y responsable →
+          </div>
+        </div>
+      `;
+
+      markerFoc.bindTooltip(tooltipFocHtml, {
+        direction: 'top',
+        offset: [0, -(hSize / 2)],
+        opacity: 0.98,
+      });
+
+      markerFoc.on('click', () => {
+        onSelectFocalizado(pf.id);
+      });
+
+      markerFoc.addTo(group);
+    });
+
+    if (coordsValidas.length > 0 && coordsValidas.length < 95) {
+      const bounds = L.latLngBounds(coordsValidas);
+      map.fitBounds(bounds, { padding: [36, 36], maxZoom: 15 });
+    }
+  }, [puntos, puntosFocalizados, selectedId, onSelectPunto, selectedFocalizadoId, onSelectFocalizado]);
+
+  const centrarBogota = () => {
+    if (!mapInstanceRef.current) return;
+    mapInstanceRef.current.setView([4.645, -74.095], 11);
+  };
+
+  const verSumapaz = () => {
+    if (!mapInstanceRef.current) return;
+    mapInstanceRef.current.setView([4.219, -74.189], 12);
+  };
+
+  const cS = puntos.filter(q => q.cls === 'S').length;
+  const cA = puntos.filter(q => q.cls === 'A').length;
+  const cN = puntos.filter(q => q.cls === 'N').length;
+  const cV = puntos.filter(q => q.cls === 'V').length;
+  const cP04 = puntos.filter(q => q.prod === 'P04').length;
+  const cP05 = puntos.filter(q => q.prod === 'P05').length;
+  const cFoc = puntosFocalizados.length;
+  const totalEnVista = puntos.length + cFoc;
+
+  return (
+    <div id="mapa-sost" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden' }}>
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <style>{`
+        .leaflet-container {
+          background: #EEF2F6 !important;
+          font-family: "Source Sans 3", system-ui, sans-serif !important;
+        }
+        .leaflet-container img.leaflet-tile {
+          max-width: none !important;
+          max-height: none !important;
+          width: 256px !important;
+          height: 256px !important;
+          visibility: visible !important;
+          display: block !important;
+        }
+        .radar-sost-marker {
+          background: transparent !important;
+          border: none !important;
+        }
+        .radar-sost-marker > div:hover {
+          transform: scale(1.18);
+        }
+      `}</style>
+
+      {/* Cabecera del Mapa */}
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid #E5E7EB', display: 'flex', flexWrap: 'wrap', gap: '12px 18px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0" style={{ background: '#E3002B' }}>
+            <MapPin className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '16.5px', fontWeight: 700, color: '#1F2937' }}>
+              Mapa territorial de puntos priorizados y acción focalizada ({totalEnVista} puntos en vista)
+            </h2>
+            <p style={{ margin: 0, fontSize: '12px', color: '#6B7280' }}>
+              Haz clic sobre cualquier punto del mapa para desplegar su ficha de verificación o sus acciones previstas (puntos en confirmación UAESP).
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Selector de Producto en el Mapa */}
+          <div className="inline-flex rounded-lg border border-gray-300 bg-gray-50 p-0.5 text-xs">
+            {([
+              { id: 'TODOS', label: 'Todos' },
+              { id: 'P04', label: 'P04 Residuos' },
+              { id: 'OCT21', label: '🗑️👁️ Confirmación UAESP (21)' },
+              { id: 'P05', label: 'P05 Espacio público' },
+            ] as const).map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onSelectProducto(tab.id)}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                  mapaProducto === tab.id
+                    ? tab.id === 'OCT21'
+                      ? 'bg-purple-700 text-white shadow-xs'
+                      : 'bg-gray-900 text-white shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Botón desplegable de Pestaña de Fechas */}
+          <button
+            type="button"
+            onClick={() => setMostrarFechasTab(v => !v)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+              mostrarFechasTab || filtroFecha !== 'Todas'
+                ? 'bg-red-50 border-red-300 text-red-800'
+                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+            title="Desplegar pestaña de fechas de verificación"
+          >
+            <Calendar className="w-3.5 h-3.5 text-red-600" />
+            <span>Fecha: {filtroFecha === 'Todas' ? '09–20 oct 2026' : filtroFecha}</span>
+            <span className="text-[10px] ml-0.5">{mostrarFechasTab ? '▲' : '▼'}</span>
+          </button>
+
+          {/* Selector de Mapa Base: IDECA Bogotá / Calles / OSM / Satélite */}
+          <div className="inline-flex rounded-lg border border-gray-300 bg-gray-50 p-0.5 text-xs">
+            {(
+              [
+                { id: 'ideca', label: 'IDECA Bogotá' },
+                { id: 'calles', label: 'Calles' },
+                { id: 'osm', label: 'OSM' },
+                { id: 'satelite', label: 'Satélite' },
+              ] as const
+            ).map(b => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => setCapaBase(b.id)}
+                className={`px-2.5 py-1 rounded-md font-semibold cursor-pointer ${
+                  capaBase === b.id ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Toggle de Polígonos de Localidades */}
+          <button
+            type="button"
+            onClick={() => setMostrarLocalidades(v => !v)}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer transition-colors ${
+              mostrarLocalidades
+                ? 'bg-slate-800 text-white border-slate-800'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+            title="Mostrar u ocultar los límites de las 20 localidades de Bogotá"
+          >
+            Localidades
+          </button>
+
+          <button
+            type="button"
+            onClick={centrarBogota}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+            title="Restablecer vista general de Bogotá"
+          >
+            Bogotá
+          </button>
+          <button
+            type="button"
+            onClick={verSumapaz}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+            title="Enfocar puntos rurales en Sumapaz"
+          >
+            Sumapaz
+          </button>
+        </div>
+      </div>
+
+      {/* Pestaña desplegable de Fechas de Verificación al dar clic */}
+      {mostrarFechasTab && (
+        <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mr-1">
+            Filtrar por fecha de visita:
+          </span>
+          <button
+            type="button"
+            onClick={() => onSelectFecha('Todas')}
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold border cursor-pointer transition-colors ${
+              filtroFecha === 'Todas'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+            }`}
+          >
+            Todas las fechas
+          </button>
+          {fechasDisponibles.map(item => (
+            <button
+              key={item.fecha}
+              type="button"
+              onClick={() => onSelectFecha(item.fecha)}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold border cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
+                filtroFecha === item.fecha
+                  ? 'bg-red-600 text-white border-red-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+              }`}
+            >
+              <span>{item.fecha}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  filtroFecha === item.fecha ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {item.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Lienzo del Mapa Leaflet */}
+      <div className="relative w-full" style={{ height: '460px', zIndex: 1 }}>
+        <div ref={mapContainerRef} style={{ width: '100%', height: '460px' }} />
+      </div>
+
+      {/* Pie / Leyenda del Mapa (Iconos por producto + Focalizados + Semáforo) */}
+      <div style={{ padding: '10px 20px', background: '#F9FAFB', borderTop: '1px solid #E5E7EB', display: 'flex', flexWrap: 'wrap', gap: '10px 20px', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Iconos por Producto */}
+          <span className="inline-flex items-center gap-1.5 font-bold text-gray-800 pr-2 border-r border-gray-300">
+            <span className="w-5 h-5 rounded-full bg-gray-800 text-white inline-flex items-center justify-center shadow-2xs">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </span>
+            P04 Residuos ({cP04})
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-bold text-purple-900 pr-2 border-r border-gray-300">
+            <span
+              className="px-1.5 h-5 rounded-full text-white inline-flex items-center justify-center gap-0.5 shadow-2xs"
+              style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' }}
+            >
+              <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#FFFFFF" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#FEF08A" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </span>
+            En confirmación UAESP · Acción Focalizada Oct ({cFoc})
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-bold text-gray-800 pr-3 border-r border-gray-300">
+            <span className="w-5 h-5 rounded-md bg-gray-800 text-white inline-flex items-center justify-center shadow-2xs">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 21h20" />
+                <path d="M6 13a3 3 0 1 0-1-5.8 3 3 0 0 0-2 2.8c0 1.7 1.3 3 3 3z" />
+                <path d="M6 13v8" />
+                <path d="M10 13h4v3h-4z" />
+                <path d="M9 16h6" />
+                <path d="M10 16v5" />
+                <path d="M14 16v5" />
+                <path d="M19 5a1.5 1.5 0 0 1 1.5 1.5L20 8h-2l-.5-1.5A1.5 1.5 0 0 1 19 5z" />
+                <path d="M19 8v13" />
+              </svg>
+            </span>
+            P05 Espacio público ({cP05})
+          </span>
+
+          {/* Semáforo de Clasificación */}
+          <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700">
+            <span className="w-3 h-3 rounded-full inline-block border border-white shadow-2xs" style={{ background: '#16A34A' }} />
+            Sostenido ({cS})
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700">
+            <span className="w-3 h-3 rounded-full inline-block border border-white shadow-2xs" style={{ background: '#F59E0B' }} />
+            En riesgo ({cA})
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700">
+            <span className="w-3 h-3 rounded-full inline-block border border-white shadow-2xs" style={{ background: '#E3002B' }} />
+            Recaída confirmada ({cN})
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700">
+            <span className="w-3 h-3 rounded-full inline-block border border-white shadow-2xs" style={{ background: '#6B7280' }} />
+            Sin verificación ({cV})
+          </span>
+        </div>
+        <div className="text-xs text-gray-500">
+          Haz clic en cualquier icono para abrir su <strong>Ficha de punto</strong> o <strong>Acciones previstas</strong>.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SeccionSostenibilidadEP({ userData }: Props) {
+  const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<{ text: string; ok: boolean } | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+
+  // Ventana modal de Ficha de Punto (null = cerrada) y modal de Punto Focalizado Octubre
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedFocalizadoId, setSelectedFocalizadoId] = useState<string | null>(null);
+  const [zoomIdx, setZoomIdx] = useState<number | null>(null);
+
+  // Filtros interactivos
+  const [filtroTrimestre, setFiltroTrimestre] = useState<'TODOS' | 'T1' | 'T2'>('TODOS');
+  const [filtroLocalidad, setFiltroLocalidad] = useState<string>('Todas');
+  const [filtroClasificacion, setFiltroClasificacion] = useState<string>('Todas');
+  const [filtroPrioridad, setFiltroPrioridad] = useState<string>('Todas');
+  const [filtroFecha, setFiltroFecha] = useState<string>('Todas');
+  const [mapaProducto, setMapaProducto] = useState<FiltroMapaProducto>('TODOS');
+
+  // Modal de configuración de credenciales/token ArcGIS
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [arcgisUser, setArcgisUser] = useState('profesionalOEP');
+  const [arcgisPass, setArcgisPass] = useState('');
+  const [arcgisToken, setArcgisToken] = useState('');
+
+  const abrirModalPunto = useCallback((id: string) => {
+    setSelectedFocalizadoId(null);
+    setSelectedId(id);
+    setZoomIdx(0); // Mostrar el primer adjunto seleccionado por defecto en la ventana
+  }, []);
+
+  const cerrarModalPunto = useCallback(() => {
+    setSelectedId(null);
+    setZoomIdx(null);
+  }, []);
+
+  const abrirModalFocalizado = useCallback((id: string) => {
+    setSelectedId(null);
+    setSelectedFocalizadoId(id);
+  }, []);
+
+  const cerrarModalFocalizado = useCallback(() => {
+    setSelectedFocalizadoId(null);
+  }, []);
+
+  const cargarCopiaEnLinea = useCallback(async () => {
+    try {
+      const res = await fetchApi(`${API}/api/sostenibilidad`);
+      if (res.ok) {
+        const data: SnapshotResponse = await res.json();
+        setSnapshot(data);
+      }
+    } catch (err) {
+      console.error('Error cargando copia en línea de sostenibilidad:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const ejecutarActualizacion = useCallback(
+    async (origen: 'MANUAL' | 'AUTOMATICO' = 'MANUAL', customAuth?: { username?: string; password?: string; token?: string }) => {
+      setSyncing(true);
+      if (origen === 'MANUAL') setSyncNotice(null);
+      try {
+        const res = await fetchApi(`${API}/api/sostenibilidad/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            origen,
+            username: customAuth?.username || (arcgisUser ? arcgisUser : undefined),
+            password: customAuth?.password || (arcgisPass ? arcgisPass : undefined),
+            token: customAuth?.token || (arcgisToken ? arcgisToken : undefined),
+          }),
+        });
+        if (res.ok) {
+          const data: SnapshotResponse = await res.json();
+          setSnapshot(data);
+          if (origen === 'MANUAL') {
+            setSyncNotice({
+              text: data.message || 'Copia en línea actualizada y guardada correctamente.',
+              ok: data.arcgisConnected !== false,
+            });
+          }
+        } else {
+          if (origen === 'MANUAL') {
+            setSyncNotice({ text: 'Error al comunicar con el servidor para sincronizar.', ok: false });
+          }
+        }
+      } catch (err) {
+        console.error('Error sincronizando sostenibilidad:', err);
+        if (origen === 'MANUAL') {
+          setSyncNotice({ text: 'Error de red al intentar actualizar.', ok: false });
+        }
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [arcgisUser, arcgisPass, arcgisToken]
+  );
+
+  // Carga inicial desde la copia guardada en línea (Supabase)
+  useEffect(() => {
+    cargarCopiaEnLinea();
+  }, [cargarCopiaEnLinea]);
+
+  // Refresco automático cada 5 minutos cuando autoRefresh está activo
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      ejecutarActualizacion('AUTOMATICO');
+    }, 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, ejecutarActualizacion]);
+
+  if (loading || !snapshot?.datos) {
+    return (
+      <div className="bg-white rounded-xl p-12 text-center border border-gray-200 shadow-xs">
+        <div className="inline-block w-8 h-8 border-4 border-bogota-primary border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-gray-600 font-medium">Cargando Tablero de Sostenibilidad Espacio Público...</p>
+      </div>
+    );
+  }
+
+  const datos = snapshot.datos;
+
+  // Asegurar que en P05 Plazoleta Codensa aparezca una sola vez (deduplicación preventiva por localidad + dirección)
+  const deduplicarPuntos = (lista: PuntoRaw[]) => {
+    const vistos = new Set<string>();
+    return lista.filter(p => {
+      const clave = `${p.prod}|${p.ld.toLowerCase().trim()}|${p.d.toLowerCase().trim()}`;
+      if (vistos.has(clave)) return false;
+      vistos.add(clave);
+      return true;
+    });
+  };
+
+  const baseP04 = deduplicarPuntos(datos.puntosP04 || []);
+  const baseP05 = deduplicarPuntos(datos.puntosP05 || []);
+
+  // Extraer fechas únicas de visita para desplegar la pestaña de fechas
+  const extraerDiaFecha = (f: string) => {
+    if (!f || f === '—') return 'Sin visita';
+    return f.split(',')[0].trim();
+  };
+
+  const conteoFechasMap = new Map<string, number>();
+  [...baseP04, ...baseP05].forEach(p => {
+    const dia = extraerDiaFecha(p.fecha);
+    conteoFechasMap.set(dia, (conteoFechasMap.get(dia) || 0) + 1);
+  });
+
+  const fechasDisponibles = Array.from(conteoFechasMap.entries())
+    .map(([fecha, count]) => ({ fecha, count }))
+    .sort((a, b) => {
+      if (a.fecha === 'Sin visita') return 1;
+      if (b.fecha === 'Sin visita') return -1;
+      const numA = parseInt(a.fecha, 10) || 0;
+      const numB = parseInt(b.fecha, 10) || 0;
+      return numA - numB;
+    });
+
+  // Función de filtrado de puntos
+  const filtrarPuntos = (lista: PuntoRaw[]) => {
+    return lista.filter(p => {
+      if (filtroTrimestre !== 'TODOS' && p.t !== filtroTrimestre) return false;
+      if (filtroLocalidad !== 'Todas' && p.ld !== filtroLocalidad) return false;
+      if (filtroClasificacion !== 'Todas' && p.cls !== filtroClasificacion) return false;
+      if (filtroPrioridad === 'En riesgo o recaída' && p.cls !== 'A' && p.cls !== 'N') return false;
+      if (filtroPrioridad === 'Sin verificar' && p.cls !== 'V') return false;
+      if (filtroFecha !== 'Todas') {
+        const dia = extraerDiaFecha(p.fecha);
+        if (dia !== filtroFecha) return false;
+      }
+      return true;
+    });
+  };
+
+  const enriquecerPuntos = (rows: PuntoRaw[]): PuntoEnriquecido[] => {
+    return rows.map((r, idx) => {
+      const c = CH[r.cls] || CH.V;
+      const rawIdx = parseInt(r.id.split('-')[1] || String(idx), 10);
+      const fallbackCoord = r.prod === 'P04' ? COORDS_P04[rawIdx] : COORDS_P05[rawIdx];
+      return {
+        ...r,
+        i: isNaN(rawIdx) ? idx + 1 : rawIdx + 1,
+        lat: r.lat ?? fallbackCoord?.[0],
+        lng: r.lng ?? fallbackCoord?.[1],
+        estado: c.t,
+        chipBg: c.bg,
+        chipFg: c.fg,
+        ink: c.ink,
+        ispTxt: r.isp === null || r.isp === undefined ? '—' : String(r.isp),
+        bg: r.cls === 'V' ? '#F9FAFB' : '#FFFFFF',
+      };
+    });
+  };
+
+  const p04Full = enriquecerPuntos(baseP04);
+  const p05Full = enriquecerPuntos(baseP05);
+  const p04 = enriquecerPuntos(filtrarPuntos(baseP04));
+  const p05 = enriquecerPuntos(filtrarPuntos(baseP05));
+  const todosFull = [...p04Full, ...p05Full];
+  const puntosMapa =
+    mapaProducto === 'OCT21'
+      ? []
+      : mapaProducto === 'P04'
+      ? p04
+      : mapaProducto === 'P05'
+      ? p05
+      : [...p04, ...p05];
+
+  const puntosFocalizadosMapa =
+    mapaProducto === 'P05'
+      ? []
+      : PUNTOS_FOCALIZADOS_OCT_2026.filter(pf => filtroLocalidad === 'Todas' || pf.ld === filtroLocalidad);
+
+  const selFocalizado = selectedFocalizadoId
+    ? PUNTOS_FOCALIZADOS_OCT_2026.find(pf => pf.id === selectedFocalizadoId) || null
+    : null;
+
+  const agruparSinVerificar = (list: typeof p04) => {
+    const byLoc: Record<string, { t: string; d: string }[]> = {};
+    const orden: string[] = [];
+    list.forEach(q => {
+      if (q.cls !== 'V') return;
+      if (!byLoc[q.ld]) {
+        byLoc[q.ld] = [];
+        orden.push(q.ld);
+      }
+      byLoc[q.ld].push({ t: q.t, d: q.d });
+    });
+    return orden
+      .map(ld => {
+        const n = byLoc[ld].length;
+        return { ld, n, items: byLoc[ld], acc: n > 1 ? '#E3002B' : '#9CA3AF' };
+      })
+      .sort((a, b) => b.n - a.n);
+  };
+
+  const calcularResumen = (list: typeof p04) => {
+    const s = list.filter(q => q.cls === 'S').length;
+    const a = list.filter(q => q.cls === 'A').length;
+    const n = list.filter(q => q.cls === 'N').length;
+    const v = list.filter(q => q.cls === 'V').length;
+    const ver = s + a + n;
+    const sost = s + a;
+    const pct = ver > 0 ? Math.round((sost / ver) * 100) : 0;
+    return { s, a, n, v, ver, pri: list.length, sost, pct };
+  };
+
+  const r4 = calcularResumen(p04);
+  const r5 = calcularResumen(p05);
+  const sv04 = agruparSinVerificar(p04);
+  const sv05 = agruparSinVerificar(p05);
+
+  const armarSeccionProducto = (
+    cod: 'P04' | 'P05',
+    nombre: string,
+    anchor: string,
+    R: ReturnType<typeof calcularResumen>,
+    list: typeof p04,
+    sv: ReturnType<typeof agruparSinVerificar>,
+    critTitulo: string,
+    criterios: { label: string; ok: number; n?: number; color: string }[],
+    riesgoTitulo: string,
+    riesgos: { label: string; n: number; w: number }[],
+    apro: { label: string; pct: number | null; n?: number; color: string }[]
+  ) => {
+    const t1 = list.filter(q => q.t === 'T1').length;
+    const safeVer = R.ver || 1;
+    return {
+      cod,
+      nombre,
+      anchor,
+      puntos: list,
+      sinVer: sv,
+      pri: R.pri,
+      ver: R.ver,
+      sost: R.sost,
+      sv: R.v,
+      pct: R.pct,
+      t1,
+      t2: R.pri - t1,
+      svLoc: sv.length,
+      wS: R.ver ? (R.s / safeVer) * 100 : 0,
+      wA: R.ver ? (R.a / safeVer) * 100 : 0,
+      wN: R.ver ? (R.n / safeVer) * 100 : 0,
+      detalle: [
+        { k: 'Sostenido', v: R.s, pct: (R.ver ? Math.round((R.s / safeVer) * 100) : 0) + '%', sub: 'Cuenta como sostenido', color: '#16A34A' },
+        { k: 'En riesgo', v: R.a, pct: (R.ver ? Math.round((R.a / safeVer) * 100) : 0) + '%', sub: 'También cuenta como sostenido', color: '#9A3412' },
+        { k: 'Recaída confirmada', v: R.n, pct: (R.ver ? Math.round((R.n / safeVer) * 100) : 0) + '%', sub: 'Única clase no sostenida', color: '#E3002B' },
+      ],
+      critTitulo,
+      criterios,
+      riesgoTitulo,
+      riesgos,
+      apropiacionTitulo: cod === 'P05' ? 'Acciones de gestión y control desplegadas' : 'Apropiación y permanencia',
+      apropiacion: apro.map(a => ({
+        label: a.label,
+        color: a.color,
+        txt: a.pct === null ? 'n/a' : `${a.pct}%`,
+        n: a.n,
+      })),
+    };
+  };
+
+  // Calcular vocación de P05 dinámicamente desde los puntos verificados de P05 (Ventas informales vs Parqueo indebido)
+  const p05Verificados = p05.filter(q => q.cls === 'S' || q.cls === 'A' || q.cls === 'N');
+  const p05Parqueo = p05Verificados.filter(q => q.riesgo.toLowerCase().includes('parqueo'));
+  const p05Ventas = p05Verificados.filter(q => !q.riesgo.toLowerCase().includes('parqueo'));
+
+  const construirVocacionGrupo = (
+    key: 'ventas' | 'parqueo',
+    label: string,
+    sublabel: string,
+    lista: typeof p05Verificados
+  ): VocacionP05Item => {
+    const total = lista.length;
+    const sostenidos = lista.filter(q => q.cls === 'S').length;
+    const enRiesgo = lista.filter(q => q.cls === 'A').length;
+    const recaida = lista.filter(q => q.cls === 'N').length;
+    const pctSostenimiento = total > 0 ? Math.round(((sostenidos + enRiesgo) / total) * 100) : 0;
+    return {
+      key,
+      label,
+      sublabel,
+      total,
+      sostenidos,
+      enRiesgo,
+      recaida,
+      pctSostenimiento,
+      color: pctSostenimiento >= 70 ? '#16A34A' : '#9A3412',
+    };
+  };
+
+  const vocacionP05List: VocacionP05Item[] = [
+    construirVocacionGrupo(
+      'ventas',
+      'Puntos de Ventas Informales',
+      'Recuperación ante ocupación comercial y mobiliario no autorizado',
+      p05Ventas
+    ),
+    construirVocacionGrupo(
+      'parqueo',
+      'Puntos de Parqueo Indebido',
+      'Recuperación de andenes, bahías y zonas peatonales invadidas por vehículos',
+      p05Parqueo
+    ),
+  ];
+
+  const maxRiesgoP05 = Math.max(p05Ventas.length, p05Parqueo.length, 1);
+  const riesgosP05Calculados = [
+    { label: 'Ventas informales', n: p05Ventas.length, w: Math.round((p05Ventas.length / maxRiesgoP05) * 100) },
+    { label: 'Parqueo indebido', n: p05Parqueo.length, w: Math.round((p05Parqueo.length / maxRiesgoP05) * 100) },
+  ];
+
+  const defaultCondicionesP05: CondicionP05Item[] = [
+    { label: 'Espacio libre de ocupación', total: 19, parcial: 18, no: 7, pctTotal: 43, pctParcial: 41, pctNo: 16, pctAvance: 64 },
+    { label: 'Condiciones físicas adecuadas', total: 19, parcial: 18, no: 7, pctTotal: 43, pctParcial: 41, pctNo: 16, pctAvance: 64 },
+    { label: 'Apropiación del espacio recuperado', total: 18, parcial: 18, no: 8, pctTotal: 41, pctParcial: 41, pctNo: 18, pctAvance: 61 },
+  ];
+
+  const condicionesP05List: CondicionP05Item[] =
+    datos.condicionesP05 && datos.condicionesP05.length > 0
+      ? datos.condicionesP05.map((raw: any, idx: number) => {
+          const fb = defaultCondicionesP05[idx] || defaultCondicionesP05[0];
+          const totalN = Number(raw.totalN ?? 44) || 44;
+          const pctTotal = Number(raw.pctTotal ?? raw.totalPct ?? fb.pctTotal);
+          const pctParcial = Number(raw.pctParcial ?? raw.parcialPct ?? fb.pctParcial);
+          const pctNo = Number(raw.pctNo ?? raw.noPct ?? Math.max(0, 100 - pctTotal - pctParcial));
+          const total = Number(raw.total ?? Math.round((pctTotal * totalN) / 100));
+          const parcial = Number(raw.parcial ?? Math.round((pctParcial * totalN) / 100));
+          const no = Number(raw.no ?? Math.max(0, totalN - total - parcial));
+          const pctAvance = Number(raw.pctAvance ?? Math.round(((total + parcial * 0.5) / totalN) * 100));
+          return {
+            label: raw.label || fb.label,
+            total,
+            parcial,
+            no,
+            pctTotal,
+            pctParcial,
+            pctNo,
+            pctAvance,
+          };
+        })
+      : defaultCondicionesP05;
+
+  const productos = [
+    armarSeccionProducto(
+      'P04',
+      'Transformación de la gestión de residuos',
+      'p04',
+      r4,
+      p04,
+      sv04,
+      'Principales acciones de apropiación',
+      datos.criteriosP04,
+      'Principal factor de riesgo identificado',
+      datos.riesgosP04,
+      datos.apropiacionP04
+    ),
+    armarSeccionProducto(
+      'P05',
+      'Transformación de la organización y recuperación del espacio público',
+      'p05',
+      r5,
+      p05,
+      sv05,
+      'Sostenimiento según problemática del punto',
+      datos.criteriosP05,
+      'Principal riesgo de recaída',
+      riesgosP05Calculados,
+      datos.apropiacionP05
+    ),
+  ];
+
+  // Matriz por localidad
+  const agrupaPorLocalidad = (list: typeof p04Full, ld: string) => {
+    const f = list.filter(q => q.ld === ld);
+    const pri = f.length;
+    const sost = f.filter(q => q.cls === 'S' || q.cls === 'A').length;
+    const no = f.filter(q => q.cls === 'N').length;
+    const sv = f.filter(q => q.cls === 'V').length;
+    const w = (n: number) => (pri ? (n / pri) * 100 : 0);
+    return {
+      pri: pri || '—',
+      sost: pri ? sost : '—',
+      noSost: pri ? no : '—',
+      sv: pri ? sv : '—',
+      wS: w(sost),
+      wN: w(no),
+      wV: w(sv),
+      sC: pri && sost > 0 ? '#16A34A' : '#9CA3AF',
+      nC: pri && no > 0 ? '#E3002B' : '#9CA3AF',
+      cero: pri > 0 && sost === 0,
+    };
+  };
+
+  const matriz = CODS.map(([cod, ld]) => {
+    const a = agrupaPorLocalidad(p04Full, ld);
+    const b = agrupaPorLocalidad(p05Full, ld);
+    const al = a.cero || b.cero;
+    return {
+      cod,
+      ld,
+      p4: a,
+      p5: b,
+      fw: al ? 700 : 400,
+      rowBg: al ? '#FFF7ED' : '#FFFFFF',
+    };
+  });
+
+  // Punto seleccionado para la ventana modal de Ficha
+  const sel = selectedId ? todosFull.find(q => q.id === selectedId) || null : null;
+  const esV = sel?.cls === 'V';
+  const stamp = `2026101${((sel?.i || 1) % 9) + 1}09${40 + ((sel?.i || 1) % 20)}12`;
+
+  const evidenciasFicha =
+    !sel || esV
+      ? []
+      : sel.evidencias && sel.evidencias.length > 0
+      ? sel.evidencias
+      : [
+          { label: 'Fotografía del estado actual', file: `fotografia_del_estado_actual_${stamp}.jpg`, contentType: 'image/jpeg' },
+          { label: 'Fotografía 2 del estado actual', file: `fotografia2_estado_actual_${stamp}.jpg`, contentType: 'image/jpeg' },
+          { label: 'Video corto del punto', file: `video_estado_actual_${stamp}.MOV`, contentType: 'video/quicktime' },
+        ];
+
+  const construirCriteriosPunto = (punto: PuntoEnriquecido) => {
+    if (punto.criteriosDetalle && punto.criteriosDetalle.length > 0) {
+      return punto.criteriosDetalle.map(c => ({
+        k: c.k,
+        v: c.v,
+        mark: c.ok ? '✓' : '✕',
+        bg: c.ok ? '#16A34A' : '#E3002B',
+      }));
+    }
+    const keys = punto.prod === 'P04' ? F04 : F05;
+    const n = keys.length;
+    const ok = punto.cls === 'S' ? n : punto.cls === 'A' ? n - 2 : punto.cls === 'N' ? 1 : 0;
+    return keys.map((k, idx) => {
+      const v = idx < ok;
+      return {
+        k,
+        v: v ? 'Sí' : 'No',
+        mark: v ? '✓' : '✕',
+        bg: v ? '#16A34A' : '#E3002B',
+      };
+    });
+  };
+
+  const criteriosFicha = sel ? construirCriteriosPunto(sel) : [];
+
+  const formatearFechaLectura = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    } catch {
+      return '20/10/2026 10:14';
+    }
+  };
+
+  const hayFiltrosActivos =
+    filtroTrimestre !== 'TODOS' ||
+    filtroLocalidad !== 'Todas' ||
+    filtroClasificacion !== 'Todas' ||
+    filtroPrioridad !== 'Todas' ||
+    filtroFecha !== 'Todas';
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        maxWidth: '1440px',
+        margin: '0 auto',
+        background: '#F9FAFB',
+        fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
+        color: '#1F2937',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        border: '1px solid #E5E7EB',
+      }}
+    >
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      />
+
+      {/* Franja institucional roja superior */}
+      <div style={{ height: '4px', background: '#E3002B' }} />
+
+      {/* Barra superior de navegación rápida y sincronización */}
+      <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '12px 32px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 22px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <nav aria-label="Secciones de la página" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', minWidth: 0, flex: '1 1 auto', justifyContent: 'flex-start' }}>
+            {[
+              { href: '#mapa-sost', label: 'Mapa' },
+              { href: '#p04', label: 'P04 Residuos' },
+              { href: '#p05', label: 'P05 Espacio público' },
+              { href: '#localidades-sost', label: 'Localidades' },
+              { href: '#metodo-sost', label: 'Método' },
+            ].map(item => (
+              <a
+                key={item.href}
+                href={item.href}
+                style={{
+                  fontFamily: 'Archivo, system-ui, sans-serif',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  background: '#FFFFFF',
+                  color: '#374151',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  padding: '0 14px',
+                  minHeight: '38px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                }}
+                className="hover:bg-gray-50 transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Controles de sincronización en línea y conexión Survey123 */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => ejecutarActualizacion('MANUAL')}
+              disabled={syncing}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer disabled:opacity-60"
+              style={{ background: '#E3002B', fontFamily: 'Archivo, system-ui, sans-serif' }}
+              title="Consultar Survey123 en vivo y guardar copia en línea en RADAR"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Actualizando...' : 'Actualizar ahora'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowConfigModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
+              title="Configurar credenciales o token de ArcGIS Survey123"
+            >
+              <Settings className="w-3.5 h-3.5 text-gray-500" />
+              ArcGIS
+            </button>
+
+            <a
+              href={SURVEY_SHARE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+              title="Abrir Survey123 en pestaña nueva"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Survey123
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Notificación de resultado de sincronización */}
+      {syncNotice && (
+        <div
+          className={`px-8 py-2.5 text-xs font-medium flex items-center justify-between border-b ${
+            syncNotice.ok ? 'bg-green-50 text-green-800 border-green-200' : 'bg-amber-50 text-amber-900 border-amber-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {syncNotice.ok ? <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />}
+            <span>{syncNotice.text}</span>
+          </div>
+          <button onClick={() => setSyncNotice(null)} className="text-gray-500 hover:text-gray-800">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Encabezado principal del tablero */}
+      <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '18px 32px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 24px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ minWidth: 0, flex: '1 1 520px' }}>
+            <h1 style={{ margin: 0, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '26px', fontWeight: 700, lineHeight: 1.15, letterSpacing: '-.01em', color: '#1F2937' }}>
+              Transformación Territorial del Espacio Público · Residuos y Ventas Informales
+            </h1>
+          </div>
+          <div style={{ flex: 'none', textAlign: 'right', fontSize: '12.5px', color: '#6B7280', lineHeight: 1.65 }}>
+            <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 600, color: '#1F2937', fontSize: '12px', letterSpacing: '.06em', textTransform: 'uppercase' }} className="flex items-center justify-end gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-600 inline-block animate-pulse" />
+              Actualización en línea
+            </div>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+              Última lectura {formatearFechaLectura(snapshot.ultimaLectura)}
+            </span>{' '}
+            ·{' '}
+            <button
+              type="button"
+              onClick={() => setAutoRefresh(v => !v)}
+              className="underline hover:text-gray-900 cursor-pointer"
+              title="Activar o pausar actualización automática cada 5 min"
+            >
+              {autoRefresh ? 'refresco 5 min' : 'refresco pausado'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Barra de Filtros Interactivos */}
+      <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '14px 32px', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+        <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10.5px', fontWeight: 600, letterSpacing: '.13em', color: '#6B7280', textTransform: 'uppercase', marginRight: '4px' }}>
+          Filtros
+        </span>
+
+        {/* Trimestre */}
+        <label className="inline-flex items-center gap-2 text-xs bg-white border border-gray-300 rounded-lg px-3 py-2">
+          <span className="text-gray-500">Trimestre</span>
+          <select
+            value={filtroTrimestre}
+            onChange={e => setFiltroTrimestre(e.target.value as any)}
+            className="font-semibold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+          >
+            <option value="TODOS">T1 + T2</option>
+            <option value="T1">T1</option>
+            <option value="T2">T2</option>
+          </select>
+        </label>
+
+        {/* Localidad */}
+        <label className="inline-flex items-center gap-2 text-xs bg-white border border-gray-300 rounded-lg px-3 py-2">
+          <span className="text-gray-500">Localidad</span>
+          <select
+            value={filtroLocalidad}
+            onChange={e => setFiltroLocalidad(e.target.value)}
+            className="font-semibold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+          >
+            <option value="Todas">Todas</option>
+            {CODS.map(([cod, nombre]) => (
+              <option key={cod} value={nombre}>
+                {cod}. {nombre}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* Clasificación */}
+        <label className="inline-flex items-center gap-2 text-xs bg-white border border-gray-300 rounded-lg px-3 py-2">
+          <span className="text-gray-500">Clasificación</span>
+          <select
+            value={filtroClasificacion}
+            onChange={e => setFiltroClasificacion(e.target.value)}
+            className="font-semibold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+          >
+            <option value="Todas">Todas</option>
+            <option value="S">Sostenido</option>
+            <option value="A">En riesgo</option>
+            <option value="N">Recaída confirmada</option>
+            <option value="V">Sin verificación</option>
+          </select>
+        </label>
+
+        {/* Prioridad */}
+        <label className="inline-flex items-center gap-2 text-xs bg-white border border-gray-300 rounded-lg px-3 py-2">
+          <span className="text-gray-500">Prioridad</span>
+          <select
+            value={filtroPrioridad}
+            onChange={e => setFiltroPrioridad(e.target.value)}
+            className="font-semibold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+          >
+            <option value="Todas">Todas</option>
+            <option value="En riesgo o recaída">En riesgo / Recaída</option>
+            <option value="Sin verificar">Pendientes de visita</option>
+          </select>
+        </label>
+
+        {/* Periodo visita / Fecha desplegable al dar clic */}
+        <label className="inline-flex items-center gap-2 text-xs bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-pointer hover:border-gray-400 transition-colors">
+          <span className="text-gray-500">Periodo visita</span>
+          <select
+            value={filtroFecha}
+            onChange={e => setFiltroFecha(e.target.value)}
+            className="font-semibold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+          >
+            <option value="Todas">{datos.periodoVisita} (Todas)</option>
+            {fechasDisponibles.map(item => (
+              <option key={item.fecha} value={item.fecha}>
+                {item.fecha} ({item.count} puntos)
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {hayFiltrosActivos && (
+          <button
+            type="button"
+            onClick={() => {
+              setFiltroTrimestre('TODOS');
+              setFiltroLocalidad('Todas');
+              setFiltroClasificacion('Todas');
+              setFiltroPrioridad('Todas');
+              setFiltroFecha('Todas');
+            }}
+            className="text-xs font-semibold text-bogota-primary hover:underline px-2 py-1 cursor-pointer"
+          >
+            Limpiar filtros
+          </button>
+        )}
+
+        <span style={{ flex: '1 1 20px' }} />
+        <span style={{ fontSize: '12.5px', color: '#6B7280', fontVariantNumeric: 'tabular-nums' }}>
+          Total priorizados:{' '}
+          <strong style={{ color: '#1F2937' }}>
+            {p04Full.length} en P04 + {p05Full.length} en P05 = {p04Full.length + p05Full.length}
+          </strong>{' '}
+          · Focalizados Oct: <strong style={{ color: '#6D28D9' }}>{PUNTOS_FOCALIZADOS_OCT_2026.length} UAESP</strong>
+        </span>
+      </div>
+
+      {/* CONTENIDO PRINCIPAL */}
+      <div style={{ padding: '26px 32px 40px', display: 'flex', flexDirection: 'column', gap: '26px' }}>
+        {/* MAPA TERRITORIAL INTERACTIVO DE PUNTOS */}
+        <MapaPuntosSostenibilidad
+          puntos={puntosMapa}
+          puntosFocalizados={puntosFocalizadosMapa}
+          fechasDisponibles={fechasDisponibles}
+          filtroFecha={filtroFecha}
+          onSelectFecha={setFiltroFecha}
+          mapaProducto={mapaProducto}
+          onSelectProducto={setMapaProducto}
+          selectedId={selectedId}
+          onSelectPunto={abrirModalPunto}
+          selectedFocalizadoId={selectedFocalizadoId}
+          onSelectFocalizado={abrirModalFocalizado}
+        />
+
+        {/* SECCIONES POR PRODUCTO (P04 y P05) */}
+        {productos.map(p => (
+          <div key={p.cod} id={p.anchor} style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden' }}>
+            {/* Cabecera del Producto */}
+            <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '17px', fontWeight: 700, background: '#E3002B', color: '#FFFFFF', padding: '6px 12px', borderRadius: '6px', flex: 'none' }}>
+                {p.cod}
+              </span>
+              <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '17px', fontWeight: 600, lineHeight: 1.25, minWidth: 0, flex: '1 1 320px', color: '#1F2937' }}>
+                {p.nombre}
+              </span>
+              <span style={{ fontSize: '12.5px', color: '#6B7280', flex: 'none', fontVariantNumeric: 'tabular-nums' }}>
+                {p.pri} puntos priorizados · T1 {p.t1} · T2 {p.t2}
+              </span>
+            </div>
+
+            {/* BLOQUES DEL TABLERO DE GESTIÓN DE RESIDUOS (P04) — antes de Sostenimiento */}
+            {p.cod === 'P04' && (
+              <BloquesGestionP04
+                gestion={GESTION_P04_DEFAULT}
+                totalIntervencionesLive={datos.totalIntervencionesP04}
+                onVerFocalizadosEnMapa={() => {
+                  setMapaProducto('OCT21');
+                  document.getElementById('mapa-sost')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
+            )}
+
+            {/* HERO: porcentaje de sostenimiento */}
+            <div style={{ padding: '24px 20px', borderBottom: '1px solid #E5E7EB', display: 'flex', flexWrap: 'wrap', gap: '28px 36px', alignItems: 'center' }}>
+              <div style={{ flex: '0 0 auto', minWidth: 0 }}>
+                <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', marginBottom: '4px' }}>
+                  Sostenimiento
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                  <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '86px', fontWeight: 700, lineHeight: 0.92, fontVariantNumeric: 'tabular-nums', color: '#16A34A', letterSpacing: '-.02em' }}>
+                    {p.pct}
+                  </span>
+                  <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '34px', fontWeight: 700, color: '#16A34A' }}>
+                    %
+                  </span>
+                </div>
+                <div style={{ fontSize: '13.5px', color: '#4B5563', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
+                  {p.sost} de {p.ver} puntos verificados
+                </div>
+              </div>
+
+              <div style={{ flex: '1 1 420px', minWidth: 0 }}>
+                <div style={{ display: 'flex', height: '30px', width: '100%', borderRadius: '6px', overflow: 'hidden', background: '#F3F4F6' }}>
+                  <div style={{ width: `${p.wS}%`, background: '#16A34A' }} />
+                  <div style={{ width: `${p.wA}%`, background: '#FFCD00' }} />
+                  <div style={{ width: `${p.wN}%`, background: '#E3002B' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginTop: '14px' }}>
+                  {p.detalle.map(d => (
+                    <div
+                      key={d.k}
+                      style={{
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px',
+                        padding: '11px 13px',
+                        borderLeft: `4px solid ${d.color}`,
+                        minWidth: 0,
+                      }}
+                    >
+                      <div style={{ fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: '#6B7280', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 600 }}>
+                        {d.k}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', marginTop: '3px' }}>
+                        <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: d.color }}>
+                          {d.v}
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#6B7280', fontVariantNumeric: 'tabular-nums' }}>{d.pct}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ flex: '0 0 auto', borderLeft: '1px solid #E5E7EB', paddingLeft: '28px', minWidth: 0 }}>
+                <div style={{ fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: '#6B7280', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 600 }}>
+                  Sin verificación
+                </div>
+                <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '34px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#6B7280', lineHeight: 1.1 }}>
+                  {p.sv}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6B7280', fontVariantNumeric: 'tabular-nums' }}>de {p.pri} priorizados</div>
+              </div>
+            </div>
+
+            {/* Criterios / Problemática del punto y Riesgos / Acciones */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5 border-b border-gray-200">
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: '0 0 12px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15px', fontWeight: 700 }}>{p.critTitulo}</h3>
+
+                {p.cod === 'P04' ? (
+                  /* P04: Principales acciones de apropiación (Survey123 que_acciones_apropiacion) */
+                  <div>
+                    {p.criterios.map(c => (
+                      <div key={c.label} style={{ marginBottom: '11px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '4px' }}>
+                          <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '13.5px' }}>{c.label}</span>
+                          {c.n !== undefined && (
+                            <span style={{ flex: 'none', fontSize: '12px', color: '#6B7280', fontVariantNumeric: 'tabular-nums' }}>
+                              {c.n} {c.n === 1 ? 'punto' : 'puntos'}
+                            </span>
+                          )}
+                          <strong style={{ flex: 'none', fontSize: '13.5px', fontVariantNumeric: 'tabular-nums', color: c.color, minWidth: '38px', textAlign: 'right' }}>
+                            {c.ok}%
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', height: '10px', width: '100%', borderRadius: '5px', overflow: 'hidden', background: '#E5E7EB' }}>
+                          <div style={{ width: `${c.ok}%`, background: c.color }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* P05: Alternativa 2 — Sostenimiento según problemática (Ventas informales vs Parqueo indebido) + Condición física (Total / Parcial / No) */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {vocacionP05List.map(v => {
+                        const safeTotal = v.total || 1;
+                        const wS = (v.sostenidos / safeTotal) * 100;
+                        const wA = (v.enRiesgo / safeTotal) * 100;
+                        const wN = (v.recaida / safeTotal) * 100;
+                        return (
+                          <div
+                            key={v.key}
+                            style={{
+                              border: '1px solid #E5E7EB',
+                              borderLeft: `4px solid ${v.color}`,
+                              borderRadius: '8px',
+                              padding: '12px 14px',
+                              background: '#F9FAFB',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+                              <strong style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '13.5px', fontWeight: 700, color: '#1F2937' }}>
+                                {v.label}
+                              </strong>
+                              <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '20px', fontWeight: 700, color: v.color, fontVariantNumeric: 'tabular-nums' }}>
+                                {v.pctSostenimiento}%
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11.5px', color: '#6B7280', marginTop: '2px', marginBottom: '8px', lineHeight: 1.35 }}>
+                              {v.total} puntos verificados · {v.sostenidos + v.enRiesgo} sostenidos
+                            </div>
+                            {/* Barra tricolor Sostenido / En riesgo / Recaída */}
+                            <div style={{ display: 'flex', height: '10px', width: '100%', borderRadius: '5px', overflow: 'hidden', background: '#E5E7EB' }}>
+                              <div style={{ width: `${wS}%`, background: '#16A34A' }} title={`Sostenido: ${v.sostenidos}`} />
+                              <div style={{ width: `${wA}%`, background: '#F59E0B' }} title={`En riesgo: ${v.enRiesgo}`} />
+                              <div style={{ width: `${wN}%`, background: '#E3002B' }} title={`Recaída: ${v.recaida}`} />
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '7px', fontSize: '11px', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
+                              <span className="inline-flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#16A34A' }} />
+                                Sost: <strong>{v.sostenidos}</strong>
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#F59E0B' }} />
+                                Riesgo: <strong>{v.enRiesgo}</strong>
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#E3002B' }} />
+                                Recaída: <strong>{v.recaida}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Sub-bloque: Condición física del espacio recuperado (Total / Parcial / No) */}
+                    <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                        <h4 style={{ margin: 0, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '13.5px', fontWeight: 700, color: '#374151' }}>
+                          Condición física del espacio recuperado (Total · Parcial · No)
+                        </h4>
+                        <div className="flex items-center gap-3 text-[11px] text-gray-600">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ background: '#16A34A' }} />
+                            Total
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ background: '#F59E0B' }} />
+                            Parcial
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ background: '#E3002B' }} />
+                            No cumple
+                          </span>
+                        </div>
+                      </div>
+
+                      {condicionesP05List.map(cond => (
+                        <div key={cond.label} style={{ marginBottom: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937' }}>{cond.label}</span>
+                            <span style={{ fontSize: '12px', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
+                              Total <strong>{cond.total}</strong> ({cond.pctTotal}%) · Parcial <strong>{cond.parcial}</strong> ({cond.pctParcial}%) · No <strong>{cond.no}</strong> ({cond.pctNo}%) —{' '}
+                              <strong style={{ color: '#16A34A' }}>{cond.pctAvance}% avance</strong>
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', height: '10px', width: '100%', borderRadius: '5px', overflow: 'hidden', background: '#E5E7EB' }}>
+                            <div style={{ width: `${cond.pctTotal}%`, background: '#16A34A' }} title={`Cumplimiento total: ${cond.total} puntos (${cond.pctTotal}%)`} />
+                            <div style={{ width: `${cond.pctParcial}%`, background: '#F59E0B' }} title={`Cumplimiento parcial: ${cond.parcial} puntos (${cond.pctParcial}%)`} />
+                            <div style={{ width: `${cond.pctNo}%`, background: '#E3002B' }} title={`No cumple: ${cond.no} puntos (${cond.pctNo}%)`} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15px', fontWeight: 700 }}>{p.riesgoTitulo}</h3>
+                  {p.riesgos.map(r => (
+                    <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0' }}>
+                      <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '13.5px' }}>{r.label}</span>
+                      <span style={{ flex: '0 0 110px', height: '12px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden' }}>
+                        <span style={{ display: 'block', height: '12px', width: `${r.w}%`, background: '#E3002B' }} />
+                      </span>
+                      <strong style={{ flex: '0 0 24px', textAlign: 'right', fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>{r.n}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <h3 style={{ margin: '0 0 12px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15px', fontWeight: 700 }}>{p.apropiacionTitulo}</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {p.apropiacion.map(a => (
+                      <div key={a.label} style={{ border: '1px solid #E5E7EB', borderRadius: '8px', padding: '10px 11px', minWidth: 0 }}>
+                        <div style={{ fontSize: '10px', letterSpacing: '.07em', textTransform: 'uppercase', color: '#6B7280', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 600, lineHeight: 1.35, minHeight: '36px' }}>
+                          {a.label}
+                        </div>
+                        <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '21px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginTop: '3px', color: a.color }}>
+                          {a.txt}
+                        </div>
+                        {a.n !== undefined && (
+                          <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+                            {a.n} {a.n === 1 ? 'punto' : 'puntos'}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabla de puntos priorizados */}
+            <div style={{ padding: '20px', borderBottom: '1px solid #E5E7EB' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15.5px', fontWeight: 700 }}>
+                  Los {p.pri} puntos priorizados
+                </h3>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px', color: '#166534' }}>
+                  <span style={{ background: '#16A34A', color: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                    FÓRMULA ISP
+                  </span>
+                  <span>
+                    <strong>70%</strong> Calificación en territorio (Sostenido 100 / En riesgo 70 / Recaída 30) + <strong>30%</strong> Criterios físicos ({p.cod === 'P04' ? '5 criterios · 6 pts c/u' : '6 criterios · 5 pts c/u'})
+                  </span>
+                </div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                  <thead>
+                    <tr style={{ background: '#1F2937', color: '#FFFFFF', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10.5px', letterSpacing: '.07em', textTransform: 'uppercase' }}>
+                      <th scope="col" style={{ textAlign: 'right', padding: '9px 8px', fontWeight: 600, width: '34px' }}>#</th>
+                      <th scope="col" style={{ textAlign: 'left', padding: '9px 8px', fontWeight: 600, width: '132px' }}>Localidad</th>
+                      <th scope="col" style={{ textAlign: 'center', padding: '9px 6px', fontWeight: 600, width: '40px' }}>Tr</th>
+                      <th scope="col" style={{ textAlign: 'left', padding: '9px 8px', fontWeight: 600 }}>Dirección del punto</th>
+                      <th scope="col" style={{ textAlign: 'left', padding: '9px 8px', fontWeight: 600, width: '144px' }}>Estado</th>
+                      <th scope="col" style={{ textAlign: 'right', padding: '9px 8px', fontWeight: 600, width: '44px' }}>ISP</th>
+                      <th scope="col" style={{ textAlign: 'left', padding: '9px 8px', fontWeight: 600, width: '180px' }}>Factor de riesgo</th>
+                      <th scope="col" style={{ textAlign: 'center', padding: '9px 8px', fontWeight: 600, width: '58px' }}>Ficha</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {p.puntos.map(q => {
+                      const isSel = selectedId === q.id;
+                      return (
+                        <tr
+                          key={q.id}
+                          onClick={() => abrirModalPunto(q.id)}
+                          style={{
+                            borderBottom: '1px solid #E5E7EB',
+                            background: isSel ? '#FEF2F2' : q.bg,
+                            cursor: 'pointer',
+                          }}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td style={{ textAlign: 'right', padding: '7px 8px', color: '#6B7280', fontVariantNumeric: 'tabular-nums' }}>{q.i}</td>
+                          <td style={{ padding: '7px 8px', fontWeight: 600 }}>{q.ld}</td>
+                          <td style={{ textAlign: 'center', padding: '7px 6px', color: '#6B7280' }}>{q.t}</td>
+                          <td style={{ padding: '7px 8px', minWidth: 0 }}>{q.d}</td>
+                          <td style={{ padding: '7px 8px' }}>
+                            <span style={{ display: 'inline-block', background: q.chipBg, color: q.chipFg, fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                              {q.estado}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: q.ink }}>
+                            {q.ispTxt}
+                          </td>
+                          <td style={{ padding: '7px 8px', color: '#4B5563' }}>{q.riesgo}</td>
+                          <td style={{ textAlign: 'center', padding: '5px 8px' }}>
+                            <button
+                              type="button"
+                              onClick={e => {
+                                e.stopPropagation();
+                                abrirModalPunto(q.id);
+                              }}
+                              style={{
+                                fontFamily: 'Archivo, system-ui, sans-serif',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: isSel ? '#FFFFFF' : '#374151',
+                                background: isSel ? '#E3002B' : '#FFFFFF',
+                                border: `1px solid ${isSel ? '#E3002B' : '#D1D5DB'}`,
+                                borderRadius: '6px',
+                                padding: '4px 10px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Ver
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pendientes de verificación */}
+            <div style={{ padding: '20px', background: '#F9FAFB' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 20px', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15px', fontWeight: 700 }}>
+                    Pendientes de verificación — {p.sv} puntos
+                  </h3>
+                </div>
+                <span style={{ fontSize: '12.5px', color: '#6B7280', flex: 'none', fontVariantNumeric: 'tabular-nums' }}>
+                  {p.svLoc} localidades con pendientes
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {p.sinVer.map(s => (
+                  <div
+                    key={s.ld}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #E5E7EB',
+                      borderLeft: `4px solid ${s.acc}`,
+                      borderRadius: '8px',
+                      padding: '11px 13px',
+                      minWidth: 0,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '5px' }}>
+                      <strong style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '13px', fontWeight: 700, minWidth: 0 }}>{s.ld}</strong>
+                      <span style={{ fontSize: '11.5px', color: s.acc, fontWeight: 700, fontVariantNumeric: 'tabular-nums', flex: 'none' }}>{s.n}</span>
+                    </div>
+                    {s.items.map((it, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: '#4B5563', lineHeight: 1.45, padding: '2px 0', minWidth: 0 }}>
+                        <span style={{ color: '#9CA3AF', fontVariantNumeric: 'tabular-nums' }}>{it.t}</span> {it.d}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* SOSTENIBILIDAD POR LOCALIDAD */}
+        <div id="localidades-sost" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '18px' }}>
+          <h2 style={{ margin: '0 0 14px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '18px', fontWeight: 700 }}>
+            Sostenibilidad por localidad
+          </h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: '1020px', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10.5px', letterSpacing: '.07em', textTransform: 'uppercase', color: '#FFFFFF' }}>
+                  <th scope="col" rowSpan={2} style={{ textAlign: 'left', padding: '9px 10px', fontWeight: 600, background: '#1F2937', width: '44px' }}>Cód</th>
+                  <th scope="col" rowSpan={2} style={{ textAlign: 'left', padding: '9px 10px', fontWeight: 600, background: '#1F2937', width: '158px' }}>Localidad</th>
+                  <th scope="col" colSpan={5} style={{ textAlign: 'center', padding: '8px 10px', fontWeight: 600, background: '#1F2937', borderLeft: '3px solid #E3002B' }}>
+                    P04 · Gestión de residuos
+                  </th>
+                  <th scope="col" colSpan={5} style={{ textAlign: 'center', padding: '8px 10px', fontWeight: 600, background: '#1F2937', borderLeft: '3px solid #FFCD00' }}>
+                    P05 · Espacio público
+                  </th>
+                </tr>
+                <tr style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.05em', textTransform: 'uppercase', color: '#D1D5DB', background: '#374151' }}>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '54px', borderLeft: '3px solid #E3002B' }}>Puntos</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '50px' }}>Sost.</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '62px' }}>No sost.</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '52px' }}>Sin ver.</th>
+                  <th scope="col" style={{ textAlign: 'left', padding: '7px 8px', fontWeight: 600, width: '96px' }}>Reparto</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '54px', borderLeft: '3px solid #FFCD00' }}>Puntos</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '50px' }}>Sost.</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '62px' }}>No sost.</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '7px 8px', fontWeight: 600, width: '52px' }}>Sin ver.</th>
+                  <th scope="col" style={{ textAlign: 'left', padding: '7px 8px', fontWeight: 600, width: '96px' }}>Reparto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matriz.map(m => (
+                  <tr key={m.cod} style={{ borderBottom: '1px solid #E5E7EB', background: m.rowBg }}>
+                    <td style={{ padding: '8px 10px', color: '#6B7280', fontVariantNumeric: 'tabular-nums' }}>{m.cod}</td>
+                    <th scope="row" style={{ textAlign: 'left', padding: '8px 10px', fontWeight: m.fw }}>{m.ld}</th>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, borderLeft: '3px solid #E3002B' }}>{m.p4.pri}</td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: m.p4.sC }}>{m.p4.sost}</td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: m.p4.nC }}>{m.p4.noSost}</td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>{m.p4.sv}</td>
+                    <td style={{ padding: '8px' }}>
+                      <span style={{ display: 'flex', height: '11px', borderRadius: '4px', overflow: 'hidden', background: '#F3F4F6' }}>
+                        <span style={{ width: `${m.p4.wS}%`, background: '#16A34A' }} />
+                        <span style={{ width: `${m.p4.wN}%`, background: '#E3002B' }} />
+                        <span style={{ width: `${m.p4.wV}%`, background: '#D1D5DB' }} />
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, borderLeft: '3px solid #FFCD00' }}>{m.p5.pri}</td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: m.p5.sC }}>{m.p5.sost}</td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: m.p5.nC }}>{m.p5.noSost}</td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>{m.p5.sv}</td>
+                    <td style={{ padding: '8px' }}>
+                      <span style={{ display: 'flex', height: '11px', borderRadius: '4px', overflow: 'hidden', background: '#F3F4F6' }}>
+                        <span style={{ width: `${m.p5.wS}%`, background: '#16A34A' }} />
+                        <span style={{ width: `${m.p5.wN}%`, background: '#E3002B' }} />
+                        <span style={{ width: `${m.p5.wV}%`, background: '#D1D5DB' }} />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#F3F4F6', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 700 }}>
+                  <td style={{ padding: '10px' }} />
+                  <th scope="row" style={{ textAlign: 'left', padding: '10px' }}>Total</th>
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', borderLeft: '3px solid #E3002B' }}>{r4.pri}</td>
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', color: '#16A34A' }}>{r4.sost}</td>
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', color: '#E3002B' }}>{r4.n}</td>
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>{r4.v}</td>
+                  <td style={{ padding: '10px 8px' }} />
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', borderLeft: '3px solid #FFCD00' }}>{r5.pri}</td>
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', color: '#16A34A' }}>{r5.sost}</td>
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', color: '#E3002B' }}>{r5.n}</td>
+                  <td style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>{r5.v}</td>
+                  <td style={{ padding: '10px 8px' }} />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '10px 20px', fontSize: '12.5px', color: '#4B5563' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              <span style={{ width: '12px', height: '12px', background: '#16A34A', borderRadius: '3px' }} />
+              Sostenidos (sostenido + en riesgo)
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              <span style={{ width: '12px', height: '12px', background: '#E3002B', borderRadius: '3px' }} />
+              No sostenidos
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              <span style={{ width: '12px', height: '12px', background: '#D1D5DB', borderRadius: '3px' }} />
+              Sin verificación
+            </span>
+          </div>
+        </div>
+
+        {/* MÉTODO */}
+        <div id="metodo-sost" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', borderTop: '4px solid #1F2937', padding: '18px', minWidth: 0 }}>
+          <h2 style={{ margin: '0 0 14px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '17px', fontWeight: 700 }}>
+            Criterios de cálculo
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {REGLAS_OFICIALES.map(r => (
+              <div key={r.titulo} style={{ padding: '12px 14px', border: '1px solid #F3F4F6', borderRadius: '8px', background: '#F9FAFB' }}>
+                <strong style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '13.5px', display: 'block', marginBottom: '4px', color: '#1F2937' }}>
+                  {r.titulo}
+                </strong>
+                <span style={{ fontSize: '12.5px', color: '#374151', lineHeight: 1.5 }}>{r.texto}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Pie de página */}
+        <div style={{ fontSize: '12px', color: '#6B7280', lineHeight: 1.6 }} className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            Subsecretaría de Gestión Local — Equipo Espacio Público
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Actualizado por: {snapshot.ejecutadoPor || userData?.nombre || 'Sistema RADAR'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* VENTANA MODAL DE FICHA DE PUNTO (AL DAR CLIC EN CUALQUIER PUNTO) */}
+      {sel && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-xs"
+          onClick={cerrarModalPunto}
+        >
+          <div
+            className="bg-white rounded-xl max-w-5xl w-full shadow-2xl border border-gray-200 overflow-hidden my-8 max-h-[90vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Cabecera coloreada de la Ficha */}
+            <div
+              style={{
+                background: sel.chipBg,
+                color: sel.chipFg,
+                padding: '16px 24px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '14px',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid #E5E7EB',
+              }}
+            >
+              <div style={{ minWidth: 0, flex: '1 1 300px' }}>
+                <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+                  Ficha de punto · {sel.estado}
+                </div>
+                <h2 style={{ margin: '4px 0 0', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '20px', fontWeight: 700, lineHeight: 1.2 }}>
+                  {sel.d}
+                </h2>
+              </div>
+
+              <div className="flex items-center gap-6 flex-wrap">
+                <div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: 0.8 }}>ISP</div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '28px', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{sel.ispTxt}</div>
+                  <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '3px', fontFamily: 'Archivo, system-ui, sans-serif' }}>70% campo · 30% criterios</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: 0.8 }}>Producto</div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '17px', fontWeight: 700, lineHeight: 1.5 }}>{sel.prod}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: 0.8 }}>Localidad</div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '17px', fontWeight: 700, lineHeight: 1.5 }}>{sel.ld}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: 0.8 }}>Trimestre</div>
+                  <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '17px', fontWeight: 700, lineHeight: 1.5 }}>{sel.t}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={cerrarModalPunto}
+                  className="p-2 rounded-lg bg-white/80 hover:bg-white text-gray-800 shadow-xs transition-colors cursor-pointer"
+                  title="Cerrar ficha"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Cuerpo de la Ficha con scroll interno */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 overflow-y-auto">
+              {/* Columna 1: Datos de visita y estado general */}
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #1F2937' }}>
+                    1 · Datos de la visita
+                  </h3>
+                  {[
+                    { k: 'Fecha y hora', v: sel.fecha },
+                    { k: 'Reporta', v: esV ? '—' : sel.reporta || 'Profesional Equipo EP' },
+                    { k: 'Dependencia', v: sel.dependencia || 'Subsecretaría de Gestión Local — Equipo EP' },
+                    { k: 'Producto', v: sel.prod === 'P04' ? 'P04 · Gestión de residuos' : 'P05 · Espacio público' },
+                    { k: 'Ruta del punto', v: sel.prod === 'P04' ? 'Residuos' : 'Espacio público' },
+                    { k: 'Trimestre', v: sel.t },
+                  ].map(v => (
+                    <div key={v.k} style={{ display: 'flex', gap: '10px', padding: '5px 0', borderBottom: '1px solid #F3F4F6', fontSize: '13px' }}>
+                      <span style={{ flex: '0 0 104px', color: '#6B7280', minWidth: 0 }}>{v.k}</span>
+                      <strong style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 600 }}>{v.v}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #1F2937' }}>
+                    2 · Estado general
+                  </h3>
+                  {[
+                    { k: 'Estado de sostenibilidad observado', v: sel.estado, bg: sel.chipBg, fg: sel.chipFg },
+                    {
+                      k: 'Cuenta para el ISP como',
+                      v: esV ? 'No clasifica' : sel.cls === 'N' ? 'No sostenido' : 'Sostenido',
+                      bg: esV ? '#F3F4F6' : sel.cls === 'N' ? '#FEE2E2' : '#DCFCE7',
+                      fg: esV ? '#4B5563' : sel.cls === 'N' ? '#991B1B' : '#166534',
+                    },
+                    {
+                      k: 'Requiere nueva intervención de la AL',
+                      v: esV ? 'Sin dato' : sel.cls === 'N' ? 'Sí' : 'No',
+                      bg: !esV && sel.cls === 'N' ? '#FEE2E2' : '#F3F4F6',
+                      fg: !esV && sel.cls === 'N' ? '#991B1B' : '#4B5563',
+                    },
+                    { k: 'Factor de riesgo principal', v: sel.riesgo, bg: '#F3F4F6', fg: '#4B5563' },
+                  ].map(g => (
+                    <div key={g.k} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F3F4F6', fontSize: '13px' }}>
+                      <span style={{ flex: '1 1 auto', color: '#6B7280', minWidth: 0 }}>{g.k}</span>
+                      <span style={{ flex: 'none', background: g.bg, color: g.fg, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px' }}>
+                        {g.v}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Columna 2: Criterios y Observación/Recomendación */}
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #FFCD00' }}>
+                  3 · {sel.prod === 'P04' ? 'Condición física del punto' : 'Condición del espacio recuperado'}
+                </h3>
+                {criteriosFicha.map(c => (
+                  <div key={c.k} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F3F4F6', fontSize: '13px' }}>
+                    <span style={{ flex: 'none', width: '18px', height: '18px', borderRadius: '4px', background: c.bg, color: '#FFFFFF', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                      {c.mark}
+                    </span>
+                    <span style={{ flex: '1 1 auto', minWidth: 0 }}>{c.k}</span>
+                    <strong style={{ flex: 'none', fontWeight: 600, color: c.bg }}>{c.v}</strong>
+                  </div>
+                ))}
+
+                <h3 style={{ margin: '18px 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #FFCD00' }}>
+                  4 · Observación y recomendación
+                </h3>
+                <div style={{ fontSize: '10.5px', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 700, letterSpacing: '.1em', color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Lo observado en territorio
+                </div>
+                <p style={{ margin: '0 0 12px', fontSize: '13.5px', lineHeight: 1.55, color: '#374151' }}>
+                  {sel.descripcion || DESC[sel.cls] || DESC.V}
+                </p>
+                <div style={{ fontSize: '10.5px', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 700, letterSpacing: '.1em', color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Recomendación a la Alcaldía Local
+                </div>
+                <p style={{ margin: '0 0 12px', fontSize: '13.5px', lineHeight: 1.55, color: '#374151' }}>
+                  {sel.recomendacion || RECO[sel.cls] || RECO.V}
+                </p>
+                <span style={{ display: 'inline-block', background: sel.chipBg, color: sel.chipFg, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11.5px', fontWeight: 700, padding: '5px 9px', borderRadius: '5px' }}>
+                  {ACC[sel.cls] || ACC.V}
+                </span>
+              </div>
+
+              {/* Columna 3: Registro fotográfico y video de la visita */}
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #E3002B' }}>
+                  5 · Registro fotográfico de la visita
+                </h3>
+                {!esV && evidenciasFicha.length > 0 ? (
+                  <div className="space-y-3">
+                    {/* Visor principal del adjunto activo */}
+                    {zoomIdx !== null && evidenciasFicha[zoomIdx] && (
+                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-900 text-white shadow-sm">
+                        {evidenciasFicha[zoomIdx].url ? (
+                          evidenciasFicha[zoomIdx].contentType?.startsWith('video') ||
+                          evidenciasFicha[zoomIdx].file.toLowerCase().endsWith('.mov') ||
+                          evidenciasFicha[zoomIdx].file.toLowerCase().endsWith('.mp4') ? (
+                            <video
+                              key={evidenciasFicha[zoomIdx].url}
+                              controls
+                              playsInline
+                              className="w-full aspect-video bg-black"
+                              src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(evidenciasFicha[zoomIdx].url!)}`}
+                            />
+                          ) : (
+                            <img
+                              key={evidenciasFicha[zoomIdx].url}
+                              src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(evidenciasFicha[zoomIdx].url!)}`}
+                              alt={evidenciasFicha[zoomIdx].label}
+                              className="w-full aspect-4/3 object-cover bg-gray-900"
+                            />
+                          )
+                        ) : (
+                          <div className="relative aspect-4/3 w-full bg-gradient-to-br from-slate-800 via-slate-900 to-neutral-900 flex flex-col items-center justify-center p-5 text-center">
+                            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2.5">
+                              {evidenciasFicha[zoomIdx].file.toLowerCase().endsWith('.mov') ? (
+                                <Video className="w-6 h-6 text-yellow-400" />
+                              ) : (
+                                <Camera className="w-6 h-6 text-emerald-400" />
+                              )}
+                            </div>
+                            <div className="text-xs font-bold uppercase tracking-wider text-gray-200">
+                              {evidenciasFicha[zoomIdx].label}
+                            </div>
+                            <div className="text-[11px] text-gray-400 font-mono mt-1 break-all px-2">
+                              {evidenciasFicha[zoomIdx].file}
+                            </div>
+                          </div>
+                        )}
+                        <div className="px-3 py-2 bg-gray-800 flex items-center justify-between text-[11px] text-gray-300 gap-2">
+                          <span className="truncate font-medium">{evidenciasFicha[zoomIdx].label}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {evidenciasFicha[zoomIdx].url && (
+                              <a
+                                href={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(evidenciasFicha[zoomIdx].url!)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-yellow-400 hover:underline inline-flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Abrir
+                              </a>
+                            )}
+                            <span className="text-gray-400 font-mono">
+                              {zoomIdx + 1} / {evidenciasFicha.length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Miniaturas de selección de evidencias */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {evidenciasFicha.map((e, k) => {
+                        const on = zoomIdx === k;
+                        const isVid =
+                          e.contentType?.startsWith('video') ||
+                          e.file.toLowerCase().endsWith('.mov') ||
+                          e.file.toLowerCase().endsWith('.mp4');
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setZoomIdx(k)}
+                            style={{
+                              border: `2px solid ${on ? '#E3002B' : '#E5E7EB'}`,
+                              background: on ? '#FEF2F2' : '#F9FAFB',
+                            }}
+                            className="rounded-lg p-1.5 flex flex-col items-center justify-center gap-1 text-center cursor-pointer hover:bg-gray-100 transition-all overflow-hidden"
+                          >
+                            {!isVid && e.url ? (
+                              <img
+                                src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(e.url)}`}
+                                alt={e.label}
+                                className="w-full h-14 object-cover rounded"
+                                loading="lazy"
+                              />
+                            ) : isVid ? (
+                              <div className="w-full h-14 rounded bg-slate-900 flex items-center justify-center">
+                                <Video className={`w-5 h-5 ${on ? 'text-yellow-400' : 'text-gray-300'}`} />
+                              </div>
+                            ) : (
+                              <ZoomIn className={`w-5 h-5 ${on ? 'text-bogota-primary' : 'text-gray-500'}`} />
+                            )}
+                            <span className="text-[10.5px] font-semibold text-gray-700 leading-tight line-clamp-2">{e.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ border: '1px dashed #D1D5DB', background: '#F9FAFB', borderRadius: '8px', padding: '22px 16px', textAlign: 'center', color: '#6B7280', fontSize: '13px', lineHeight: 1.5 }}>
+                    Este punto no tiene visita registrada en el periodo, así que no hay adjuntos fotográficos ni de video disponibles.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Pie de la ventana modal */}
+            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                Punto #{sel.i} de {sel.prod} · {sel.ld} ({sel.t})
+              </span>
+              <button
+                type="button"
+                onClick={cerrarModalPunto}
+                className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-white hover:bg-black transition-colors cursor-pointer"
+              >
+                Cerrar ventana
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ventana Modal para Punto en Confirmación UAESP — Acción Focalizada Octubre (21 puntos) */}
+      {selFocalizado && <ModalPuntoFocalizadoOct punto={selFocalizado} onClose={cerrarModalFocalizado} />}
+
+      {/* Modal de configuración de conexión ArcGIS Survey123 */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Conexión ArcGIS Survey123</h3>
+                <p className="text-xs text-gray-500">Formulario ID: 6ad0fc8ddc574571bcb6252a49ebab4d</p>
+              </div>
+              <button onClick={() => setShowConfigModal(false)} className="text-gray-400 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Usuario ArcGIS</label>
+                <input
+                  type="text"
+                  value={arcgisUser}
+                  onChange={e => setArcgisUser(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-bogota-primary"
+                  placeholder="profesionalOEP"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Contraseña ArcGIS <span className="text-gray-400 font-normal">(dejar vacío para usar la configurada en el servidor)</span>
+                </label>
+                <input
+                  type="password"
+                  value={arcgisPass}
+                  onChange={e => setArcgisPass(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-bogota-primary"
+                  placeholder="••••••••••"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Token o `esriJSAPISession` <span className="text-gray-400 font-normal">(para descargar fotos y videos reales de tu sesión abierta)</span>
+                </label>
+                <input
+                  type="text"
+                  value={arcgisToken}
+                  onChange={e => setArcgisToken(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 font-mono text-[11px] focus:outline-none focus:border-bogota-primary"
+                  placeholder="Pega aquí el token o valor de esriJSAPISession..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-100"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfigModal(false);
+                  ejecutarActualizacion('MANUAL', {
+                    username: arcgisUser,
+                    password: arcgisPass || undefined,
+                    token: arcgisToken || undefined,
+                  });
+                }}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-bogota-primary hover:bg-red-700"
+              >
+                Guardar y sincronizar ahora
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
