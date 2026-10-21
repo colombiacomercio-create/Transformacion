@@ -41,6 +41,7 @@ interface VocacionP05Item {
   enRiesgo: number;
   recaida: number;
   pctSostenimiento: number;
+  pctSostenimientoTxt?: string;
   color: string;
 }
 
@@ -1149,8 +1150,10 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     const v = list.filter(q => q.cls === 'V').length;
     const ver = s + a + n;
     const sost = s + a;
-    const pct = ver > 0 ? Math.round((sost / ver) * 100) : 0;
-    return { s, a, n, v, ver, pri: list.length, sost, pct };
+    const rawPct = ver > 0 ? (sost / ver) * 100 : 0;
+    const pct = rawPct % 1 === 0 ? rawPct : Number(rawPct.toFixed(1));
+    const pctTxt = rawPct % 1 === 0 ? String(rawPct) : rawPct.toFixed(1).replace('.', ',');
+    return { s, a, n, v, ver, pri: list.length, sost, pct, pctTxt };
   };
 
   const r4 = calcularResumen(p04);
@@ -1184,6 +1187,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       sost: R.sost,
       sv: R.v,
       pct: R.pct,
+      pctTxt: R.pctTxt,
       t1,
       t2: R.pri - t1,
       svLoc: sv.length,
@@ -1224,7 +1228,9 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     const sostenidos = lista.filter(q => q.cls === 'S').length;
     const enRiesgo = lista.filter(q => q.cls === 'A').length;
     const recaida = lista.filter(q => q.cls === 'N').length;
-    const pctSostenimiento = total > 0 ? Math.round(((sostenidos + enRiesgo) / total) * 100) : 0;
+    const rawPct = total > 0 ? ((sostenidos + enRiesgo) / total) * 100 : 0;
+    const pctSostenimiento = Math.round(rawPct);
+    const pctSostenimientoTxt = rawPct % 1 === 0 ? `${rawPct}%` : `${rawPct.toFixed(1).replace('.', ',')}%`;
     return {
       key,
       label,
@@ -1234,7 +1240,8 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       enRiesgo,
       recaida,
       pctSostenimiento,
-      color: pctSostenimiento >= 70 ? '#16A34A' : '#9A3412',
+      pctSostenimientoTxt,
+      color: rawPct >= 69 ? '#16A34A' : '#9A3412',
     };
   };
 
@@ -1723,14 +1730,14 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
                   <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '86px', fontWeight: 700, lineHeight: 0.92, fontVariantNumeric: 'tabular-nums', color: '#16A34A', letterSpacing: '-.02em' }}>
-                    {p.pct}
+                    {p.pctTxt}
                   </span>
                   <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '34px', fontWeight: 700, color: '#16A34A' }}>
                     %
                   </span>
                 </div>
                 <div style={{ fontSize: '13.5px', color: '#4B5563', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
-                  {p.sost} de {p.ver} puntos verificados
+                  {p.sost} de {p.ver} puntos verificados ({p.pctTxt}%)
                 </div>
               </div>
 
@@ -1829,7 +1836,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                                 {v.label}
                               </strong>
                               <span style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '20px', fontWeight: 700, color: v.color, fontVariantNumeric: 'tabular-nums' }}>
-                                {v.pctSostenimiento}%
+                                {v.pctSostenimientoTxt || `${v.pctSostenimiento}%`}
                               </span>
                             </div>
                             <div style={{ fontSize: '11.5px', color: '#6B7280', marginTop: '2px', marginBottom: '8px', lineHeight: 1.35 }}>
@@ -1904,18 +1911,20 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
               </div>
 
               <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15px', fontWeight: 700 }}>{p.riesgoTitulo}</h3>
-                  {p.riesgos.map(r => (
-                    <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0' }}>
-                      <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '13.5px' }}>{r.label}</span>
-                      <span style={{ flex: '0 0 110px', height: '12px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden' }}>
-                        <span style={{ display: 'block', height: '12px', width: `${r.w}%`, background: '#E3002B' }} />
-                      </span>
-                      <strong style={{ flex: '0 0 24px', textAlign: 'right', fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>{r.n}</strong>
-                    </div>
-                  ))}
-                </div>
+                {p.cod === 'P04' && p.riesgos.length > 0 && (
+                  <div>
+                    <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15px', fontWeight: 700 }}>{p.riesgoTitulo}</h3>
+                    {p.riesgos.map(r => (
+                      <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0' }}>
+                        <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '13.5px' }}>{r.label}</span>
+                        <span style={{ flex: '0 0 110px', height: '12px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden' }}>
+                          <span style={{ display: 'block', height: '12px', width: `${r.w}%`, background: '#E3002B' }} />
+                        </span>
+                        <strong style={{ flex: '0 0 24px', textAlign: 'right', fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>{r.n}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div>
                   <h3 style={{ margin: '0 0 12px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '15px', fontWeight: 700 }}>{p.apropiacionTitulo}</h3>
@@ -2181,8 +2190,8 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
 
         {/* Pie de página */}
         <div style={{ fontSize: '12px', color: '#6B7280', lineHeight: 1.6 }} className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            Subsecretaría de Gestión Local — Equipo Espacio Público
+          <div style={{ fontWeight: 600 }}>
+            SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <Clock className="w-3.5 h-3.5" />
@@ -2264,7 +2273,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                   {[
                     { k: 'Fecha y hora', v: sel.fecha },
                     { k: 'Reporta', v: esV ? '—' : sel.reporta || 'Profesional Equipo EP' },
-                    { k: 'Dependencia', v: sel.dependencia || 'Subsecretaría de Gestión Local — Equipo EP' },
+                    { k: 'Dependencia', v: sel.dependencia || 'SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público' },
                     { k: 'Producto', v: sel.prod === 'P04' ? 'P04 · Gestión de residuos' : 'P05 · Espacio público' },
                     { k: 'Ruta del punto', v: sel.prod === 'P04' ? 'Residuos' : 'Espacio público' },
                     { k: 'Trimestre', v: sel.t },
@@ -2459,7 +2468,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
             {/* Pie de la ventana modal */}
             <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
               <span className="text-xs text-gray-500">
-                Punto #{sel.i} de {sel.prod} · {sel.ld} ({sel.t})
+                Punto #{sel.i} de {sel.prod} · {sel.ld} ({sel.t}) · SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
               </span>
               <button
                 type="button"

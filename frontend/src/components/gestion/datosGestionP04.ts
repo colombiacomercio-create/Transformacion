@@ -947,7 +947,7 @@ export const GESTION_P04_DEFAULT: GestionP04Datos = {
         "n": 734,
         "w": 81,
         "c": "#1F2937",
-        "sub": "37% de los registros · 10.269 de los residuos"
+        "sub": "37% de los registros · 10.269 m³ de los residuos"
       },
       {
         "t": "Campañas de apropiación",

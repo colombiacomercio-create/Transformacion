@@ -457,7 +457,7 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
             {[
               { lab: 'Puntos distintos intervenidos', val: nf(gestion.gestion.puntosDistintos50m), sub: 'criterio de 50 m', c: '#E3002B', valColor: '#E3002B' },
               { lab: 'Intervenciones reportadas', val: nf(totalInterv), sub: `${nf(gestion.gestion.intervencionesAgrupables)} agrupables en puntos`, c: '#1F2937', valColor: '#1F2937' },
-              { lab: 'Residuos recolectados', val: nf(gestion.gestion.residuosRecolectados), sub: 'm³ y toneladas retiradas', c: '#16A34A', valColor: '#16A34A' },
+              { lab: 'Residuos recolectados', val: nf(gestion.gestion.residuosRecolectados), sub: 'm³ retirados', c: '#16A34A', valColor: '#16A34A' },
               { lab: 'Cambuches retirados', val: nf(gestion.gestion.cambuchesRetirados), sub: `en ${nf(gestion.gestion.intervencionesConCambuches)} intervenciones`, c: '#E3002B', valColor: '#B91C1C' },
               { lab: 'Área recuperada', val: nf(gestion.gestion.areaRecuperadaM2), sub: 'metros cuadrados intervenidos', c: '#1F2937', valColor: '#1F2937' },
             ].map(t => (
@@ -487,16 +487,12 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
             <div className="lg:col-span-2" style={{ border: '1px solid #E5E7EB', borderRadius: '6px', padding: '18px 20px', background: '#FFFFFF' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'baseline', justifyContent: 'space-between' }}>
                 <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '13.5px', fontWeight: 700, color: '#1F2937' }}>
-                  Intervenciones y puntos distintos por mes
+                  Puntos intervenidos por mes
                 </div>
                 <div style={{ display: 'flex', gap: '14px', fontSize: '11.5px', color: '#4B5563', fontWeight: 700, fontFamily: 'Archivo, system-ui, sans-serif' }}>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span style={{ display: 'inline-block', width: '10px', height: '10px', background: '#1F2937', borderRadius: '2px' }} />
-                    Intervenciones
-                  </span>
-                  <span className="inline-flex items-center gap-1.5" style={{ color: '#E3002B' }}>
-                    <span style={{ display: 'inline-block', width: '10px', height: '10px', background: '#E3002B', borderRadius: '2px' }} />
-                    Puntos distintos
+                  <span className="inline-flex items-center gap-1.5" style={{ color: '#475569' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', background: '#94A3B8', borderRadius: '2px' }} />
+                    Puntos intervenidos
                   </span>
                 </div>
               </div>
@@ -504,23 +500,18 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
               <div style={{ marginTop: '18px', display: 'flex', gap: '10px', alignItems: 'flex-end', height: '180px' }}>
                 {gestion.gestion.serieMensual.map(s => {
                   const hi = Math.round((s.i / maxSerie) * 145);
-                  const hp = Math.round((s.p / maxSerie) * 145);
                   return (
                     <div key={s.m} style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                      <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, color: '#1F2937', fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, color: '#334155', fontVariantNumeric: 'tabular-nums' }}>
                         {nf(s.i)}
                       </div>
-                      <div style={{ width: '100%', display: 'flex', gap: '3px', alignItems: 'flex-end', marginTop: '4px' }}>
+                      <div style={{ width: '100%', maxWidth: '38px', display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
                         <div
-                          style={{ flex: '1 1 0', height: `${hi}px`, background: '#1F2937', borderRadius: '2px 2px 0 0' }}
-                          title={`${s.m}: ${nf(s.i)} intervenciones`}
-                        />
-                        <div
-                          style={{ flex: '1 1 0', height: `${hp}px`, background: '#E3002B', borderRadius: '2px 2px 0 0' }}
-                          title={`${s.m}: ${nf(s.p)} puntos distintos`}
+                          style={{ width: '100%', height: `${hi}px`, background: '#94A3B8', borderRadius: '3px 3px 0 0' }}
+                          title={`${s.m}: ${nf(s.i)} puntos intervenidos`}
                         />
                       </div>
-                      <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', color: '#6B7280', marginTop: '6px', fontWeight: 700 }}>
+                      <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', color: '#64748B', marginTop: '6px', fontWeight: 700 }}>
                         {s.m}
                       </div>
                     </div>
@@ -623,27 +614,24 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
 
           <div style={{ marginTop: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', minWidth: '940px', fontSize: '12.5px', borderCollapse: 'collapse' }}>
+              <table style={{ width: '100%', minWidth: '760px', fontSize: '12.5px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#1F2937', color: '#FFFFFF', textAlign: 'left', fontFamily: 'Archivo, system-ui, sans-serif' }}>
                     <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', width: '40px' }}>#</th>
                     <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em' }}>Localidad</th>
-                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', width: '210px' }}>Intervenciones</th>
-                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '96px' }}>Agrupables</th>
-                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '84px' }}>Puntos</th>
-                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '88px' }}>Int./punto</th>
-                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '104px' }}>Residuos</th>
+                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', width: '230px' }}>Intervenciones</th>
+                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '90px' }}>Puntos</th>
+                    <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '120px' }}>Residuos (m³)</th>
                     <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '96px' }}>Cambuches</th>
                     <th style={{ padding: '10px 12px', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'right', width: '104px' }}>m² recup.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gestion.rankingLocalidad.map((r, idx) => {
-                    const ip = r.p > 0 ? r.ag / r.p : 0;
                     const wPct = Math.max(2, Math.round((r.i / maxRank) * 100));
-                    const barColor = idx < 2 ? '#E3002B' : '#1F2937';
-                    const agColor = r.ag < r.i ? '#E3002B' : '#6B7280';
-                    const ipColor = ip >= 1.6 && r.i > 10 ? '#E3002B' : '#4B5563';
+                    // Verde para localidades con más intervenciones, amarillo para las intermedias y gris para el resto
+                    const barColor = idx < 6 ? '#16A34A' : idx < 13 ? '#EAB308' : '#94A3B8';
+                    const numColor = idx < 6 ? '#15803D' : idx < 13 ? '#A16207' : '#475569';
                     return (
                       <tr key={r.loc} style={{ background: idx % 2 === 1 ? '#F9FAFB' : '#FFFFFF', borderBottom: '1px solid #F3F4F6' }}>
                         <td style={{ padding: '8px 12px', color: '#6B7280', fontWeight: 700, fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</td>
@@ -653,18 +641,14 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
                             <span style={{ flex: '1 1 0', height: '12px', background: '#F3F4F6', borderRadius: '3px', overflow: 'hidden', display: 'block' }}>
                               <span style={{ display: 'block', width: `${wPct}%`, height: '100%', background: barColor }} />
                             </span>
-                            <span style={{ flex: '0 0 40px', textAlign: 'right', fontWeight: 700, color: idx < 2 ? '#E3002B' : '#1F2937', fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
+                            <span style={{ flex: '0 0 40px', textAlign: 'right', fontWeight: 700, color: numColor, fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
                               {nf(r.i)}
                             </span>
                           </span>
                         </td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', color: agColor, fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>{nf(r.ag)}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>{nf(r.p)}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', color: ipColor, fontWeight: 700, fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
-                          {ip.toFixed(2).replace('.', ',')}
-                        </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#4B5563', fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
-                          {r.t > 0 ? nf(r.t, r.t % 1 !== 0 ? 1 : 0) : '—'}
+                          {r.t > 0 ? `${nf(r.t, r.t % 1 !== 0 ? 1 : 0)} m³` : '—'}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#4B5563', fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>{nf(r.camb)}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#4B5563', fontFamily: 'Archivo, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>{nf(r.m2)}</td>
@@ -673,9 +657,6 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
                   })}
                 </tbody>
               </table>
-            </div>
-            <div style={{ padding: '11px 16px', background: '#F9FAFB', borderTop: '1px solid #E5E7EB', fontSize: '11.5px', color: '#6B7280', lineHeight: 1.5 }}>
-              <strong>Int./punto</strong> se calcula sobre las intervenciones <strong>agrupables</strong>, no sobre el total: las de precisión barrio no forman punto. En rojo las localidades que vuelven más veces sobre los mismos puntos — Antonio Nariño 2,00, Puente Aranda 1,74, Teusaquillo 1,65 y La Candelaria 1,60 frente a 1,43 distrital.
             </div>
           </div>
         </div>
@@ -784,6 +765,12 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Pie institucional de Gestión P04 */}
+        <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '16px', fontSize: '12px', color: '#6B7280', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <span style={{ fontWeight: 600 }}>SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público</span>
+          <span>Tablero de Gestión de Intervenciones · Residuos P04</span>
         </div>
       </div>
     </div>
@@ -958,7 +945,7 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
         {/* Pie del modal */}
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
           <span className="text-xs text-gray-500">
-            Base de Intervenciones Octubre 2026 · Puntos en confirmación UAESP ({punto.ld})
+            SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público · Base de Intervenciones Octubre 2026 ({punto.ld})
           </span>
           <button
             type="button"
