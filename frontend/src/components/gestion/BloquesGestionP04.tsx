@@ -52,7 +52,7 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
             { href: '#p04-resultado', label: '2. Indicadores de resultado' },
             { href: '#p04-gestion', label: '3. Indicadores de gestión' },
             { href: '#p04-ranking', label: '4. Ranking por localidad' },
-            { href: '#p04-sostenimiento', label: '5. Sostenimiento (61 priorizados)' },
+            { href: '#p04-sostenimiento', label: '5. Sostenimiento (60 priorizados)' },
           ].map(link => (
             <a
               key={link.href}
@@ -661,7 +661,7 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
           </div>
         </div>
 
-        {/* ============ 5 · SOSTENIMIENTO DE LOS 61 PUNTOS PRIORIZADOS (P04) ============ */}
+        {/* ============ 5 · SOSTENIMIENTO DE LOS 60 PUNTOS PRIORIZADOS (P04) ============ */}
         <div id="p04-sostenimiento" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div
             style={{
@@ -674,7 +674,7 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
             }}
           >
             <h3 style={{ margin: 0, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '19px', fontWeight: 700, color: '#1F2937' }}>
-              5 · Sostenibilidad de los 61 puntos críticos priorizados (P04)
+              5 · Sostenibilidad de los 60 puntos críticos priorizados (P04)
             </h3>
             <span style={{ fontSize: '13px', color: '#6B7280' }}>
               Verificación en terreno del sostenimiento de las intervenciones en puntos priorizados T1 y T2
