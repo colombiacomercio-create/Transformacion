@@ -296,7 +296,7 @@ const DEFAULT_SURVEY_LAYER_URL = 'https://mapas.gobiernobogota.gov.co/waserver/r
 const P04_OID_BY_INDEX: number[] = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-  21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+  21, 22, 23, 24, 25, 26, 27, 28, 0, 30, // 0 = Calle 20 con cra 103 (punto nuevo sin reporte en terreno, pendiente/en gris)
   31, 32, 33,
   // 34 (Parque Calle 91 # 130A) eliminado del listado oficial; continúa con Parque Bilbao (35)
   35, 36, 37, 38, 39, 40,
