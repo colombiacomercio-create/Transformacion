@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, AlertTriangle, X, MessageSquare, Paperclip, CheckCircle2, Clock, Calendar, FileText, Send, Sparkles } from 'lucide-react';
+import { AlertCircle, AlertTriangle, X, MessageSquare, Paperclip, CheckCircle2, Clock, Calendar, FileText, Send, Sparkles, ExternalLink } from 'lucide-react';
 import { fetchApi } from '../utils/api';
 
 interface Props {
@@ -40,8 +40,15 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
   });
 
   // States for Gestor Evidence Form
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // Límite estricto: 10 Megabytes máximo
+  const SHAREPOINT_ROLLOS_URL = 'https://gobiernobogota.sharepoint.com/:f:/s/Prueba939/IgBdPBai3S26Q6YqovlhsXgWAaA-7XazLIooMvRu_6M6McA?e=WYlxko';
+
   const [comentarioEvidencia, setComentarioEvidencia] = useState('');
   const [evidenciaFile, setEvidenciaFile] = useState<File | null>(null);
+  const [modalArchivoPesado, setModalArchivoPesado] = useState<{
+    nombre: string;
+    pesoMB: string;
+  } | null>(null);
   const [estadoAlSubir, setEstadoAlSubir] = useState<string>('EN_CURSO_SIN_VALIDAR');
   const [confirmModalData, setConfirmModalData] = useState<{
     tipo: 'estadoLocal' | 'estadoValidacion';
@@ -258,6 +265,12 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
     e.preventDefault();
     if (!evidenciaFile) return alert('Seleccione un archivo');
     if (!comentarioEvidencia.trim()) return alert('Debe proporcionar un comentario obligatorio sobre la ejecución.');
+
+    if (evidenciaFile.size > MAX_FILE_SIZE_BYTES) {
+      const pesoMB = (evidenciaFile.size / (1024 * 1024)).toFixed(1);
+      setModalArchivoPesado({ nombre: evidenciaFile.name, pesoMB });
+      return;
+    }
 
     const effectiveLocId = curLocId || asigActual?.localidadId || actividad.asignaciones?.[0]?.localidadId || '';
 
@@ -993,30 +1006,58 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                         </select>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <input 
-                          required 
-                          type="file" 
-                          className="text-xs border border-gray-300 p-1.5 rounded bg-white w-full sm:max-w-xs cursor-pointer"
-                          onChange={e => setEvidenciaFile(e.target.files ? e.target.files[0] : null)}
-                        />
-                        <button 
-                          type="submit" 
-                          disabled={uploading || !evidenciaFile || !comentarioEvidencia.trim()} 
-                          className="bg-bogota-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 inline-flex items-center gap-1.5 shadow"
-                        >
-                          {uploading ? (
-                            <>
-                              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              Subiendo y Notificando...
-                            </>
-                          ) : (
-                            <>
-                              <Paperclip className="w-3.5 h-3.5" />
-                              Subir Soporte y Actualizar Estado
-                            </>
-                          )}
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <input 
+                            required 
+                            type="file" 
+                            className="text-xs border border-gray-300 p-1.5 rounded bg-white w-full sm:max-w-xs cursor-pointer"
+                            onChange={e => {
+                              const file = e.target.files ? e.target.files[0] : null;
+                              if (file && file.size > MAX_FILE_SIZE_BYTES) {
+                                const pesoMB = (file.size / (1024 * 1024)).toFixed(1);
+                                setModalArchivoPesado({ nombre: file.name, pesoMB });
+                                e.target.value = '';
+                                setEvidenciaFile(null);
+                                return;
+                              }
+                              setEvidenciaFile(file);
+                            }}
+                          />
+                          <button 
+                            type="submit" 
+                            disabled={uploading || !evidenciaFile || !comentarioEvidencia.trim()} 
+                            className="bg-bogota-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 inline-flex items-center gap-1.5 shadow"
+                          >
+                            {uploading ? (
+                              <>
+                                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Subiendo y Notificando...
+                              </>
+                            ) : (
+                              <>
+                                <Paperclip className="w-3.5 h-3.5" />
+                                Subir Soporte y Actualizar Estado
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Banner recordatorio de límite de 10 MB y SharePoint */}
+                        <div className="flex items-start gap-2 bg-blue-50/80 border border-blue-200/80 rounded-lg p-2.5 text-[11px] text-blue-900 leading-relaxed">
+                          <ExternalLink className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold">Límite de adjuntos: 10 MB.</span> Si tu archivo pesa más de 10 MB (videos, carpetas comprimidas, presentaciones pesadas), cárgalo directamente en el SharePoint institucional en la carpeta oficial{' '}
+                            <a 
+                              href={SHAREPOINT_ROLLOS_URL} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="font-bold text-bogota-primary underline hover:text-red-800 inline-flex items-center gap-0.5 ml-1"
+                            >
+                              📁 ROLLOS 2026 ↗
+                            </a>. Luego toma una captura de pantalla donde se visualice el cargue y adjúntala aquí junto con tu comentario.
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </form>
@@ -1245,6 +1286,88 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                 className="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow transition"
               >
                 Sí, cambiar sin evidencias
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Advertencia e Instrucciones para Archivo Pesado (> 10 MB) */}
+      {modalArchivoPesado && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-blue-200">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-100 text-blue-800 rounded-xl">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 leading-tight">
+                    Archivo superior a 10 MB ({modalArchivoPesado.pesoMB} MB)
+                  </h3>
+                  <p className="text-xs text-blue-700 font-semibold mt-0.5">
+                    Límite máximo permitido excedido
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setModalArchivoPesado(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-amber-50 rounded-xl p-3.5 border border-amber-200 text-xs text-amber-950 leading-relaxed">
+              El archivo <strong className="font-bold underline">{modalArchivoPesado.nombre}</strong> pesa{' '}
+              <strong>{modalArchivoPesado.pesoMB} MB</strong>, superando el límite de <strong>10 MB</strong> para subidas directas.
+            </div>
+
+            <div className="space-y-2.5 text-xs text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <p className="font-bold text-gray-900 text-xs">
+                Sigue estos pasos para adjuntar tu soporte oficial:
+              </p>
+              <ol className="list-decimal list-inside space-y-1.5 leading-relaxed text-gray-800">
+                <li>
+                  Ingresa a la carpeta oficial de SharePoint:{' '}
+                  <a 
+                    href={SHAREPOINT_ROLLOS_URL} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="font-bold text-bogota-primary underline hover:text-red-800 inline-flex items-center gap-1"
+                  >
+                    📁 ROLLOS 2026 <ExternalLink className="w-3 h-3 inline" />
+                  </a>
+                </li>
+                <li>
+                  Carga allí tu archivo pesado (video, carpeta comprimida zip, memorias o documentos extensos).
+                </li>
+                <li>
+                  Toma una <strong>captura de pantalla</strong> donde se visualice claramente el cargue del archivo en dicha carpeta.
+                </li>
+                <li>
+                  Carga dicha <strong>captura de pantalla</strong> aquí en el sistema acompañada de tu comentario de avance y el enlace.
+                </li>
+              </ol>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-2 pt-2">
+              <a
+                href={SHAREPOINT_ROLLOS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-white bg-bogota-primary hover:bg-red-700 rounded-lg shadow transition inline-flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Abrir Carpeta ROLLOS 2026
+              </a>
+              <button
+                type="button"
+                onClick={() => setModalArchivoPesado(null)}
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              >
+                Entendido, subiré la captura
               </button>
             </div>
           </div>

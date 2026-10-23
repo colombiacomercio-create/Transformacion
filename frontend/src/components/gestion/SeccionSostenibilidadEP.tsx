@@ -400,13 +400,42 @@ function MapaPuntosSostenibilidad({
 
     const coordsValidas: [number, number][] = [];
 
-    puntos.forEach(p => {
-      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
-      if (isNaN(p.lat) || isNaN(p.lng)) return;
+    // Separación visual inteligente para puntos geográficamente adyacentes o coincidentes
+    // (ejemplo: P04 Residuos y P05 Espacio Público en la Plaza de Mercado de Fontibón)
+    // Garantiza que ambos iconos se vean simultáneamente con su respectiva simbología y sean 100% clickeables.
+    const puntosParaRender = puntos.map((p, idx) => {
+      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') {
+        return { ...p, renderLat: p.lat, renderLng: p.lng };
+      }
+
+      const tieneVecinoMuyCercano = puntos.some((otro, oIdx) => {
+        if (oIdx === idx || typeof otro.lat !== 'number' || typeof otro.lng !== 'number') return false;
+        const dLat = Math.abs(p.lat! - otro.lat);
+        const dLng = Math.abs(p.lng! - otro.lng);
+        return dLat < 0.00035 && dLng < 0.00035;
+      });
+
+      if (tieneVecinoMuyCercano) {
+        // P04 se desplaza levemente al Nor-Oeste (+lat, -lng) y P05 al Sur-Este (-lat, +lng)
+        const isP04 = p.prod === 'P04';
+        const offLat = isP04 ? 0.00022 : -0.00022;
+        const offLng = isP04 ? -0.00025 : 0.00025;
+        return {
+          ...p,
+          renderLat: p.lat + offLat,
+          renderLng: p.lng + offLng
+        };
+      }
+      return { ...p, renderLat: p.lat, renderLng: p.lng };
+    });
+
+    puntosParaRender.forEach(p => {
+      if (typeof p.renderLat !== 'number' || typeof p.renderLng !== 'number') return;
+      if (isNaN(p.renderLat) || isNaN(p.renderLng)) return;
 
       // Excluir del auto-zoom de Bogotá urbana los 2 puntos rurales de Sumapaz para no alejar demasiado la vista inicial
-      if (p.lat > 4.4) {
-        coordsValidas.push([p.lat, p.lng]);
+      if (p.lat && p.lat > 4.4) {
+        coordsValidas.push([p.renderLat, p.renderLng]);
       }
 
       const colorFill =
@@ -474,7 +503,7 @@ function MapaPuntosSostenibilidad({
         `,
       });
 
-      const marker = L.marker([p.lat, p.lng], {
+      const marker = L.marker([p.renderLat, p.renderLng], {
         icon: customIcon,
         zIndexOffset: isSelected ? 1000 : p.cls === 'N' ? 300 : p.cls === 'A' ? 200 : p.cls === 'S' ? 100 : 0,
       });

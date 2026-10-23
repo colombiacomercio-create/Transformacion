@@ -15,12 +15,28 @@ const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
-  // LÍMITE ESTRICTO APLICADO: 20 Megabytes máximo por archivo permitido
-  limits: { fileSize: 20 * 1024 * 1024 } 
+  // LÍMITE ESTRICTO APLICADO: 10 Megabytes máximo por archivo permitido
+  limits: { fileSize: 10 * 1024 * 1024 } 
 });
 
+const SHAREPOINT_ROLLOS_2026_URL = 'https://gobiernobogota.sharepoint.com/:f:/s/Prueba939/IgBdPBai3S26Q6YqovlhsXgWAaA-7XazLIooMvRu_6M6McA?e=WYlxko';
+
 // Cualquier usuario autenticado puede cargar evidencia y comentar avance sobre una actividad
-router.post('/upload/:actividadId', azureADAuth, upload.single('archivo'), async (req: AuthRequest, res) => {
+router.post('/upload/:actividadId', azureADAuth, (req: any, res: any, next: any) => {
+  upload.single('archivo')(req, res, (err: any) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          error: 'El archivo excede el tamaño máximo permitido de 10 MB.',
+          detalles: `Si el archivo pesa más de 10 MB, cárguelo en la carpeta ROLLOS 2026 del drive de Transformación (${SHAREPOINT_ROLLOS_2026_URL}) y tome una captura de pantalla que evidencie el cargue para subirla junto a su comentario.`,
+          sharepointUrl: SHAREPOINT_ROLLOS_2026_URL
+        });
+      }
+      return res.status(400).json({ error: err.message || 'Error procesando el archivo adjunto' });
+    }
+    next();
+  });
+}, async (req: AuthRequest, res) => {
   try {
     const { actividadId } = req.params;
     const { tipoEvidencia, descripcion, localidadId, comentarioAdjunto, nuevoEstado } = req.body;

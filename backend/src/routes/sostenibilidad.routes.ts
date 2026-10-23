@@ -97,7 +97,7 @@ const RAW_P04: [string, 'T1' | 'T2', string, 'S' | 'A' | 'N' | 'RI' | 'V', numbe
   ['Kennedy','T2','Calle 2 con Carrera 87D','S',82,'Disposición de RCD por terceros','15 oct 2026, 14:10'],
   ['Kennedy','T2','Calle 58A Sur con Carrera 81','A',76,'Reincidencia de arrojo','16 oct 2026, 10:00'],
   ['Kennedy','T2','Colegio Saludcoop Sur','N',62,'Reincidencia de arrojo','16 oct 2026, 10:00'],
-  ['Fontibón','T1','Calle 20 con cra 103','V',null,'Sin dato','—'],
+  ['Fontibón','T1','Calle 20 con cra 103','A',55,'Reincidencia de arrojo','23 oct 2026, 08:41'],
   ['Fontibón','T2','Av. Calle 24 con Carrera 104','S',90,'Reincidencia de arrojo','16 oct 2026, 10:00'],
   ['Engativá','T1','Barrio Luis Carlos Galán — Av. Carrera 91 # 97-19','A',65,'Falta de apropiación comunitaria','17 oct 2026, 10:00'],
   ['Engativá','T2','Calle 66 # 69-27','N',51,'Reincidencia de arrojo','17 oct 2026, 11:35'],
@@ -184,19 +184,56 @@ const COORDS_P04: [number, number][] = [[4.737177,-74.027205],[4.740809,-74.0319
 const COORDS_P05: [number, number][] = [[4.719023,-74.035328],[4.694934,-74.03145],[4.704535,-74.049086],[4.6906,-74.045932],[4.726831,-74.045871],[4.657463,-74.062087],[4.644899,-74.065521],[4.60142,-74.07342],[4.602118,-74.072969],[4.57099,-74.096429],[4.568966,-74.097673],[4.569003,-74.095291],[4.570149,-74.093553],[4.470645,-74.123457],[4.530913,-74.118314],[4.489496,-74.109753],[4.5942973,-74.1421347],[4.626976,-74.191943],[4.631115,-74.180176],[4.613418,-74.198511],[4.650967,-74.162793],[4.647131,-74.146788],[4.623066,-74.170252],[4.626052,-74.172455],[4.673586,-74.144934],[4.676583,-74.144336],[4.663283,-74.096994],[4.661755,-74.108114],[4.752439,-74.09332],[4.705043,-74.054501],[4.687255,-74.074634],[4.684883,-74.062597],[4.648563,-74.107046],[4.646576,-74.102371],[4.601931,-74.082168],[4.605438,-74.085484],[4.583507,-74.102439],[4.592019,-74.127058],[4.628816,-74.116947],[4.628981,-74.11503],[4.602149,-74.076894],[4.601357,-74.073486],[4.563561,-74.10823],[4.583534,-74.106095],[4.586115,-74.161038],[4.58283,-74.157982]];
 
 export function buildDefaultSnapshotData(): SostenibilidadDatos {
-  const puntosP04: PuntoRaw[] = RAW_P04.map((r, i) => ({
-    id: `04-${i}`,
-    ld: r[0],
-    t: r[1],
-    d: r[2],
-    cls: r[3],
-    prod: 'P04',
-    isp: r[4],
-    riesgo: r[5],
-    fecha: r[6],
-    lat: COORDS_P04[i]?.[0],
-    lng: COORDS_P04[i]?.[1],
-  }));
+  const puntosP04: PuntoRaw[] = RAW_P04.map((r, i) => {
+    const p: PuntoRaw = {
+      id: `04-${i}`,
+      ld: r[0],
+      t: r[1],
+      d: r[2],
+      cls: r[3],
+      prod: 'P04',
+      isp: r[4],
+      riesgo: r[5],
+      fecha: r[6],
+      lat: COORDS_P04[i]?.[0],
+      lng: COORDS_P04[i]?.[1],
+    };
+
+    if (r[0] === 'Fontibón' && r[1] === 'T1') {
+      p.reporta = 'German Ceballos';
+      p.dependencia = 'Subsecretaría de Gestión Local — Equipo EP';
+      p.descripcion = 'Se evidencian arrojos de residuos voluminosos y ordinarios en donde la comunidad sigue disponiendo en lugar, solo se observaron acciones de muralismo';
+      p.recomendacion = 'Realizar acciones de limpieza y IVC para evitar el arrojo';
+      p.criteriosDetalle = [
+        { k: 'Libre de residuos acumulados', v: 'No', ok: false },
+        { k: 'Sin nuevo arrojo de residuos', v: 'Sí', ok: true },
+        { k: 'Sin disposición de RCD', v: 'No', ok: false },
+        { k: 'Sin reguero ni dispersión', v: 'No', ok: false },
+        { k: 'Limpieza aceptable', v: 'Parcial', ok: false }
+      ];
+      p.evidencias = [
+        {
+          label: 'Fotografía del estado actual',
+          file: 'WhatsApp Image 2026-10-23 at 8.41.47 AM.jpeg',
+          contentType: 'image/jpeg',
+          url: 'https://mapas.gobiernobogota.gov.co/waserver/rest/services/Hosted/survey123_6ad0fc8ddc574571bcb6252a49ebab4d_results/FeatureServer/0/110/attachments/278'
+        },
+        {
+          label: 'Fotografía 2 del estado actual',
+          file: 'WhatsApp Image 2026-10-23 at 8.42.03 AM.jpeg',
+          contentType: 'image/jpeg',
+          url: 'https://mapas.gobiernobogota.gov.co/waserver/rest/services/Hosted/survey123_6ad0fc8ddc574571bcb6252a49ebab4d_results/FeatureServer/0/110/attachments/279'
+        },
+        {
+          label: 'Video corto del punto',
+          file: 'WhatsApp Video 2026-10-23 at 8.42.01 AM.mp4',
+          contentType: 'video/mp4',
+          url: 'https://mapas.gobiernobogota.gov.co/waserver/rest/services/Hosted/survey123_6ad0fc8ddc574571bcb6252a49ebab4d_results/FeatureServer/0/110/attachments/280'
+        }
+      ];
+    }
+    return p;
+  });
 
   const puntosP05: PuntoRaw[] = RAW_P05.map((r, i) => ({
     id: `05-${i}`,
@@ -296,7 +333,7 @@ const DEFAULT_SURVEY_LAYER_URL = 'https://mapas.gobiernobogota.gov.co/waserver/r
 const P04_OID_BY_INDEX: number[] = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-  21, 22, 23, 24, 25, 26, 27, 28, 0, 30, // 0 = Calle 20 con cra 103 (punto nuevo sin reporte en terreno, pendiente/en gris)
+  21, 22, 23, 24, 25, 26, 27, 28, 29, 30, // 29 = Calle 20 con cra 103 (homologado por coordenadas exactas y OID 29 de Survey123)
   31, 32, 33,
   // 34 (Parque Calle 91 # 130A) eliminado del listado oficial; continúa con Parque Bilbao (35)
   35, 36, 37, 38, 39, 40,
@@ -582,6 +619,20 @@ async function syncFromArcGIS(
         (fullText.includes('codensa') && fullText.includes('tunjuelito'))
       ) {
         rawPunto = 78; // OID de Plazoleta Codensa en P05
+      }
+
+      // Regla de Homologación 3: Fontibón · Residuos (Calle 20 con cra 103 al lado Plaza de Mercado)
+      // En Survey123 se reportó bajo la opción de texto antigua "Av. Calle 25 con Carrera 104" (punto 29),
+      // pero sus coordenadas exactas corresponden a la Plaza de Mercado [4.676585, -74.144380].
+      const geomY = Number(feat.geometry?.y || attr.latitud || attr.lat || 0);
+      const geomX = Number(feat.geometry?.x || attr.longitud || attr.long || attr.lng || 0);
+      const esCoordFontibonPlaza = Math.abs(geomY - 4.676585) < 0.005 && Math.abs(geomX - (-74.144380)) < 0.005;
+
+      if (
+        esCoordFontibonPlaza ||
+        (fullText.includes('fontib') && (fullText.includes('calle 25') || fullText.includes('carrera 104') || fullText.includes('plaza de mercado')) && rawPunto === 29)
+      ) {
+        rawPunto = 29; // OID 29 correspondiente a P04 Fontibón T1
       }
 
       if (!rawPunto) continue;
