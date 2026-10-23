@@ -567,7 +567,7 @@ async function syncFromArcGIS(
 
     // 1. Consultar todas las respuestas y todos los adjuntos (fotos y videos) en paralelo
     const [qRes, aRes] = await Promise.all([
-      fetch(`${resultsLayerUrl}/query?where=1%3D1&outFields=*&returnGeometry=false&f=json&token=${token}`),
+      fetch(`${resultsLayerUrl}/query?where=1%3D1&outFields=*&returnGeometry=true&f=json&token=${token}`),
       fetch(`${resultsLayerUrl}/queryAttachments?definitionExpression=1%3D1&f=json&token=${token}`)
     ]);
 
@@ -624,8 +624,15 @@ async function syncFromArcGIS(
       // Regla de Homologación 3: Fontibón · Residuos (Calle 20 con cra 103 al lado Plaza de Mercado)
       // En Survey123 se reportó bajo la opción de texto antigua "Av. Calle 25 con Carrera 104" (punto 29),
       // pero sus coordenadas exactas corresponden a la Plaza de Mercado [4.676585, -74.144380].
-      const geomY = Number(feat.geometry?.y || attr.latitud || attr.lat || 0);
-      const geomX = Number(feat.geometry?.x || attr.longitud || attr.long || attr.lng || 0);
+      let geomY = Number(feat.geometry?.y || attr.latitud || attr.lat || 0);
+      let geomX = Number(feat.geometry?.x || attr.longitud || attr.long || attr.lng || 0);
+      if ((!geomY || !geomX) && attr.json_punto) {
+        try {
+          const jp = typeof attr.json_punto === 'string' ? JSON.parse(attr.json_punto) : attr.json_punto;
+          geomY = Number(jp.geometry?.y || jp.attributes?.latitud || 0);
+          geomX = Number(jp.geometry?.x || jp.attributes?.longitud || 0);
+        } catch {}
+      }
       const esCoordFontibonPlaza = Math.abs(geomY - 4.676585) < 0.005 && Math.abs(geomX - (-74.144380)) < 0.005;
 
       if (
@@ -688,12 +695,17 @@ async function syncFromArcGIS(
         const riesgo = RIESGO_LABELS[riesgoKey] || (p.riesgo !== 'Sin dato' ? p.riesgo : 'Reincidencia de arrojo');
         const { criteriosDetalle, isp } = buildCriteriosAndIsp(attr, 'P04', cls, p.isp);
 
+        let fecha = formatEpochDate(attr.fecha_y_hora || attr.created_date);
+        if (Number(attr.objectid) === 110 || (p.ld === 'Fontibón' && p.t === 'T1')) {
+          fecha = '23 oct 2026, 08:41';
+        }
+
         return {
           ...p,
           cls,
           isp,
           riesgo,
-          fecha: formatEpochDate(attr.fecha_y_hora || attr.created_date),
+          fecha,
           reporta: attr.nombre_reporte ? String(attr.nombre_reporte).trim() : p.reporta,
           dependencia: attr.dependencia === 'ugrt' ? 'Unidad de Gestión y Transformación (UGRT)' : (attr.dependencia || 'Subsecretaría de Gestión Local — Equipo EP'),
           descripcion: attr.descripcion_de_lo_observado ? String(attr.descripcion_de_lo_observado).trim() : p.descripcion,
@@ -933,6 +945,9 @@ async function ensureSnapshotExists() {
 
 // GET /api/sostenibilidad — Devuelve la copia guardada en línea (Supabase PostgreSQL)
 router.get('/', azureADAuth, async (req: AuthRequest, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   try {
     const snapshot = await ensureSnapshotExists();
     res.json({
@@ -963,6 +978,9 @@ router.get('/', azureADAuth, async (req: AuthRequest, res) => {
 
 // POST /api/sostenibilidad/sync — Ejecuta actualización (por botón manual o auto-refresh) y guarda copia en línea
 router.post('/sync', azureADAuth, async (req: AuthRequest, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   try {
     const baseDatos = buildDefaultSnapshotData();
     const { username, password, token, origen } = req.body || {};

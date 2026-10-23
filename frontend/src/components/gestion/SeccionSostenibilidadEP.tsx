@@ -401,32 +401,34 @@ function MapaPuntosSostenibilidad({
     const coordsValidas: [number, number][] = [];
 
     // Separación visual inteligente para puntos geográficamente adyacentes o coincidentes
-    // (ejemplo: P04 Residuos y P05 Espacio Público en la Plaza de Mercado de Fontibón)
-    // Garantiza que ambos iconos se vean simultáneamente con su respectiva simbología y sean 100% clickeables.
+    // (ejemplo: P04 Residuos Calle 20 con cra 103 y P05 Espacio Público Plaza de Mercado en Fontibón)
+    // Garantiza que ambos iconos se vean simultáneamente con su respectiva simbología y sean 100% clickeables
+    // incluso a vista general de toda Bogotá (zoom 11) sin necesidad de hacer zoom.
     const puntosParaRender = puntos.map((p, idx) => {
       if (typeof p.lat !== 'number' || typeof p.lng !== 'number') {
-        return { ...p, renderLat: p.lat, renderLng: p.lng };
+        return { ...p, renderLat: p.lat, renderLng: p.lng, isShifted: false };
       }
 
       const tieneVecinoMuyCercano = puntos.some((otro, oIdx) => {
         if (oIdx === idx || typeof otro.lat !== 'number' || typeof otro.lng !== 'number') return false;
         const dLat = Math.abs(p.lat! - otro.lat);
         const dLng = Math.abs(p.lng! - otro.lng);
-        return dLat < 0.00035 && dLng < 0.00035;
+        return dLat < 0.0012 && dLng < 0.0012;
       });
 
       if (tieneVecinoMuyCercano) {
-        // P04 se desplaza levemente al Nor-Oeste (+lat, -lng) y P05 al Sur-Este (-lat, +lng)
+        // P04 se desplaza levemente al Nor-Oeste y P05 al Sur-Este
         const isP04 = p.prod === 'P04';
-        const offLat = isP04 ? 0.00022 : -0.00022;
-        const offLng = isP04 ? -0.00025 : 0.00025;
+        const offLat = isP04 ? 0.0005 : -0.0005;
+        const offLng = isP04 ? -0.0006 : 0.0006;
         return {
           ...p,
           renderLat: p.lat + offLat,
-          renderLng: p.lng + offLng
+          renderLng: p.lng + offLng,
+          isShifted: true
         };
       }
-      return { ...p, renderLat: p.lat, renderLng: p.lng };
+      return { ...p, renderLat: p.lat, renderLng: p.lng, isShifted: false };
     });
 
     puntosParaRender.forEach(p => {
@@ -480,10 +482,16 @@ function MapaPuntosSostenibilidad({
         ? '0 0 0 3px rgba(17,24,39,0.35), 0 4px 10px rgba(0,0,0,0.4)'
         : '0 2px 5px rgba(0,0,0,0.32)';
 
+      // Desplazamiento fijo en pantalla (píxeles constantes) para puntos vecinos
+      // P04 queda 16px a la izquierda y P05 queda 16px a la derecha del ancla
+      const isP04 = p.prod === 'P04';
+      const anchorX = p.isShifted ? (isP04 ? size + 4 : -4) : size / 2;
+      const anchorY = size / 2;
+
       const customIcon = L.divIcon({
         className: 'radar-sost-marker',
         iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
+        iconAnchor: [anchorX, anchorY],
         html: `
           <div style="
             width:${size}px;
@@ -505,7 +513,7 @@ function MapaPuntosSostenibilidad({
 
       const marker = L.marker([p.renderLat, p.renderLng], {
         icon: customIcon,
-        zIndexOffset: isSelected ? 1000 : p.cls === 'N' ? 300 : p.cls === 'A' ? 200 : p.cls === 'S' ? 100 : 0,
+        zIndexOffset: isSelected ? 1000 : (p.prod === 'P04' ? 600 : 500) + (p.cls === 'N' ? 30 : p.cls === 'A' ? 20 : 10),
       });
 
       const tooltipHtml = `
