@@ -1496,14 +1496,14 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     window.print();
   };
 
-  const abrirModalPuntoYExportar = useCallback((id: string) => {
+  const abrirModalPuntoYExportar = (id: string) => {
     setSelectedFocalizadoId(null);
     setSelectedId(id);
     setZoomIdx(0);
     setTimeout(() => {
       exportarFichaPdfCarta();
     }, 600);
-  }, []);
+  };
 
   const formatearFechaLectura = (iso: string) => {
     try {
