@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchApi } from '../../utils/api';
-import { RefreshCw, Settings, ExternalLink, CheckCircle2, AlertCircle, Clock, X, Camera, Video, ZoomIn, MapPin, Calendar } from 'lucide-react';
+import { RefreshCw, Settings, ExternalLink, CheckCircle2, AlertCircle, Clock, X, Camera, Video, ZoomIn, MapPin, Calendar, Download, Printer, Loader2, FileText, Check } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { PUNTOS_FOCALIZADOS_OCT_2026, GESTION_P04_DEFAULT, PuntoFocalizadoOct } from './datosGestionP04';
@@ -951,6 +953,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedFocalizadoId, setSelectedFocalizadoId] = useState<string | null>(null);
   const [zoomIdx, setZoomIdx] = useState<number | null>(null);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
 
   // Filtros interactivos
   const [filtroTrimestre, setFiltroTrimestre] = useState<'TODOS' | 'T1' | 'T2'>('TODOS');
@@ -1439,6 +1442,59 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
   };
 
   const criteriosFicha = sel ? construirCriteriosPunto(sel) : [];
+
+  const exportarFichaPdfCarta = async () => {
+    const el = document.getElementById('ficha-imprimible-carta');
+    if (!el) return;
+    setGenerandoPdf(true);
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'letter',
+      });
+      const pageWidth = 215.9;
+      const pageHeight = 279.4;
+      const margin = 8;
+      const contentWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+      if (imgHeight <= pageHeight - margin * 2) {
+        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, imgHeight);
+      } else {
+        let heightLeft = imgHeight;
+        let position = margin;
+        const usableHeight = pageHeight - margin * 2;
+        pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+        heightLeft -= usableHeight;
+        while (heightLeft > 0) {
+          position = position - usableHeight;
+          pdf.addPage('letter', 'portrait');
+          pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+          heightLeft -= usableHeight;
+        }
+      }
+      const nombreLimpio = `Ficha_Sostenibilidad_${sel?.ld || 'Bogota'}_${sel?.prod || 'P'}_${sel?.id || 'Punto'}`.replace(/[\s/\\:]+/g, '_');
+      pdf.save(`${nombreLimpio}.pdf`);
+    } catch (err) {
+      console.error('Error al exportar ficha en PDF:', err);
+      alert('Hubo un inconveniente al generar el PDF. Por favor utiliza la opción de Imprimir.');
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
+
+  const imprimirFichaCarta = () => {
+    window.print();
+  };
 
   const formatearFechaLectura = (iso: string) => {
     try {
@@ -2243,6 +2299,35 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
           className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-xs"
           onClick={cerrarModalPunto}
         >
+          <style>{`
+            @page {
+              size: letter portrait;
+              margin: 8mm;
+            }
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #ficha-imprimible-carta, #ficha-imprimible-carta * {
+                visibility: visible !important;
+              }
+              #ficha-imprimible-carta {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 14px !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+              .no-imprimir {
+                display: none !important;
+              }
+            }
+          `}</style>
           <div
             className="bg-white rounded-xl max-w-5xl w-full shadow-2xl border border-gray-200 overflow-hidden my-8 max-h-[90vh] flex flex-col"
             onClick={e => e.stopPropagation()}
@@ -2270,7 +2355,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                 </h2>
               </div>
 
-              <div className="flex items-center gap-6 flex-wrap">
+              <div className="flex items-center gap-5 flex-wrap">
                 <div>
                   <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: 0.8 }}>ISP</div>
                   <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '28px', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{sel.ispTxt}</div>
@@ -2288,232 +2373,324 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                   <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: 0.8 }}>Trimestre</div>
                   <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '17px', fontWeight: 700, lineHeight: 1.5 }}>{sel.t}</div>
                 </div>
-                <button
-                  type="button"
-                  onClick={cerrarModalPunto}
-                  className="p-2 rounded-lg bg-white/80 hover:bg-white text-gray-800 shadow-xs transition-colors cursor-pointer"
-                  title="Cerrar ficha"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 no-imprimir">
+                  <button
+                    type="button"
+                    onClick={exportarFichaPdfCarta}
+                    disabled={generandoPdf}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-900 hover:bg-gray-100 shadow-xs transition-colors cursor-pointer border border-gray-300"
+                    title="Exportar ficha técnica a PDF en tamaño carta"
+                  >
+                    {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-700" /> : <Download className="w-3.5 h-3.5 text-purple-700" />}
+                    <span>{generandoPdf ? 'Generando...' : 'Exportar PDF (Carta)'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={imprimirFichaCarta}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-900 hover:bg-gray-100 shadow-xs transition-colors cursor-pointer border border-gray-300"
+                    title="Imprimir ficha técnica en tamaño carta"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-gray-700" />
+                    <span>Imprimir</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cerrarModalPunto}
+                    className="p-2 rounded-lg bg-white/80 hover:bg-white text-gray-800 shadow-xs transition-colors cursor-pointer"
+                    title="Cerrar ficha"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Cuerpo de la Ficha con scroll interno */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 overflow-y-auto">
-              {/* Columna 1: Datos de visita y estado general */}
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #1F2937' }}>
-                    1 · Datos de la visita
-                  </h3>
-                  {[
-                    { k: 'Fecha y hora', v: sel.fecha },
-                    { k: 'Reporta', v: esV ? '—' : sel.reporta || 'Profesional Equipo EP' },
-                    { k: 'Dependencia', v: sel.dependencia || 'SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público' },
-                    { k: 'Producto', v: sel.prod === 'P04' ? 'P04 · Gestión de residuos' : 'P05 · Espacio público' },
-                    { k: 'Ruta del punto', v: sel.prod === 'P04' ? 'Residuos' : 'Espacio público' },
-                    { k: 'Trimestre', v: sel.t },
-                  ].map(v => (
-                    <div key={v.k} style={{ display: 'flex', gap: '10px', padding: '5px 0', borderBottom: '1px solid #F3F4F6', fontSize: '13px' }}>
-                      <span style={{ flex: '0 0 104px', color: '#6B7280', minWidth: 0 }}>{v.k}</span>
-                      <strong style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 600 }}>{v.v}</strong>
+            {/* Contenedor Imprimible y Exportable a PDF Tamaño Carta */}
+            <div id="ficha-imprimible-carta" className="p-6 overflow-y-auto space-y-5 bg-white text-gray-900">
+              {/* Encabezado Institucional Oficial Alcaldía de Bogotá */}
+              <div className="border-b-2 border-slate-800 pb-3 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-12 bg-gradient-to-b from-red-600 via-yellow-400 to-blue-800 rounded-full" />
+                  <div>
+                    <div className="text-[12px] font-black tracking-wide text-gray-900 uppercase">
+                      Alcaldía Mayor de Bogotá · Secretaría Distrital de Gobierno
                     </div>
-                  ))}
-                </div>
-
-                <div>
-                  <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #1F2937' }}>
-                    2 · Estado general
-                  </h3>
-                  {[
-                    { k: 'Estado de sostenibilidad observado', v: sel.estado, bg: sel.chipBg, fg: sel.chipFg },
-                    {
-                      k: 'Cuenta para el ISP como',
-                      v: esV ? 'No clasifica' : sel.cls === 'N' ? 'No sostenido' : 'Sostenido',
-                      bg: esV ? '#F3F4F6' : sel.cls === 'N' ? '#FEE2E2' : '#DCFCE7',
-                      fg: esV ? '#4B5563' : sel.cls === 'N' ? '#991B1B' : '#166534',
-                    },
-                    {
-                      k: 'Requiere nueva intervención de la AL',
-                      v: esV ? 'Sin dato' : sel.cls === 'N' ? 'Sí' : 'No',
-                      bg: !esV && sel.cls === 'N' ? '#FEE2E2' : '#F3F4F6',
-                      fg: !esV && sel.cls === 'N' ? '#991B1B' : '#4B5563',
-                    },
-                    { k: 'Factor de riesgo principal', v: sel.riesgo, bg: '#F3F4F6', fg: '#4B5563' },
-                  ].map(g => (
-                    <div key={g.k} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F3F4F6', fontSize: '13px' }}>
-                      <span style={{ flex: '1 1 auto', color: '#6B7280', minWidth: 0 }}>{g.k}</span>
-                      <span style={{ flex: 'none', background: g.bg, color: g.fg, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '5px' }}>
-                        {g.v}
-                      </span>
+                    <div className="text-xs font-bold text-gray-700">
+                      SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Columna 2: Criterios y Observación/Recomendación */}
-              <div style={{ minWidth: 0 }}>
-                <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #FFCD00' }}>
-                  3 · {sel.prod === 'P04' ? 'Condición física del punto' : 'Condición del espacio recuperado'}
-                </h3>
-                {criteriosFicha.map(c => (
-                  <div key={c.k} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F3F4F6', fontSize: '13px' }}>
-                    <span style={{ flex: 'none', width: '18px', height: '18px', borderRadius: '4px', background: c.bg, color: '#FFFFFF', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo, system-ui, sans-serif' }}>
-                      {c.mark}
-                    </span>
-                    <span style={{ flex: '1 1 auto', minWidth: 0 }}>{c.k}</span>
-                    <strong style={{ flex: 'none', fontWeight: 600, color: c.bg }}>{c.v}</strong>
+                    <div className="text-[11px] text-gray-500">
+                      Sistema de Monitoreo y Seguimiento Territorial de Sostenibilidad · Vigencia 2026
+                    </div>
                   </div>
-                ))}
-
-                <h3 style={{ margin: '18px 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #FFCD00' }}>
-                  4 · Observación y recomendación
-                </h3>
-                <div style={{ fontSize: '10.5px', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 700, letterSpacing: '.1em', color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Lo observado en territorio
                 </div>
-                <p style={{ margin: '0 0 12px', fontSize: '13.5px', lineHeight: 1.55, color: '#374151' }}>
-                  {sel.descripcion || DESC[sel.cls] || DESC.V}
-                </p>
-                <div style={{ fontSize: '10.5px', fontFamily: 'Archivo, system-ui, sans-serif', fontWeight: 700, letterSpacing: '.1em', color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Recomendación a la Alcaldía Local
+                <div className="text-right">
+                  <div className="inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-800 border border-slate-300 uppercase tracking-wider mb-1">
+                    Ficha Técnica · Tamaño Carta
+                  </div>
+                  <div className="text-[11px] text-gray-600 font-mono">
+                    ID Registro: {sel.id} · {sel.ld}
+                  </div>
                 </div>
-                <p style={{ margin: '0 0 12px', fontSize: '13.5px', lineHeight: 1.55, color: '#374151' }}>
-                  {sel.recomendacion || RECO[sel.cls] || RECO.V}
-                </p>
-                <span style={{ display: 'inline-block', background: sel.chipBg, color: sel.chipFg, fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11.5px', fontWeight: 700, padding: '5px 9px', borderRadius: '5px' }}>
-                  {ACC[sel.cls] || ACC.V}
-                </span>
               </div>
 
-              {/* Columna 3: Registro fotográfico y video de la visita */}
-              <div style={{ minWidth: 0 }}>
-                <h3 style={{ margin: '0 0 10px', fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#6B7280', paddingBottom: '6px', borderBottom: '2px solid #E3002B' }}>
-                  5 · Registro fotográfico de la visita
-                </h3>
-                {!esV && evidenciasFicha.length > 0 ? (
-                  <div className="space-y-3">
-                    {/* Visor principal del adjunto activo */}
-                    {zoomIdx !== null && evidenciasFicha[zoomIdx] && (
-                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-900 text-white shadow-sm">
-                        {evidenciasFicha[zoomIdx].url ? (
-                          evidenciasFicha[zoomIdx].contentType?.startsWith('video') ||
-                          evidenciasFicha[zoomIdx].file.toLowerCase().endsWith('.mov') ||
-                          evidenciasFicha[zoomIdx].file.toLowerCase().endsWith('.mp4') ? (
-                            <video
-                              key={evidenciasFicha[zoomIdx].url}
-                              controls
-                              playsInline
-                              className="w-full aspect-video bg-black"
-                              src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(evidenciasFicha[zoomIdx].url!)}`}
-                            />
-                          ) : (
-                            <img
-                              key={evidenciasFicha[zoomIdx].url}
-                              src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(evidenciasFicha[zoomIdx].url!)}`}
-                              alt={evidenciasFicha[zoomIdx].label}
-                              className="w-full aspect-4/3 object-cover bg-gray-900"
-                            />
-                          )
-                        ) : (
-                          <div className="relative aspect-4/3 w-full bg-gradient-to-br from-slate-800 via-slate-900 to-neutral-900 flex flex-col items-center justify-center p-5 text-center">
-                            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2.5">
-                              {evidenciasFicha[zoomIdx].file.toLowerCase().endsWith('.mov') ? (
-                                <Video className="w-6 h-6 text-yellow-400" />
-                              ) : (
-                                <Camera className="w-6 h-6 text-emerald-400" />
-                              )}
-                            </div>
-                            <div className="text-xs font-bold uppercase tracking-wider text-gray-200">
-                              {evidenciasFicha[zoomIdx].label}
-                            </div>
-                            <div className="text-[11px] text-gray-400 font-mono mt-1 break-all px-2">
-                              {evidenciasFicha[zoomIdx].file}
-                            </div>
-                          </div>
-                        )}
-                        <div className="px-3 py-2 bg-gray-800 flex items-center justify-between text-[11px] text-gray-300 gap-2">
-                          <span className="truncate font-medium">{evidenciasFicha[zoomIdx].label}</span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {evidenciasFicha[zoomIdx].url && (
-                              <a
-                                href={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(evidenciasFicha[zoomIdx].url!)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-yellow-400 hover:underline inline-flex items-center gap-1"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                                Abrir
-                              </a>
-                            )}
-                            <span className="text-gray-400 font-mono">
-                              {zoomIdx + 1} / {evidenciasFicha.length}
+              {/* Banner de Identificación y Diagnóstico del Punto */}
+              <div
+                style={{
+                  background: sel.chipBg,
+                  color: sel.chipFg,
+                  borderRadius: '10px',
+                  padding: '14px 18px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '14px',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  border: '1px solid rgba(0,0,0,0.1)',
+                }}
+              >
+                <div style={{ minWidth: 0, flex: '1 1 300px' }}>
+                  <div className="text-[11px] font-bold uppercase tracking-wider opacity-85">
+                    {sel.prod === 'P04' ? 'P04 · Gestión de Residuos' : 'P05 · Espacio Público'} · {sel.t}
+                  </div>
+                  <h3 className="text-lg font-bold m-0 leading-tight">
+                    {sel.d}
+                  </h3>
+                  <div className="text-xs opacity-90 mt-1 font-semibold">
+                    Localidad: {sel.ld} · Estado: {sel.estado}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="text-center px-3 py-1 bg-white/40 rounded-lg">
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-85">ISP Total</div>
+                    <div className="text-2xl font-black font-mono leading-none">{sel.ispTxt}</div>
+                    <div className="text-[9px] opacity-80 mt-0.5">70% campo + 30% crit.</div>
+                  </div>
+                  <div className="text-center px-3 py-1 bg-white/40 rounded-lg">
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-85">Riesgo</div>
+                    <div className="text-xs font-bold leading-tight max-w-[130px] truncate">{sel.riesgo}</div>
+                  </div>
+                  <div className="text-center px-3 py-1 bg-white/40 rounded-lg">
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-85">¿Nueva interv.?</div>
+                    <div className="text-xs font-black">{sel.cls === 'N' ? 'SÍ' : 'NO'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grilla técnica: 3 Columnas debidamente distribuidas */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* Columna 1: Datos de visita y estado general */}
+                <div className="space-y-4">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 mb-2 border-b border-gray-300">
+                      1 · Datos de la Visita
+                    </h4>
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between py-1 border-b border-gray-200">
+                        <span className="text-gray-500">Fecha y hora:</span>
+                        <strong className="font-semibold text-gray-900">{sel.fecha}</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-gray-200">
+                        <span className="text-gray-500">Reporta:</span>
+                        <strong className="font-semibold text-gray-900">{esV ? '—' : sel.reporta || 'Profesional Equipo EP'}</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-gray-200">
+                        <span className="text-gray-500">Dependencia:</span>
+                        <strong className="font-semibold text-gray-900 text-right truncate max-w-[180px]" title={sel.dependencia}>
+                          SDG - Gestión Local
+                        </strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-gray-200">
+                        <span className="text-gray-500">Producto:</span>
+                        <strong className="font-semibold text-gray-900">{sel.prod === 'P04' ? 'P04 · Residuos' : 'P05 · Espacio Público'}</strong>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-gray-500">Trimestre:</span>
+                        <strong className="font-semibold text-gray-900">{sel.t}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 mb-2 border-b border-gray-300">
+                      2 · Evaluación del Modelo
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Estado observado:</span>
+                        <span style={{ background: sel.chipBg, color: sel.chipFg }} className="px-2 py-0.5 rounded text-[11px] font-bold">
+                          {sel.estado}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Aporte al ISP:</span>
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${esV ? 'bg-gray-200 text-gray-700' : sel.cls === 'N' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {esV ? 'Sin clasificar' : sel.cls === 'N' ? 'No sostenido' : 'Sostenido'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Factor de riesgo:</span>
+                        <strong className="font-semibold text-gray-800 text-right">{sel.riesgo}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Columna 2: Criterios y Diagnóstico */}
+                <div className="space-y-4">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 mb-2 border-b border-yellow-400">
+                      3 · {sel.prod === 'P04' ? 'Condición Física del Punto' : 'Condición del Espacio Recuperado'}
+                    </h4>
+                    <div className="space-y-1.5 text-xs">
+                      {criteriosFicha.map(c => (
+                        <div key={c.k} className="flex items-center justify-between gap-2 py-1 border-b border-gray-200">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                              style={{ background: c.bg }}
+                              className="w-4 h-4 rounded text-white text-[10px] font-bold inline-flex items-center justify-center shrink-0"
+                            >
+                              {c.mark}
                             </span>
+                            <span className="truncate text-gray-700">{c.k}</span>
                           </div>
+                          <strong style={{ color: c.bg }} className="font-bold shrink-0">{c.v}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 mb-2 border-b border-yellow-400">
+                      4 · Diagnóstico y Recomendación
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Lo observado en territorio</div>
+                        <p className="text-xs text-gray-800 m-0 mt-0.5 leading-relaxed">
+                          {sel.descripcion || DESC[sel.cls] || DESC.V}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Recomendación a la Alcaldía Local</div>
+                        <p className="text-xs text-gray-800 m-0 mt-0.5 leading-relaxed">
+                          {sel.recomendacion || RECO[sel.cls] || RECO.V}
+                        </p>
+                      </div>
+                      <div className="pt-1">
+                        <span style={{ background: sel.chipBg, color: sel.chipFg }} className="inline-block px-2.5 py-1 rounded text-[11px] font-bold">
+                          {ACC[sel.cls] || ACC.V}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Columna 3: Registro Fotográfico de Evidencia */}
+                <div className="space-y-3">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 mb-2 border-b border-red-500">
+                      5 · Registro Fotográfico de Evidencias
+                    </h4>
+
+                    {!esV && evidenciasFicha.length > 0 ? (
+                      <div className="space-y-3">
+                        {/* Galería imprimible / visor: muestra las fotos lado a lado */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {evidenciasFicha.map((e, idx) => {
+                            const isVid =
+                              e.contentType?.startsWith('video') ||
+                              e.file.toLowerCase().endsWith('.mov') ||
+                              e.file.toLowerCase().endsWith('.mp4');
+                            return (
+                              <div key={idx} className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-2xs">
+                                {!isVid && e.url ? (
+                                  <img
+                                    crossOrigin="anonymous"
+                                    src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(e.url)}`}
+                                    alt={e.label}
+                                    className="w-full h-32 object-cover bg-gray-100"
+                                    loading="lazy"
+                                  />
+                                ) : isVid ? (
+                                  <div className="w-full h-32 bg-slate-900 flex flex-col items-center justify-center p-3 text-center text-white">
+                                    <Video className="w-6 h-6 text-yellow-400 mb-1" />
+                                    <span className="text-[10px] text-gray-300 truncate max-w-full">{e.file}</span>
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-32 bg-gray-100 flex items-center justify-center text-gray-400">
+                                    <Camera className="w-6 h-6" />
+                                  </div>
+                                )}
+                                <div className="px-2 py-1 bg-gray-100 border-t border-gray-200 flex items-center justify-between text-[10px] text-gray-700">
+                                  <span className="truncate font-semibold">{e.label}</span>
+                                  {e.url && (
+                                    <a
+                                      href={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(e.url)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-bogota-primary hover:underline ml-1 shrink-0 no-imprimir"
+                                    >
+                                      Ver
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
+                    ) : (
+                      <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-500 text-xs">
+                        Este punto no tiene visita registrada en el periodo, por lo que no se registran evidencias fotográficas disponibles.
+                      </div>
                     )}
+                  </div>
+                </div>
+              </div>
 
-                    {/* Miniaturas de selección de evidencias */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {evidenciasFicha.map((e, k) => {
-                        const on = zoomIdx === k;
-                        const isVid =
-                          e.contentType?.startsWith('video') ||
-                          e.file.toLowerCase().endsWith('.mov') ||
-                          e.file.toLowerCase().endsWith('.mp4');
-                        return (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => setZoomIdx(k)}
-                            style={{
-                              border: `2px solid ${on ? '#E3002B' : '#E5E7EB'}`,
-                              background: on ? '#FEF2F2' : '#F9FAFB',
-                            }}
-                            className="rounded-lg p-1.5 flex flex-col items-center justify-center gap-1 text-center cursor-pointer hover:bg-gray-100 transition-all overflow-hidden"
-                          >
-                            {!isVid && e.url ? (
-                              <img
-                                src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(e.url)}`}
-                                alt={e.label}
-                                className="w-full h-14 object-cover rounded"
-                                loading="lazy"
-                              />
-                            ) : isVid ? (
-                              <div className="w-full h-14 rounded bg-slate-900 flex items-center justify-center">
-                                <Video className={`w-5 h-5 ${on ? 'text-yellow-400' : 'text-gray-300'}`} />
-                              </div>
-                            ) : (
-                              <ZoomIn className={`w-5 h-5 ${on ? 'text-bogota-primary' : 'text-gray-500'}`} />
-                            )}
-                            <span className="text-[10.5px] font-semibold text-gray-700 leading-tight line-clamp-2">{e.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ border: '1px dashed #D1D5DB', background: '#F9FAFB', borderRadius: '8px', padding: '22px 16px', textAlign: 'center', color: '#6B7280', fontSize: '13px', lineHeight: 1.5 }}>
-                    Este punto no tiene visita registrada en el periodo, así que no hay adjuntos fotográficos ni de video disponibles.
-                  </div>
-                )}
+              {/* Pie Institucional Oficial */}
+              <div className="pt-3 border-t border-gray-300 flex flex-wrap items-center justify-between text-xs text-gray-600 gap-2">
+                <span className="font-semibold text-gray-800">
+                  SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
+                </span>
+                <span className="text-[11px] text-gray-500">
+                  Documento Oficial de Monitoreo Distrital · Bogotá D.C.
+                </span>
               </div>
             </div>
 
             {/* Pie de la ventana modal */}
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-wrap gap-3">
               <span className="text-xs text-gray-500">
                 Punto #{sel.i} de {sel.prod} · {sel.ld} ({sel.t}) · SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
               </span>
-              <button
-                type="button"
-                onClick={cerrarModalPunto}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-white hover:bg-black transition-colors cursor-pointer"
-              >
-                Cerrar ventana
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={exportarFichaPdfCarta}
+                  disabled={generandoPdf}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer shadow-xs"
+                >
+                  {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  <span>{generandoPdf ? 'Generando...' : 'Exportar PDF (Carta)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={imprimirFichaCarta}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5 text-gray-700" />
+                  <span>Imprimir</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={cerrarModalPunto}
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-white hover:bg-black transition-colors cursor-pointer"
+                >
+                  Cerrar ventana
+                </button>
+              </div>
             </div>
           </div>
         </div>

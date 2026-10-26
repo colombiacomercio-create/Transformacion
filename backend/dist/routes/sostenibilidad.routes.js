@@ -947,6 +947,9 @@ router.get('/attachment', async (req, res) => {
             contentType = 'video/mp4';
         }
         res.setHeader('Content-Type', contentType);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', '*');
         res.setHeader('Cache-Control', 'public, max-age=3600');
         const arrayBuffer = await upstream.arrayBuffer();
         res.send(Buffer.from(arrayBuffer));

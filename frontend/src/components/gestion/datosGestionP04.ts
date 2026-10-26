@@ -79,7 +79,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1110696",
     "ld": "Suba",
     "d": "CARRERA 141 ENTRE CALLE 142 Y CALLE 142 C",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Punto de arrojo frecuente de residuos especiales (voluminosos, residuos de construcción y demolición, neumáticos fuera de uso). En días de recolección los residentes del sector usan este punto para dejar los residuos ordinarios para que sean recogidos por el vehículo. Usualmente dejan residuos ordinarios fuera del horario y días de recolección.",
     "responsable": "Jose Luis Cerquera / Oficina Gestión Ambiental",
     "contacto": "3125300899 / jose,cerquera@gobiernobogota.gov.co",
@@ -112,7 +112,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1110693",
     "ld": "Suba",
     "d": "CARRERA 136A CON CALLE 142",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Punto de arrojo de residuos especiales (voluminosos, residuos de construcción y demolición) y, en días de recolección los residentes del sector usan este punto para dejar los residuos ordinarios para que sean recogidos por el vehiculo. Usualmente dejan residuos ordinarios fuera del horario y días de recolección.",
     "responsable": "Jose Luis Cerquera / Oficina Gestión Ambiental",
     "contacto": "3125300899 / jose,cerquera@gobiernobogota.gov.co",
@@ -145,7 +145,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1040030",
     "ld": "San Cristóbal",
     "d": "CARRERA 4 ESTE CALLE 36 H SUR",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "En este punto se evidencia un arrojo frecuente de residuos por parte de los habitantes del sector , siendo reincidente posterior a la recolección por la empresa de servicios.",
     "responsable": "Joan Felipe Paez Sanchez",
     "contacto": "Jpaezsfdls@gmail.com",
@@ -178,7 +178,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1040060",
     "ld": "San Cristóbal",
     "d": "CARRERA 8 C ESTE CON CALLE 36 L SUR",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "En este punto se evidencia un arrojo frecuente de residuos por parte de los habitantes del sector , siendo reincidente posterior a la recolección por la empresa de servicios.",
     "responsable": "Felipe Paez Sanchez",
     "contacto": "Jpaezsfdlsc@gmail.com",
@@ -211,7 +211,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1030025",
     "ld": "Santa Fe",
     "d": "CALLE 33 CARRERA 1",
-    "estadoSeleccion": "Marcado con X (cuadro de texto superpuesto)",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "El punto se utiliza de manera constante para acumulación de escombros, residuos voluminosos y residuos ordinarios ya que se encuentra sobre una via principal, lo que facilita la acumulacion de residuos, pero tambien la recolección",
     "responsable": "Carmen Lucia Cordoba",
     "contacto": "3133791513 carmen.cordoba@gobiernobogota.gov.co",
@@ -244,7 +244,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1070132",
     "ld": "Bosa",
     "d": "CARRERA 105 B ENTRE CALLE 72 SUR Y CALLE 69 A SUR",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Se evidencia disposición recurrente e inadecuada de residuos y escombros, generando un punto crítico de acumulación por la práctica reiterada de la comunidad. Su cercanía a un cuerpo de agua y a un establecimiento educativo aumenta el riesgo de afectación ambiental y sanitaria, por lo que se prioriza su intervención.",
     "responsable": "DIANA CAROLINA MARTINEZ",
     "contacto": "318 8241857  -   diana.martinezq@gobiernobogota.gov.co",
@@ -274,7 +274,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
         "tipo": "Otra acción necesaria:  Mesa de articulacion con la comunidad",
         "fechas": "[30/,07/ 2026 -  27/08/2026   14/10/2026]",
         "actividad": "Dar continuidad a las mesas de trabajo con comunidad y entidades, fortaleciendo acuerdos, responsabilidades y acciones de apropiación comunitaria para garantizar la sostenibilidad del espacio.",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla"
+        "observacion": ""
       }
     ]
   },
@@ -283,7 +283,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1190190",
     "ld": "Ciudad Bolívar",
     "d": "CALLE 61 SUR 23C",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "El punto presenta disposición inadecuada de residuos de construcción y demolición (RCD) y voluminosos, generando impacto directo sobre la ronda de protección del Humedal El Tunjo",
     "responsable": "Camila Pulgarin Estrada",
     "contacto": "3057434338  geraldine.pulgarin@gobiernobogota.gov.co",
@@ -322,7 +322,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1050052",
     "ld": "Usme",
     "d": "CALLE 136 A SUR ENTRE CARRERA 14 Y CARRERA 14 I",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "En este punto existe un arrojo constante de residuos voluminosos. Generados por la misma comunidad y establecimientos comerciales. En el sector se evidencia una amplia zona de verde.",
     "responsable": "Jenny Paola Muñoz Ardila – IVC Ambiental",
     "contacto": "3107992719 jennyp.munoz@gobiernobogota.gov.co",
@@ -355,7 +355,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1160325",
     "ld": "Puente Aranda",
     "d": "CALLE 17 A ENTRE CARRERA 57 Y CARRERA 58",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "En estos puntos se realiza disposición inadecuada de residuos de gran volumen, RCD,  algunas veces se han evidenciado biosanitarios,, asi como domiciliarios, es un punto de arrojo mixto, en el año 2025 y 2026, alcaldía local ha realizo acompañamiento y presencia en el punto como parte de actividad de recuperación y sostenimiento, se realizó recuperación de espacio público con rehabilitación de andenes, y mural  por el día de la Bogotaneidad, es un sector industrial y con presencia de bodegas de reciclaje, chatarrerías, residencia, educativo y de transición de  Esta afectado por la presencia de carreteros y CHC, arrojo de RCD, voluminosos, de los habitantes del sector y comerciantes, queda alrededor de la  cárcel modelo,  existe un lote administrado por la universidad de Cundinamarca el cual realizo un cerramiento pero en este momento por la presencia  y acumulación de llantas está en riesgo de caída",
     "responsable": "Lizeth Pérez - Gestión Juriridca y polivica Referente Ambiental",
     "contacto": "3107547924   lizeth.perez@gobiernobogota.gov.co",
@@ -394,7 +394,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1160310",
     "ld": "Puente Aranda",
     "d": "CALLE 13 30",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "En este punto se evidencia presencia de carreteros y habitabilidad en calle, existe acumulación de basuras por la separación en la fuente que realizan, es un sector comercial y de vías principales.",
     "responsable": "Lizeth Pérez - Gestión Juriridca y polivica Referente Ambiental",
     "contacto": "3107547924   lizeth.perez@gobiernobogota.gov.co",
@@ -433,7 +433,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1010063",
     "ld": "Usaquén",
     "d": "CARRERA 15 CALLE 163A",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Al tratarse de una zona verde colindante con un cuerpo de agua, el sector se ha consolidado como un foco crítico de disposición incontrolada e inadecuada de residuos. Esta problemática se ve agudizada por la convergencia de múltiples actores entre ellos ciudadanos habitantes de calle, residentes de la zona, población flotante, carreteros y recicladores informales, quienes de forma reiterada  arrojan escombros, llantas usadas y todo tipo de desechos sólidos.",
     "responsable": "Laura Vargas Guzmán - Alusa Ambiente",
     "contacto": "3166949334 – laura.vargasg@gobiernobogota.gov.co",
@@ -472,7 +472,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1150338",
     "ld": "Antonio Nariño",
     "d": "AVENIDA CARACAS CON CALLE 12 SUR",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "En el punto se evidencia inadecuada disposición de residuos sólidos, así como la presencia de carreteros y estructuras no convencionales, generando afectaciones al espacio público y condiciones que requieren seguimiento y atención institucional..",
     "responsable": "Natalia Rozo – Referente Ambiental",
     "contacto": "3152590622 -natalia.rozo@gobiernobogota.gov.co- yanis.prieto@gobiernobogota.gov.co",
@@ -490,7 +490,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
         "tipo": "Operativo de inspección, vigilancia y control (IVC)",
         "fechas": "28/10/2026",
         "actividad": "Jornada de Cazainfractores",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla"
+        "observacion": ""
       },
       {
         "tipo": "Sensibilización o pedagogía",
@@ -505,7 +505,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1140295",
     "ld": "Los Mártires",
     "d": "CARRERA 17 ENTRE CALLES 13 Y 18",
-    "estadoSeleccion": "Marcado con X (cuadro de texto superpuesto)",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Acumulación y disposición inadecuada de residuos, presencia de habitantes de calle y estructuras no convencionales. Se presentan además condiciones asociadas a seguridad y ocupación inadecuada del espacio público.",
     "responsable": "Natalia Becerra- Referente Ambienta",
     "contacto": "3163662106- natalia.becerra@gobiernobogota.gov.co",
@@ -565,7 +565,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1080391",
     "ld": "Kennedy",
     "d": "AVENIDA CIUDAD DE CALI DE CALLE 42B BIS SUR A CALLE 42F BIS - COSTADO ORIENTAL",
-    "estadoSeleccion": "Marcado con X (cuadro de texto superpuesto)",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Arrojo clandestino por parte de carreteros informales con reincidencia después de la recolección.",
     "responsable": "3166183553",
     "contacto": "3166183553",
@@ -586,7 +586,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1020075",
     "ld": "Chapinero",
     "d": "CARRERA 13A CON CALLE 97 A",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Se evidencia la disposición inadecuada de residuos mixtos en el sector, entre los cuales se encuentran residuos de construcción y demolición, llantas y otros residuos voluminosos, así como residuos domiciliarios. Adicionalmente, recicladores de oficio realizan actividades de separación y clasificación de material aprovechable directamente en el espacio público. Esta situación genera afectación en el entorno del parque, debido a la permanencia temporal de residuos y materiales durante el proceso de selección. Por lo anterior, se identifica una problemática asociada tanto a la disposición inadecuada de residuos como al uso del espacio público para actividades de separación de material reciclable",
     "responsable": "JIMMY JADEDT",
     "contacto": "3147773425/ingecampambiental@gmail.com Ambiente.chapinero@gobiernobogota.gov.co",
@@ -619,8 +619,8 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1100565",
     "ld": "Engativá",
     "d": "CALLE 64 CARRERA 113F (y Carrera 119A # 70A Bis)",
-    "estadoSeleccion": "Marcado con X (cuadro de texto superpuesto)",
-    "problematica": "Ejemplo: disposición frecuente de residuos ordinarios y escombros junto al canal, con reincidencia después de la recolección.",
+    "estadoSeleccion": "Confirmado en ficha oficial",
+    "problematica": "Disposición frecuente de residuos ordinarios y escombros junto al canal, con reincidencia después de la recolección.",
     "responsable": "Fernanda Villamil",
     "contacto": "3209847669- Diana.villamil@gobiernobogota.gov.co",
     "puntosFicha": "1100516 – CARRERA 91 ENTRE CALLE 97 Y AVENIDA CIUDAD DE CALI AMBOS COSTADOS; 1100565 – CALLE 64 CARRERA 113F",
@@ -631,37 +631,37 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
         "tipo": "Intervención o recuperación del punto",
         "fechas": "08/10, 15/10, 29/10",
         "actividad": "Recorrido e intervención programada en el punto",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla; Descripción es ejemplo de plantilla; Problemática textual es ejemplo de plantilla"
+        "observacion": ""
       },
       {
         "tipo": "Operativo de inspección, vigilancia y control (IVC)",
         "fechas": "16/10",
         "actividad": "Caza infractores",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla; Problemática textual es ejemplo de plantilla"
+        "observacion": ""
       },
       {
         "tipo": "Sensibilización o pedagogía",
         "fechas": "13/10",
         "actividad": "Sensibilización adecuado manejo de residuos, horarios y frecuencias del operador",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla; Problemática textual es ejemplo de plantilla"
+        "observacion": ""
       },
       {
         "tipo": "Intervención o recuperación del punto",
         "fechas": "02/10,",
         "actividad": "Inicio de intervencion: Renaturalizar",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla; Problemática textual es ejemplo de plantilla"
+        "observacion": ""
       },
       {
         "tipo": "Operativo de inspección, vigilancia y control (IVC)",
         "fechas": "05/10,",
         "actividad": "Caza infractores",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla; Problemática textual es ejemplo de plantilla"
+        "observacion": ""
       },
       {
         "tipo": "Sensibilización o pedagogía",
         "fechas": "14/10,",
         "actividad": "Sensibilización adecuado manejo de residuos, horarios y frecuencias del operador",
-        "observacion": "Acción con fecha o descripción, pero sin X en la casilla; Problemática textual es ejemplo de plantilla"
+        "observacion": ""
       }
     ]
   },
@@ -670,7 +670,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1090441",
     "ld": "Fontibón",
     "d": "AVENIDA CIUDAD DE CALI CON CALLE 24D INTERSECCION PARA TOMAR LA AVENIDA LA ESPERANZA",
-    "estadoSeleccion": "Marcado con X",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "DISPOSICION INADECUADA DE RESIDUOS SOLIDOS EN ESPECIAL ORDINARIOS Y VOLUMINOSOS, ADEMAS SE EVIDENCIA PRESENCIA DE CAMBUCHES.",
     "responsable": "ALEJANDRA MENDEZ-LIDER AMBIENTE IVC",
     "contacto": "3102033904-ALEJANDRA.MENDEZN@GOBIERNOBOGOTA.GOV.CO",
@@ -703,7 +703,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1170061",
     "ld": "La Candelaria",
     "d": "CALLE 9 CARRERA 4 ESTE",
-    "estadoSeleccion": "Punto único en la ficha (sin X explícita)",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Se evidencia una disposición de residuos contra frecuencia, principalmente en horas de la tarde y noche, pese a que la frecuencia de recolección en el sector corresponde a los días martes, jueves y sábados en horas de la mañana. Adicionalmente, las vías aledañas, Carrera 4 Este y Calle 9 Bis, son peatonales, condición que dificulta la recolección de los residuos por parte del prestador del servicio y genera que la comunidad los deje desde la noche anterior. También se evidencia la disposición de residuos voluminosos en el punto.\nEsta situación requiere intervención debido a que corresponde al único punto crítico de residuos identificado por la UAESP en la localidad de La Candelaria, por lo que es necesario fortalecer las acciones de sensibilización, seguimiento y control para prevenir la acumulación recurrente de residuos en el espacio público.",
     "responsable": "María Camila Carreño - FDLC Ambiente",
     "contacto": "350 5977500 – mariac.carreno@gobiernobogota.gov.co",
@@ -715,13 +715,13 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
         "tipo": "Intervención o recuperación del punto",
         "fechas": "29 de octubre",
         "actividad": "Jornada de embellecimiento y apropiación ambiental del punto",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       },
       {
         "tipo": "Sensibilización o pedagogía",
         "fechas": "16 de octubre",
         "actividad": "Jornada de sensibilización sobre manejo adecuado de residuos y normativa ambiental vigente.",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       }
     ]
   },
@@ -730,7 +730,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1130278",
     "ld": "Teusaquillo",
     "d": "CARRERA 24 CALLE 47, ESQUINA COLEGIO PALERMO",
-    "estadoSeleccion": "Punto único en la ficha (sin X explícita)",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Se presenta disposición inadecuada de residuos domésticos en horarios y puntos no autorizados, así como disposición ocasional de RCD y residuos voluminosos. Esta situación evidencia reincidencia, incluso después de realizar la recolección y atención del punto, generando nuevamente acumulación de residuos en el sector.",
     "responsable": "Juan David Becerra – Gestion Policiva",
     "contacto": "3103132186 – juand.becerra@gobiernobogota.gov.co",
@@ -742,25 +742,25 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
         "tipo": "Intervención o recuperación del punto",
         "fechas": "14/10",
         "actividad": "Limpieza del punto e instalación de señaletica",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       },
       {
         "tipo": "Operativo de inspección, vigilancia y control (IVC)",
         "fechas": "Sujeto a disponibilidad E13",
         "actividad": "Operativos verificación art 94 ley 1801  separación de residuos y caza  infractores.",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       },
       {
         "tipo": "Sensibilización o pedagogía",
         "fechas": "13/10 , 20/10 , 27/10",
         "actividad": "Pedagogogia dirigida a establecimientos de comercio y comunidad sobre manejo integral de residuos",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       },
       {
         "tipo": "Otra acción necesaria: [indique cuál]",
         "fechas": "29/10",
         "actividad": "Taller ecoambiental Colegio Palermo",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       }
     ]
   },
@@ -769,7 +769,7 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
     "uaespId": "1060186",
     "ld": "Tunjuelito",
     "d": "DIAGONAL 59 B SUR CARRERA 19 A",
-    "estadoSeleccion": "Punto único en la ficha (sin X explícita)",
+    "estadoSeleccion": "Confirmado en ficha oficial",
     "problematica": "Disposición frecuente e inadecuada de residuos voluminosos, residuos de construcción y demolición y residuos de curtiembres en inmediaciones de la quebrada Chiguaza, con presencia recurrente de estos residuos incluso después de las jornadas de recolección.",
     "responsable": "Vanessa Valbuena",
     "contacto": "3142640132- vanesa.valbuena@gobiernobogota.gov.co",
@@ -781,19 +781,19 @@ export const PUNTOS_FOCALIZADOS_OCT_2026: PuntoFocalizadoOct[] = [
         "tipo": "Intervención o recuperación del punto",
         "fechas": "29/10",
         "actividad": "Jornada articulada de lImpieza, recolección de residuos y embellecimiento",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       },
       {
         "tipo": "Operativo de inspección, vigilancia y control (IVC)",
         "fechas": "22/10, fecha tentativa sujeto a disponibilidad",
         "actividad": "hacer recorridos de control, verificar infracciones y aplicar las medidas correspondientes.",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       },
       {
         "tipo": "Sensibilización o pedagogía",
         "fechas": "15/10, 20/10",
         "actividad": "Orientar a residentes y establecimientos  sobre horarios, separación y disposición adecuada.",
-        "observacion": "Selección por punto único disponible en la ficha; no requiere marca X."
+        "observacion": ""
       }
     ]
   }

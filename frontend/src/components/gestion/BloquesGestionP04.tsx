@@ -1,4 +1,7 @@
-import { X, Calendar, UserCheck, AlertTriangle, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { X, Calendar, UserCheck, AlertTriangle, CheckCircle2, ShieldAlert, Sparkles, Download, Printer, Loader2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { GestionP04Datos, PuntoFocalizadoOct } from './datosGestionP04';
 
 interface BloquesGestionProps {
@@ -783,6 +786,8 @@ interface ModalFocalizadoProps {
 }
 
 export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps) {
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+
   const getIconForTipo = (tipo: string) => {
     const t = tipo.toLowerCase();
     if (t.includes('ivc') || t.includes('control')) return <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />;
@@ -790,11 +795,91 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
     return <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0" />;
   };
 
+  const exportarPdfCarta = async () => {
+    const el = document.getElementById('ficha-focalizado-imprimible-carta');
+    if (!el) return;
+    setGenerandoPdf(true);
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'letter',
+      });
+      const pageWidth = 215.9;
+      const pageHeight = 279.4;
+      const margin = 8;
+      const contentWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+      if (imgHeight <= pageHeight - margin * 2) {
+        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, imgHeight);
+      } else {
+        let heightLeft = imgHeight;
+        let position = margin;
+        const usableHeight = pageHeight - margin * 2;
+        pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+        heightLeft -= usableHeight;
+        while (heightLeft > 0) {
+          position = position - usableHeight;
+          pdf.addPage('letter', 'portrait');
+          pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+          heightLeft -= usableHeight;
+        }
+      }
+      const fileName = `Ficha_UAESP_Focalizado_${punto.ld}_${punto.uaespId}.pdf`.replace(/\s+/g, '_');
+      pdf.save(fileName);
+    } catch (err) {
+      console.error('Error generando PDF de punto focalizado:', err);
+      alert('Hubo un error al generar el PDF. Por favor utiliza la opción de Imprimir.');
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
+
+  const imprimirCarta = () => {
+    window.print();
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-xs"
       onClick={onClose}
     >
+      <style>{`
+        @page {
+          size: letter portrait;
+          margin: 8mm;
+        }
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #ficha-focalizado-imprimible-carta, #ficha-focalizado-imprimible-carta * {
+            visibility: visible !important;
+          }
+          #ficha-focalizado-imprimible-carta {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 16px !important;
+            background: #ffffff !important;
+          }
+          .no-imprimir {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div
         className="bg-white rounded-xl max-w-4xl w-full shadow-2xl border border-purple-200 overflow-hidden my-8 max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
@@ -821,7 +906,7 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
             </h2>
           </div>
 
-          <div className="flex items-center gap-5 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
             <div>
               <div style={{ fontFamily: 'Archivo, system-ui, sans-serif', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: 0.85 }}>
                 ID UAESP
@@ -838,19 +923,60 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
                 {punto.ld}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
-              title="Cerrar pestaña"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 no-imprimir">
+              <button
+                type="button"
+                onClick={exportarPdfCarta}
+                disabled={generandoPdf}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-purple-900 hover:bg-purple-50 transition-colors shadow-xs cursor-pointer"
+                title="Descargar ficha en PDF tamaño carta"
+              >
+                {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-700" /> : <Download className="w-3.5 h-3.5 text-purple-700" />}
+                <span>{generandoPdf ? 'Generando...' : 'Exportar PDF (Carta)'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={imprimirCarta}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                title="Imprimir ficha tamaño carta"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Imprimir</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                title="Cerrar pestaña"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Cuerpo de la pestaña */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        {/* Cuerpo imprimible de la ficha */}
+        <div id="ficha-focalizado-imprimible-carta" className="p-6 overflow-y-auto space-y-6">
+          {/* Encabezado institucional para impresión / exportación */}
+          <div className="border-b border-purple-200 pb-3 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-bold text-purple-900 uppercase tracking-wider">
+                Alcaldía Mayor de Bogotá · Secretaría Distrital de Gobierno
+              </div>
+              <div className="text-xs text-gray-600 font-semibold">
+                SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
+              </div>
+              <div className="text-[11px] text-gray-500">
+                Ficha Técnica de Acción Focalizada UAESP · Octubre 2026
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-purple-100 text-purple-900 border border-purple-300">
+                UAESP: {punto.uaespId} · {punto.ld}
+              </span>
+            </div>
+          </div>
+
           {/* Bloque superior: Problemática y Responsable */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <div className="lg:col-span-2 bg-purple-50/60 border border-purple-200 rounded-lg p-4">
@@ -876,7 +1002,7 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
               <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-xs">
                 <span className="text-gray-500">Estado en ficha:</span>
                 <span className="font-semibold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-md">
-                  {punto.estadoSeleccion}
+                  {punto.estadoSeleccion || 'Confirmado en ficha oficial'}
                 </span>
               </div>
             </div>
@@ -921,7 +1047,7 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
                       {acc.actividad}
                     </p>
                   </div>
-                  {acc.observacion && (
+                  {acc.observacion && acc.observacion.trim().length > 0 && !/sin x|plantilla|ejemplo|casilla/i.test(acc.observacion) && (
                     <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1">
                       Nota: {acc.observacion}
                     </div>
@@ -940,20 +1066,45 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
               <span>{punto.puntosFicha}</span>
             </div>
           )}
+
+          {/* Pie institucional de página */}
+          <div className="pt-3 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500">
+            <span>SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público</span>
+            <span>Documento Oficial de Monitoreo · Bogotá D.C.</span>
+          </div>
         </div>
 
         {/* Pie del modal */}
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-wrap gap-3">
           <span className="text-xs text-gray-500">
             SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público · Base de Intervenciones Octubre 2026 ({punto.ld})
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg text-xs font-bold bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer"
-          >
-            Cerrar pestaña
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={exportarPdfCarta}
+              disabled={generandoPdf}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer shadow-xs"
+            >
+              {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{generandoPdf ? 'Generando...' : 'Exportar PDF (Carta)'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={imprimirCarta}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Imprimir</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-white hover:bg-black transition-colors cursor-pointer"
+            >
+              Cerrar pestaña
+            </button>
+          </div>
         </div>
       </div>
     </div>
