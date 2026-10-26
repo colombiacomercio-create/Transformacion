@@ -969,6 +969,11 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
   const [arcgisPass, setArcgisPass] = useState('');
   const [arcgisToken, setArcgisToken] = useState('');
 
+  // Modal para Exportar Informe Consolidado (Residuos P04, Espacio Público P05 o Ambos)
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportTab, setExportTab] = useState<'P04' | 'P05' | 'AMBOS'>('AMBOS');
+  const [generandoConsolidadoPdf, setGenerandoConsolidadoPdf] = useState(false);
+
   const abrirModalPunto = useCallback((id: string) => {
     setSelectedFocalizadoId(null);
     setSelectedId(id);
@@ -1496,6 +1501,55 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     window.print();
   };
 
+  const exportarConsolidadoPdfCarta = async () => {
+    const el = document.getElementById('reporte-consolidado-imprimible');
+    if (!el) return;
+    setGenerandoConsolidadoPdf(true);
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'letter',
+      });
+      const pageWidth = 215.9;
+      const pageHeight = 279.4;
+      const margin = 8;
+      const contentWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+      if (imgHeight <= pageHeight - margin * 2) {
+        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, imgHeight);
+      } else {
+        let heightLeft = imgHeight;
+        let position = margin;
+        const usableHeight = pageHeight - margin * 2;
+        pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+        heightLeft -= usableHeight;
+        while (heightLeft > 0) {
+          position = position - usableHeight;
+          pdf.addPage('letter', 'portrait');
+          pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+          heightLeft -= usableHeight;
+        }
+      }
+      const sufijo = exportTab === 'P04' ? 'Residuos_P04' : exportTab === 'P05' ? 'Espacio_Publico_P05' : 'Consolidado_Distrital_P04_P05';
+      pdf.save(`Informe_Sostenibilidad_${sufijo}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error('Error generando PDF consolidado:', err);
+      alert('Hubo un inconveniente al generar el PDF. Por favor utiliza la opción de Imprimir.');
+    } finally {
+      setGenerandoConsolidadoPdf(false);
+    }
+  };
+
   const abrirModalPuntoYExportar = (id: string) => {
     setSelectedFocalizadoId(null);
     setSelectedId(id);
@@ -1589,21 +1643,13 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => {
-                const targetId = selectedId || (todosFull && todosFull.length > 0 ? todosFull[0].id : null);
-                if (targetId) {
-                  abrirModalPuntoYExportar(targetId);
-                } else {
-                  alert('Selecciona un punto en la tabla o el mapa para exportar su ficha en PDF.');
-                }
-              }}
-              disabled={generandoPdf}
+              onClick={() => setShowExportModal(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer bg-purple-700 hover:bg-purple-800"
               style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}
-              title="Descargar Ficha Técnica en PDF (Tamaño Carta)"
+              title="Abrir panel para exportar informe consolidado de Residuos, Espacio Público o Ambos"
             >
-              {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              <span>{generandoPdf ? 'Generando PDF...' : 'Exportar PDF (Carta)'}</span>
+              <Download className="w-3.5 h-3.5" />
+              <span>Exportar Informe (Carta)</span>
             </button>
 
             <button
@@ -2830,6 +2876,371 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
               >
                 Guardar y sincronizar ahora
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Exportar Informe Consolidado (Residuos, Espacio Público o Ambos) */}
+      {showExportModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in"
+          onClick={() => setShowExportModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-5xl w-full shadow-2xl border border-gray-200 overflow-hidden my-4 max-h-[92vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Cabecera del Modal */}
+            <div className="bg-gradient-to-r from-purple-800 to-indigo-900 text-white px-6 py-4 flex flex-wrap gap-4 items-center justify-between border-b border-purple-950">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                  <FileText className="w-5 h-5 text-purple-200" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-white leading-tight">Exportar Informe Consolidado</h3>
+                  <p className="text-xs text-purple-200">Genera y descarga en PDF tamaño carta el balance distrital completo</p>
+                </div>
+              </div>
+
+              {/* Botones de acción superiores */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={exportarConsolidadoPdfCarta}
+                  disabled={generandoConsolidadoPdf}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-purple-950 bg-white hover:bg-purple-50 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                >
+                  {generandoConsolidadoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-700" /> : <Download className="w-3.5 h-3.5 text-purple-700" />}
+                  <span>{generandoConsolidadoPdf ? 'Generando PDF...' : 'Descargar PDF (Carta)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
+                  title="Imprimir directamente desde el navegador"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExportModal(false)}
+                  className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                  title="Cerrar ventana"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Selector de Pestañas: Todo Residuos | Todo Espacio Público | Ambos */}
+            <div className="bg-gray-100 px-6 py-3 border-b border-gray-200 flex flex-wrap gap-2 items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-2">Alcance del informe:</span>
+                <button
+                  type="button"
+                  onClick={() => setExportTab('P04')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    exportTab === 'P04'
+                      ? 'bg-purple-700 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  🗑 P04 · Todo Residuos ({p04Full.length} puntos)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportTab('P05')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    exportTab === 'P05'
+                      ? 'bg-purple-700 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  🚶 P05 · Todo Espacio Público ({p05Full.length} puntos)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportTab('AMBOS')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    exportTab === 'AMBOS'
+                      ? 'bg-purple-700 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  🏛 Ambos · Consolidado Distrital ({p04Full.length + p05Full.length} puntos)
+                </button>
+              </div>
+              <div className="text-xs text-gray-500 hidden sm:block">
+                Formato distribuido para hoja <strong>Tamaño Carta</strong>
+              </div>
+            </div>
+
+            {/* Vista previa imprimible / descargable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50 flex justify-center">
+              <div
+                id="reporte-consolidado-imprimible"
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 w-full max-w-[850px] text-gray-900"
+                style={{ fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif' }}
+              >
+                {/* Encabezado Oficial Institucional */}
+                <div className="border-b-2 border-red-600 pb-4 mb-6">
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <div className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">
+                        Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
+                      </div>
+                      <div className="text-[10px] font-semibold text-gray-500">
+                        Subsecretaría de Gestión Local · Grupo de Espacio Público · RADAR
+                      </div>
+                      <h1 className="text-xl font-bold text-gray-900 mt-1 uppercase" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                        {exportTab === 'P04' && 'Informe Consolidado · P04 Gestión de Residuos'}
+                        {exportTab === 'P05' && 'Informe Consolidado · P05 Recuperación de Espacio Público'}
+                        {exportTab === 'AMBOS' && 'Informe Distrital Consolidado · Sostenibilidad de Puntos (P04 + P05)'}
+                      </h1>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="inline-block bg-purple-50 text-purple-800 text-[11px] font-bold px-2.5 py-1 rounded-md border border-purple-200">
+                        Corte Oficial: 15 Octubre 2026
+                      </div>
+                      <div className="text-[10px] text-gray-400 mt-1">Fuente: Survey123 & RADAR</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tarjetas KPI de Resumen */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-center">
+                    <div className="text-xs text-gray-500 font-medium">Puntos Priorizados</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {exportTab === 'P04' ? p04Full.length : exportTab === 'P05' ? p05Full.length : p04Full.length + p05Full.length}
+                    </div>
+                    <div className="text-[10px] text-gray-400">Total en seguimiento</div>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200 text-center">
+                    <div className="text-xs text-green-700 font-medium">% Sostenimiento</div>
+                    <div className="text-2xl font-bold text-green-700">
+                      {exportTab === 'P04' ? '73,3%' : exportTab === 'P05' ? '82,6%' : '77,4%'}
+                    </div>
+                    <div className="text-[10px] text-green-600">
+                      {exportTab === 'P04' ? '44 puntos sostenidos' : exportTab === 'P05' ? '38 puntos sostenidos' : '82 puntos sostenidos'}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 p-3 rounded-lg border border-red-200 text-center">
+                    <div className="text-xs text-red-700 font-medium">Recaída Confirmada</div>
+                    <div className="text-2xl font-bold text-red-700">
+                      {exportTab === 'P04' ? '13' : exportTab === 'P05' ? '8' : '21'}
+                    </div>
+                    <div className="text-[10px] text-red-600">
+                      {exportTab === 'P04' ? '21,7% de recaída' : exportTab === 'P05' ? '17,4% de recaída' : '19,8% distrital'}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-center">
+                    <div className="text-xs text-blue-700 font-medium">Cobertura Visitas</div>
+                    <div className="text-2xl font-bold text-blue-700">
+                      {exportTab === 'P04' ? '95,0%' : exportTab === 'P05' ? '100%' : '97,2%'}
+                    </div>
+                    <div className="text-[10px] text-blue-600">Verificados en territorio</div>
+                  </div>
+                </div>
+
+                {/* CONTENIDO: P04 TODO RESIDUOS */}
+                {(exportTab === 'P04' || exportTab === 'AMBOS') && (
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                      <h2 className="text-base font-bold text-gray-900 uppercase" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                        P04 · Gestión de Residuos ({p04Full.length} Puntos Priorizados)
+                      </h2>
+                      <span className="text-xs font-semibold text-gray-500">Sostenimiento: 73,3%</span>
+                    </div>
+
+                    <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                      Evaluación sobre 60 puntos priorizados en el Distrito. Los clasificados como <strong>Sostenido</strong> y <strong>En riesgo</strong> suman al sostenimiento. La única clase que exige reintervención es <strong>Recaída confirmada</strong>.
+                    </p>
+
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg mb-4">
+                      <table className="w-full text-left text-[11px] border-collapse">
+                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-200">
+                          <tr>
+                            <th className="p-2 w-8 text-center">#</th>
+                            <th className="p-2 w-28">Localidad</th>
+                            <th className="p-2">Dirección del Punto</th>
+                            <th className="p-2 w-28 text-center">Clasificación</th>
+                            <th className="p-2 w-12 text-center">ISP</th>
+                            <th className="p-2 w-44">Principal Factor de Riesgo</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {p04Full.map((p, idx) => (
+                            <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                              <td className="p-2 text-center font-mono text-gray-400">{idx + 1}</td>
+                              <td className="p-2 font-semibold text-gray-800">{p.ld}</td>
+                              <td className="p-2 text-gray-900">{p.d}</td>
+                              <td className="p-2 text-center">
+                                <span
+                                  className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                  style={{ background: p.chipBg, color: p.chipFg }}
+                                >
+                                  {p.estado}
+                                </span>
+                              </td>
+                              <td className="p-2 text-center font-mono font-bold text-gray-700">{p.ispTxt}</td>
+                              <td className="p-2 text-gray-600">{p.riesgo}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* CONTENIDO: P05 TODO ESPACIO PÚBLICO */}
+                {(exportTab === 'P05' || exportTab === 'AMBOS') && (
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                      <h2 className="text-base font-bold text-gray-900 uppercase" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                        P05 · Recuperación y Organización del Espacio Público ({p05Full.length} Puntos Priorizados)
+                      </h2>
+                      <span className="text-xs font-semibold text-gray-500">Sostenimiento Exacto: 82,6%</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      <div className="bg-amber-50/60 p-3 rounded-lg border border-amber-200">
+                        <div className="text-xs font-bold text-amber-900 mb-1">Ventas Informales</div>
+                        <div className="text-sm font-semibold text-amber-800">26 puntos evaluados · 84,6% sostenimiento</div>
+                        <div className="text-[11px] text-amber-700 mt-1">22 sostenidos o en riesgo · 4 recaídas confirmadas</div>
+                      </div>
+                      <div className="bg-blue-50/60 p-3 rounded-lg border border-blue-200">
+                        <div className="text-xs font-bold text-blue-900 mb-1">Parqueo Indebido</div>
+                        <div className="text-sm font-semibold text-blue-800">20 puntos evaluados · 80,0% sostenimiento</div>
+                        <div className="text-[11px] text-blue-700 mt-1">16 sostenidos o en riesgo · 4 recaídas confirmadas</div>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg mb-4">
+                      <table className="w-full text-left text-[11px] border-collapse">
+                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-200">
+                          <tr>
+                            <th className="p-2 w-8 text-center">#</th>
+                            <th className="p-2 w-28">Localidad</th>
+                            <th className="p-2">Dirección del Punto</th>
+                            <th className="p-2 w-28 text-center">Clasificación</th>
+                            <th className="p-2 w-12 text-center">ISP</th>
+                            <th className="p-2 w-44">Problemática del Punto</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {p05Full.map((p, idx) => (
+                            <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                              <td className="p-2 text-center font-mono text-gray-400">{idx + 1}</td>
+                              <td className="p-2 font-semibold text-gray-800">{p.ld}</td>
+                              <td className="p-2 text-gray-900">{p.d}</td>
+                              <td className="p-2 text-center">
+                                <span
+                                  className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                  style={{ background: p.chipBg, color: p.chipFg }}
+                                >
+                                  {p.estado}
+                                </span>
+                              </td>
+                              <td className="p-2 text-center font-mono font-bold text-gray-700">{p.ispTxt}</td>
+                              <td className="p-2 text-gray-600">{p.riesgo}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* CONTENIDO: MATRIZ DISTRITAL POR LOCALIDAD (PARA PESTAÑA AMBOS) */}
+                {exportTab === 'AMBOS' && (
+                  <div className="mb-8">
+                    <div className="border-b border-gray-200 pb-2 mb-3">
+                      <h2 className="text-base font-bold text-gray-900 uppercase" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                        Matriz Distrital Comparativa por Localidades
+                      </h2>
+                      <p className="text-xs text-gray-500">Balance articulado de puntos P04 Residuos y P05 Espacio Público en las 20 localidades</p>
+                    </div>
+
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table className="w-full text-left text-[11px] border-collapse">
+                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-200">
+                          <tr>
+                            <th className="p-2 w-8 text-center">Cód</th>
+                            <th className="p-2">Localidad</th>
+                            <th className="p-2 text-center bg-blue-50/50">P04 Pri.</th>
+                            <th className="p-2 text-center bg-blue-50/50">P04 Sost.</th>
+                            <th className="p-2 text-center bg-blue-50/50">P04 Rec.</th>
+                            <th className="p-2 text-center bg-amber-50/50">P05 Pri.</th>
+                            <th className="p-2 text-center bg-amber-50/50">P05 Sost.</th>
+                            <th className="p-2 text-center bg-amber-50/50">P05 Rec.</th>
+                            <th className="p-2 text-center font-bold">Total Puntos</th>
+                            <th className="p-2 text-center font-bold">Sostenimiento</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {matriz.map(m => {
+                            const totalPri = (typeof m.p4.pri === 'number' ? m.p4.pri : 0) + (typeof m.p5.pri === 'number' ? m.p5.pri : 0);
+                            const totalSost = (typeof m.p4.sost === 'number' ? m.p4.sost : 0) + (typeof m.p5.sost === 'number' ? m.p5.sost : 0);
+                            const pctGlobal = totalPri > 0 ? Math.round((totalSost / totalPri) * 100) : 0;
+                            return (
+                              <tr key={m.cod} className="hover:bg-gray-50/50">
+                                <td className="p-2 text-center font-mono text-gray-400">{m.cod}</td>
+                                <td className="p-2 font-semibold text-gray-800">{m.ld}</td>
+                                <td className="p-2 text-center bg-blue-50/30">{m.p4.pri}</td>
+                                <td className="p-2 text-center bg-blue-50/30 font-bold text-green-700">{m.p4.sost}</td>
+                                <td className="p-2 text-center bg-blue-50/30 text-red-700">{m.p4.noSost}</td>
+                                <td className="p-2 text-center bg-amber-50/30">{m.p5.pri}</td>
+                                <td className="p-2 text-center bg-amber-50/30 font-bold text-green-700">{m.p5.sost}</td>
+                                <td className="p-2 text-center bg-amber-50/30 text-red-700">{m.p5.noSost}</td>
+                                <td className="p-2 text-center font-bold text-gray-900">{totalPri || '—'}</td>
+                                <td className="p-2 text-center font-bold text-green-800">
+                                  {totalPri > 0 ? `${pctGlobal}%` : '—'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pie Oficial del Documento */}
+                <div className="border-t border-gray-200 pt-4 mt-8 flex flex-wrap justify-between items-center text-[10px] text-gray-500 gap-2">
+                  <span>Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
+                  <span>Documento oficial de seguimiento y gobernanza · RADAR Bogotá · Hoja tamaño carta</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pie del Modal con Botones */}
+            <div className="bg-white px-6 py-3 border-t border-gray-200 flex flex-wrap justify-between items-center gap-3">
+              <div className="text-xs text-gray-500">
+                Puntos incluidos en el informe: <strong>
+                  {exportTab === 'P04' ? `${p04Full.length} puntos de Residuos` : exportTab === 'P05' ? `${p05Full.length} puntos de Espacio Público` : `${p04Full.length + p05Full.length} puntos distritales`}
+                </strong>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  onClick={exportarConsolidadoPdfCarta}
+                  disabled={generandoConsolidadoPdf}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white bg-purple-700 hover:bg-purple-800 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                >
+                  {generandoConsolidadoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  <span>{generandoConsolidadoPdf ? 'Generando PDF...' : 'Descargar PDF (Carta)'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
