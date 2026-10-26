@@ -64,7 +64,7 @@ export const azureADAuth = async (req: AuthRequest, res: Response, next: NextFun
       try {
         const emailLower = userEmail.toLowerCase();
         let defaultRol: 'ADMIN' | 'GESTOR' | 'OBSERVADOR' = 'GESTOR';
-        if (emailLower.includes('miguel.parra') || emailLower.startsWith('admin.')) {
+        if (emailLower.includes('miguel.parra') || emailLower.includes('maria.jaimes') || emailLower.startsWith('admin.')) {
           defaultRol = 'ADMIN';
         }
 

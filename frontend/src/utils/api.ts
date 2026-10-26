@@ -8,25 +8,41 @@ const acquireToken = async (): Promise<string> => {
   
   if (accounts.length > 0) {
     const account = accounts[0];
+    // 1. Intentar token silencioso con los scopes completos
     try {
       const response = await msalInstance.acquireTokenSilent({
         scopes: ["User.Read", "Mail.Send"],
         account: account
       });
-      return response.accessToken;
+      if (response?.accessToken) return response.accessToken;
     } catch (error) {
-      console.warn("Silent token acquisition failed, intentando acquireTokenPopup...", error);
+      // 2. Si falla (p.ej. Mail.Send sin consentimiento previo), intentar con scope básico
       try {
-        const response = await msalInstance.acquireTokenPopup({
-          scopes: ["User.Read", "Mail.Send"],
+        const responseBasic = await msalInstance.acquireTokenSilent({
+          scopes: ["User.Read"],
           account: account
         });
-        return response.accessToken;
-      } catch (popupErr) {
-        console.error("Popup token acquisition failed", popupErr);
-        return "";
+        if (responseBasic?.accessToken) return responseBasic.accessToken;
+      } catch (errBasic) {
+        // Continuar a idToken en cache
       }
     }
+
+    // 3. Si acquireTokenSilent no responde, usar el idToken cacheado en el objeto account
+    if ((account as any)?.idToken) {
+      return (account as any).idToken;
+    }
+
+    // 4. Buscar idToken o accessToken en sessionStorage de MSAL
+    try {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i) || '';
+        if ((key.includes('idtoken') || key.includes('accesstoken')) && key.includes(account.homeAccountId)) {
+          const item = JSON.parse(sessionStorage.getItem(key) || '{}');
+          if (item?.secret) return item.secret;
+        }
+      }
+    } catch {}
   }
   return "";
 };

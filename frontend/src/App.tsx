@@ -89,34 +89,107 @@ function App() {
     }
   };
 
+  const getInitialUser = (account?: any) => {
+    if (!account && import.meta.env.VITE_BYPASS_AUTH !== 'true') return null;
+    const email = (account?.username || (account?.idTokenClaims as any)?.preferred_username || (account?.idTokenClaims as any)?.email || '').toLowerCase();
+    const nombre = account?.name || email.split('@')[0] || 'Usuario RADAR';
+    const esAdmin = email.includes('admin') || 
+                    email.includes('miguel.parra') || 
+                    email.includes('maria.jaimes') ||
+                    import.meta.env.VITE_BYPASS_AUTH === 'true';
+    return {
+      id: account?.localAccountId || 'temp-id',
+      email,
+      nombre,
+      rol: esAdmin ? 'ADMIN' : 'GESTOR',
+      localidadesAsignadas: []
+    };
+  };
+
+  const aplicarRutasSegunPermisos = (user: any) => {
+    const admin = user?.rol === 'ADMIN';
+    const hasAct = window.location.hash.startsWith('#/actividad/') || window.location.search.includes('actividad=');
+    const hasAle = window.location.hash.startsWith('#/alerta/') || window.location.search.includes('alerta=');
+    if (!admin) {
+      if (hasAct) {
+        setActiveTab('kanban');
+      } else if (hasAle) {
+        setActiveTab('alertas');
+      } else {
+        setActiveTab('sostenibilidad');
+      }
+    } else {
+      if (hasAct) {
+        setActiveTab('kanban');
+      } else if (hasAle) {
+        setActiveTab('alertas');
+      }
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
+      const initial = getInitialUser(accounts[0]);
+      if (initial && !userData) {
+        setUserData(initial);
+        aplicarRutasSegunPermisos(initial);
+      }
+
       fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/auth/me`)
         .then(res => res.json())
         .then(data => {
-          setUserData(data);
-          const admin = data?.rol === 'ADMIN';
-          const hasAct = window.location.hash.startsWith('#/actividad/') || window.location.search.includes('actividad=');
-          const hasAle = window.location.hash.startsWith('#/alerta/') || window.location.search.includes('alerta=');
-          if (!admin) {
-            if (hasAct) {
-              setActiveTab('kanban');
-            } else if (hasAle) {
-              setActiveTab('alertas');
-            } else {
-              setActiveTab('sostenibilidad');
-            }
-          } else {
-            if (hasAct) {
-              setActiveTab('kanban');
-            } else if (hasAle) {
-              setActiveTab('alertas');
-            }
+          if (data && (data.rol || data.email)) {
+            const merged = {
+              ...(initial || {}),
+              ...data,
+              rol: (initial?.rol === 'ADMIN' ? 'ADMIN' : data.rol) || 'GESTOR'
+            };
+            setUserData(merged);
+            aplicarRutasSegunPermisos(merged);
+          } else if (initial) {
+            setUserData(initial);
+            aplicarRutasSegunPermisos(initial);
           }
         })
-        .catch(err => console.error("Error fetching user data:", err));
+        .catch(err => {
+          console.warn("No se pudo obtener datos de /api/auth/me, continuando con sesión de Microsoft:", err);
+          if (initial) {
+            setUserData(initial);
+            aplicarRutasSegunPermisos(initial);
+          } else {
+            const defaultUser = {
+              id: 'temp-usr',
+              email: accounts[0]?.username || '',
+              nombre: accounts[0]?.name || 'Usuario RADAR',
+              rol: 'GESTOR',
+              localidadesAsignadas: []
+            };
+            setUserData(defaultUser);
+            aplicarRutasSegunPermisos(defaultUser);
+          }
+        });
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, accounts]);
+
+  useEffect(() => {
+    if (isAuthenticated && !userData) {
+      const timer = setTimeout(() => {
+        setUserData((prev: any) => {
+          if (prev) return prev;
+          const fallback = getInitialUser(accounts[0]) || {
+            id: 'temp-usr',
+            email: accounts[0]?.username || '',
+            nombre: accounts[0]?.name || 'Usuario RADAR',
+            rol: 'GESTOR',
+            localidadesAsignadas: []
+          };
+          aplicarRutasSegunPermisos(fallback);
+          return fallback;
+        });
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, userData, accounts]);
 
   useEffect(() => {
     const onHashChange = () => {
@@ -290,6 +363,10 @@ function App() {
                 <PanelAlertas userData={userData} />
               )}
               {activeTab === 'gestion' && userData?.rol === 'ADMIN' && <PanelGestionResultados userData={userData} />}
+              {/* Fallback para usuario no-admin si no coincide ninguna pestaña previa */}
+              {userData?.rol !== 'ADMIN' && activeTab !== 'sostenibilidad' && activeTab !== 'kanban' && activeTab !== 'alertas' && (
+                <SeccionSostenibilidadEP userData={userData} />
+              )}
             </>
           )
         ) : (
