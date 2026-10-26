@@ -7,6 +7,7 @@ import Dashboard from "./components/Dashboard";
 import ModalInstrucciones from "./components/ModalInstrucciones";
 import PanelAlertas from "./components/PanelAlertas";
 import PanelGestionResultados from "./components/PanelGestionResultados";
+import SeccionSostenibilidadEP from "./components/gestion/SeccionSostenibilidadEP";
 import VistaAlertaAsignada from "./pages/VistaAlertaAsignada";
 import { Sparkles, MessageSquare, Send, X, Radar } from "lucide-react";
 
@@ -46,7 +47,8 @@ const renderMarkdown = (text: string) => {
 function App() {
   const { instance, accounts } = useMsal();
   const isAuthenticated = import.meta.env.VITE_BYPASS_AUTH === 'true' ? true : useIsAuthenticated();
-  const [activeTab, setActiveTab] = useState<'kanban' | 'dashboard' | 'alertas' | 'gestion'>('kanban');
+  type TabType = 'sostenibilidad' | 'kanban' | 'dashboard' | 'alertas' | 'gestion';
+  const [activeTab, setActiveTab] = useState<TabType>('sostenibilidad');
   const [showHelp, setShowHelp] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   
@@ -91,10 +93,41 @@ function App() {
     if (isAuthenticated) {
       fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/auth/me`)
         .then(res => res.json())
-        .then(data => setUserData(data))
+        .then(data => {
+          setUserData(data);
+          const admin = data?.rol === 'ADMIN';
+          const hasAct = window.location.hash.startsWith('#/actividad/') || window.location.search.includes('actividad=');
+          const hasAle = window.location.hash.startsWith('#/alerta/') || window.location.search.includes('alerta=');
+          if (!admin) {
+            if (hasAct) {
+              setActiveTab('kanban');
+            } else if (hasAle) {
+              setActiveTab('alertas');
+            } else {
+              setActiveTab('sostenibilidad');
+            }
+          } else {
+            if (hasAct) {
+              setActiveTab('kanban');
+            } else if (hasAle) {
+              setActiveTab('alertas');
+            }
+          }
+        })
         .catch(err => console.error("Error fetching user data:", err));
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const hasAct = window.location.hash.startsWith('#/actividad/') || window.location.search.includes('actividad=');
+      const hasAle = window.location.hash.startsWith('#/alerta/') || window.location.search.includes('alerta=');
+      if (hasAct) setActiveTab('kanban');
+      else if (hasAle) setActiveTab('alertas');
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const handleLogin = () => {
     instance.loginPopup(loginRequest).catch(e => {
@@ -166,14 +199,14 @@ function App() {
             {/* Centro: Tabs */}
             {!isAlertaRoute && (
               <nav className="flex flex-wrap justify-center gap-2 lg:gap-3 flex-shrink-0 xl:flex-1 xl:justify-center">
-                <button 
-                  onClick={() => setActiveTab('kanban')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'kanban' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
-                >
-                  Panel de actividades
-                </button>
-                {userData?.rol === 'ADMIN' && (
+                {userData?.rol === 'ADMIN' ? (
                   <>
+                    <button 
+                      onClick={() => setActiveTab('kanban')}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'kanban' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                    >
+                      Panel de actividades
+                    </button>
                     <button 
                       onClick={() => setActiveTab('dashboard')}
                       className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'dashboard' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
@@ -187,10 +220,41 @@ function App() {
                       Gestor de alertas
                     </button>
                     <button 
+                      onClick={() => setActiveTab('sostenibilidad')}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'sostenibilidad' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                    >
+                      Sostenibilidad Espacio Público
+                    </button>
+                    <button 
                       onClick={() => setActiveTab('gestion')}
                       className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'gestion' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
                     >
                       Gestión de resultados
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {(window.location.hash.startsWith('#/actividad/') || window.location.search.includes('actividad=')) && (
+                      <button 
+                        onClick={() => setActiveTab('kanban')}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'kanban' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                      >
+                        Panel de actividades
+                      </button>
+                    )}
+                    {(window.location.hash.startsWith('#/alerta/') || window.location.search.includes('alerta=')) && (
+                      <button 
+                        onClick={() => setActiveTab('alertas')}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'alertas' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                      >
+                        Detalle de alerta
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => setActiveTab('sostenibilidad')}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'sostenibilidad' ? 'bg-bogota-primary text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                    >
+                      Sostenibilidad Espacio Público
                     </button>
                   </>
                 )}
@@ -217,10 +281,15 @@ function App() {
              <VistaAlertaAsignada />
           ) : (
             <>
-              {activeTab === 'kanban' && <KanbanBoard userData={userData} />}
-              {activeTab === 'dashboard' && <Dashboard userData={userData} />}
-              {activeTab === 'alertas' && <PanelAlertas userData={userData} />}
-              {activeTab === 'gestion' && <PanelGestionResultados userData={userData} />}
+              {activeTab === 'sostenibilidad' && <SeccionSostenibilidadEP userData={userData} />}
+              {activeTab === 'kanban' && (userData?.rol === 'ADMIN' || window.location.hash.startsWith('#/actividad/') || window.location.search.includes('actividad=')) && (
+                <KanbanBoard userData={userData} />
+              )}
+              {activeTab === 'dashboard' && userData?.rol === 'ADMIN' && <Dashboard userData={userData} />}
+              {activeTab === 'alertas' && (userData?.rol === 'ADMIN' || window.location.hash.startsWith('#/alerta/') || window.location.search.includes('alerta=')) && (
+                <PanelAlertas userData={userData} />
+              )}
+              {activeTab === 'gestion' && userData?.rol === 'ADMIN' && <PanelGestionResultados userData={userData} />}
             </>
           )
         ) : (

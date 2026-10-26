@@ -1496,6 +1496,15 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     window.print();
   };
 
+  const abrirModalPuntoYExportar = useCallback((id: string) => {
+    setSelectedFocalizadoId(null);
+    setSelectedId(id);
+    setZoomIdx(0);
+    setTimeout(() => {
+      exportarFichaPdfCarta();
+    }, 600);
+  }, []);
+
   const formatearFechaLectura = (iso: string) => {
     try {
       const d = new Date(iso);
@@ -1578,6 +1587,25 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
 
           {/* Controles de sincronización en línea y conexión Survey123 */}
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                const targetId = selectedId || (todosFull && todosFull.length > 0 ? todosFull[0].id : null);
+                if (targetId) {
+                  abrirModalPuntoYExportar(targetId);
+                } else {
+                  alert('Selecciona un punto en la tabla o el mapa para exportar su ficha en PDF.');
+                }
+              }}
+              disabled={generandoPdf}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer bg-purple-700 hover:bg-purple-800"
+              style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}
+              title="Descargar Ficha Técnica en PDF (Tamaño Carta)"
+            >
+              {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{generandoPdf ? 'Generando PDF...' : 'Exportar PDF (Carta)'}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => ejecutarActualizacion('MANUAL')}
@@ -2068,7 +2096,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                       <th scope="col" style={{ textAlign: 'left', padding: '9px 8px', fontWeight: 600, width: '144px' }}>Estado</th>
                       <th scope="col" style={{ textAlign: 'right', padding: '9px 8px', fontWeight: 600, width: '44px' }}>ISP</th>
                       <th scope="col" style={{ textAlign: 'left', padding: '9px 8px', fontWeight: 600, width: '180px' }}>Factor de riesgo</th>
-                      <th scope="col" style={{ textAlign: 'center', padding: '9px 8px', fontWeight: 600, width: '58px' }}>Ficha</th>
+                      <th scope="col" style={{ textAlign: 'center', padding: '9px 8px', fontWeight: 600, width: '140px' }}>Ficha / PDF Carta</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2099,26 +2127,54 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                           </td>
                           <td style={{ padding: '7px 8px', color: '#4B5563' }}>{q.riesgo}</td>
                           <td style={{ textAlign: 'center', padding: '5px 8px' }}>
-                            <button
-                              type="button"
-                              onClick={e => {
-                                e.stopPropagation();
-                                abrirModalPunto(q.id);
-                              }}
-                              style={{
-                                fontFamily: 'Archivo, system-ui, sans-serif',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: isSel ? '#FFFFFF' : '#374151',
-                                background: isSel ? '#E3002B' : '#FFFFFF',
-                                border: `1px solid ${isSel ? '#E3002B' : '#D1D5DB'}`,
-                                borderRadius: '6px',
-                                padding: '4px 10px',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Ver
-                            </button>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  abrirModalPunto(q.id);
+                                }}
+                                style={{
+                                  fontFamily: 'Archivo, system-ui, sans-serif',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  color: isSel ? '#FFFFFF' : '#374151',
+                                  background: isSel ? '#E3002B' : '#FFFFFF',
+                                  border: `1px solid ${isSel ? '#E3002B' : '#D1D5DB'}`,
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Ver ficha técnica en pantalla"
+                              >
+                                Ver
+                              </button>
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  abrirModalPuntoYExportar(q.id);
+                                }}
+                                style={{
+                                  fontFamily: 'Archivo, system-ui, sans-serif',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  color: '#FFFFFF',
+                                  background: '#7C3AED',
+                                  border: '1px solid #6D28D9',
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                                title="Descargar Ficha en PDF (Tamaño Carta)"
+                              >
+                                <Download style={{ width: '11px', height: '11px' }} />
+                                <span>PDF</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

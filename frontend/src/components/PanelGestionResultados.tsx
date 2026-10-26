@@ -30,6 +30,10 @@ interface Props {
 export default function PanelGestionResultados({ userData }: Props) {
   const [seccionActiva, setSeccionActiva] = useState<Seccion>('tablero');
 
+  if (userData?.rol !== 'ADMIN') {
+    return <SeccionSostenibilidadEP userData={userData} />;
+  }
+
   return (
     <div className="space-y-4">
       {/* Encabezado del módulo */}
