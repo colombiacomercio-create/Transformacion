@@ -52,7 +52,7 @@ const azureADAuth = async (req, res, next) => {
             try {
                 const emailLower = userEmail.toLowerCase();
                 let defaultRol = 'GESTOR';
-                if (emailLower.includes('miguel.parra') || emailLower.startsWith('admin.')) {
+                if (emailLower.includes('miguel.parra') || emailLower.includes('maria.jaimes') || emailLower.startsWith('admin.')) {
                     defaultRol = 'ADMIN';
                 }
                 // Crear usuario institucional con rol GESTOR por defecto para habilitar carga de evidencias
