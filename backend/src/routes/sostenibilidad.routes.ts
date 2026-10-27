@@ -157,7 +157,7 @@ const RAW_P05: [string, 'T1' | 'T2', string, 'S' | 'A' | 'N' | 'RI' | 'V', numbe
   ['Kennedy','T2','Carrera 81C con Calles 46 y 47 Sur','V',null,'Sin dato','—'],
   ['Kennedy','T2','Carrera 83 con Calle 46 Sur','S',86,'Ventas informales','16 oct 2026, 10:00'],
   ['Fontibón','T1','Parque fundacional','A',66,'Retorno de ventas informales','17 oct 2026, 09:30'],
-  ['Fontibón','T2','Plaza de mercado','N',58,'Ventas informales','16 oct 2026, 10:00'],
+  ['Fontibón','T2','Plaza de mercado','A',62,'Retorno de ventas informales','17 oct 2026, 09:35'],
   ['Engativá','T1','Carrera 68 # 52-25','V',null,'Sin dato','—'],
   ['Engativá','T2','Supermanzana — Diagonal 44 entre Calle 26 y Carrera 69','S',81,'Retorno de ventas informales','17 oct 2026, 13:40'],
   ['Suba','T1','Carrera 104A con Calle 152A','A',78,'Falta de apropiación comunitaria','18 oct 2026, 08:50'],
@@ -368,6 +368,7 @@ const P05_OID_BY_INDEX: number[] = [
 const LEGACY_PUNTO_MAP: Record<number, number> = {
   2800: 1,   // Usaquén · Calle 161 con Carrera 8
   926: 2,    // Usaquén · Calle 163A con Carrera 9
+  429: 4,    // Chapinero · Carrera 6 con Calle 51
   2099: 62,  // Usaquén · Calle 140 con Carrera 11
   1085: 65,  // Usaquén · Calle 106 con Carrera 15
   1771: 66,  // Usaquén · Carrera 19 con Calles 145 a 152
@@ -624,22 +625,27 @@ async function syncFromArcGIS(
       // Regla de Homologación 3: Fontibón · Residuos (Calle 20 con cra 103 al lado Plaza de Mercado)
       // En Survey123 se reportó bajo la opción de texto antigua "Av. Calle 25 con Carrera 104" (punto 29),
       // pero sus coordenadas exactas corresponden a la Plaza de Mercado [4.676585, -74.144380].
-      let geomY = Number(feat.geometry?.y || attr.latitud || attr.lat || 0);
-      let geomX = Number(feat.geometry?.x || attr.longitud || attr.long || attr.lng || 0);
-      if ((!geomY || !geomX) && attr.json_punto) {
-        try {
-          const jp = typeof attr.json_punto === 'string' ? JSON.parse(attr.json_punto) : attr.json_punto;
-          geomY = Number(jp.geometry?.y || jp.attributes?.latitud || 0);
-          geomX = Number(jp.geometry?.x || jp.attributes?.longitud || 0);
-        } catch {}
-      }
-      const esCoordFontibonPlaza = Math.abs(geomY - 4.676585) < 0.005 && Math.abs(geomX - (-74.144380)) < 0.005;
+      // IMPORTANTE: Solo aplica a reportes de Residuos (P04) para no secuestrar los puntos de Espacio Público (P05).
+      const esResiduos = String(attr.ruta_del_punto || '').toLowerCase().includes('residuo') ||
+                         String(attr.componente || '').toLowerCase().includes('residuo');
+      if (esResiduos) {
+        let geomY = Number(feat.geometry?.y || attr.latitud || attr.lat || 0);
+        let geomX = Number(feat.geometry?.x || attr.longitud || attr.long || attr.lng || 0);
+        if ((!geomY || !geomX) && attr.json_punto) {
+          try {
+            const jp = typeof attr.json_punto === 'string' ? JSON.parse(attr.json_punto) : attr.json_punto;
+            geomY = Number(jp.geometry?.y || jp.attributes?.latitud || 0);
+            geomX = Number(jp.geometry?.x || jp.attributes?.longitud || 0);
+          } catch {}
+        }
+        const esCoordFontibonPlaza = Math.abs(geomY - 4.676585) < 0.005 && Math.abs(geomX - (-74.144380)) < 0.005;
 
-      if (
-        esCoordFontibonPlaza ||
-        (fullText.includes('fontib') && (fullText.includes('calle 25') || fullText.includes('carrera 104') || fullText.includes('plaza de mercado')) && rawPunto === 29)
-      ) {
-        rawPunto = 29; // OID 29 correspondiente a P04 Fontibón T1
+        if (
+          esCoordFontibonPlaza ||
+          (fullText.includes('fontib') && (fullText.includes('calle 25') || fullText.includes('carrera 104') || fullText.includes('plaza de mercado')) && rawPunto === 29)
+        ) {
+          rawPunto = 29; // OID 29 correspondiente a P04 Fontibón T1
+        }
       }
 
       if (!rawPunto) continue;
