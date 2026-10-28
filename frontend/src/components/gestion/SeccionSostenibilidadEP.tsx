@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchApi } from '../../utils/api';
-import { RefreshCw, Settings, ExternalLink, CheckCircle2, AlertCircle, Clock, X, Camera, Video, ZoomIn, MapPin, Calendar, Download, Printer, Loader2, FileText, Check } from 'lucide-react';
+import { RefreshCw, Settings, ExternalLink, CheckCircle2, AlertCircle, Clock, X, Camera, Video, ZoomIn, MapPin, Calendar, Download, Loader2, FileText, Check } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import L from 'leaflet';
@@ -972,7 +972,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
 
   // Modal para Exportar Informe Consolidado (Residuos P04, Espacio Público P05 o Ambos)
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportTab, setExportTab] = useState<'P04' | 'P05' | 'AMBOS'>('AMBOS');
+  const [exportTab, setExportTab] = useState<'P04' | 'P05'>('P04');
   const [generandoConsolidadoPdf, setGenerandoConsolidadoPdf] = useState(false);
 
   const abrirModalPunto = useCallback((id: string) => {
@@ -1457,39 +1457,50 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     if (!el) return;
     setGenerandoPdf(true);
 
+    // Contenedor fuera del flujo visual pero en el árbol DOM del viewport con escala real (evita clipping)
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'fixed';
+    tempContainer.style.left = '0';
     tempContainer.style.top = '0';
-    tempContainer.style.left = '-99999px';
-    tempContainer.style.width = '215.9mm';
-    tempContainer.style.zIndex = '-99999';
+    tempContainer.style.width = '880px';
+    tempContainer.style.zIndex = '-9999';
+    tempContainer.style.opacity = '0';
+    tempContainer.style.pointerEvents = 'none';
     tempContainer.style.background = '#ffffff';
     document.body.appendChild(tempContainer);
 
     try {
       const clone = el.cloneNode(true) as HTMLElement;
-      clone.style.width = '215.9mm';
+      clone.style.width = '880px';
       clone.style.height = 'auto';
       clone.style.maxHeight = 'none';
       clone.style.overflow = 'visible';
-      clone.style.padding = '8mm 10mm';
+      clone.style.padding = '20px 24px';
       clone.style.boxSizing = 'border-box';
+      clone.style.background = '#ffffff';
+
+      // Ocultar enlaces 'Ver' y elementos no imprimibles en el clon
+      const noImp = clone.querySelectorAll('.no-imprimir');
+      noImp.forEach(node => (node as HTMLElement).style.display = 'none');
+
       tempContainer.appendChild(clone);
 
-      await new Promise(r => setTimeout(r, 80));
+      if ((document as any).fonts && (document as any).fonts.ready) {
+        await (document as any).fonts.ready;
+      }
+      await new Promise(r => setTimeout(r, 120));
 
       const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: false,
         logging: false,
-        imageTimeout: 5000,
+        imageTimeout: 6000,
         backgroundColor: '#ffffff',
-        windowWidth: clone.scrollWidth,
-        windowHeight: clone.scrollHeight,
+        windowWidth: 880,
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -1497,27 +1508,17 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       });
       const pageWidth = 215.9;
       const pageHeight = 279.4;
-      const margin = 7;
-      const contentWidth = pageWidth - margin * 2;
-      const contentHeight = pageHeight - margin * 2;
+      const margin = 8;
+      const contentWidth = pageWidth - margin * 2; // 199.9mm
+      const contentHeight = pageHeight - margin * 2; // 263.4mm
       const imgHeight = (canvas.height * contentWidth) / canvas.width;
 
-      if (imgHeight <= contentHeight + 18) {
-        const fitHeight = Math.min(contentHeight, imgHeight);
-        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, fitHeight);
-      } else {
-        let heightLeft = imgHeight;
-        let position = margin;
-        const usableHeight = pageHeight - margin * 2;
-        pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
-        heightLeft -= usableHeight;
-        while (heightLeft > 0) {
-          position = position - usableHeight;
-          pdf.addPage('letter', 'portrait');
-          pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
-          heightLeft -= usableHeight;
-        }
-      }
+      // Centrar verticalmente en la página carta si el contenido ocupa un poco menos
+      const topOffset = imgHeight < contentHeight ? margin + Math.max(0, (contentHeight - imgHeight) / 2) : margin;
+      const fitHeight = Math.min(contentHeight, imgHeight);
+
+      pdf.addImage(imgData, 'JPEG', margin, topOffset, contentWidth, fitHeight);
+
       const nombreLimpio = `Ficha_Sostenibilidad_${sel?.ld || 'Bogota'}_${sel?.prod || 'P'}_${sel?.id || 'Punto'}`.replace(/[\s/\\:]+/g, '_');
       pdf.save(`${nombreLimpio}.pdf`);
     } catch (err) {
@@ -1529,10 +1530,6 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       }
       setGenerandoPdf(false);
     }
-  };
-
-  const imprimirFichaCarta = () => {
-    window.print();
   };
 
   const exportarConsolidadoPdfCarta = async () => {
@@ -2538,15 +2535,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                     {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-700" /> : <Download className="w-3.5 h-3.5 text-purple-700" />}
                     <span>{generandoPdf ? 'Generando...' : 'Exportar PDF (Carta)'}</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={imprimirFichaCarta}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-900 hover:bg-gray-100 shadow-xs transition-colors cursor-pointer border border-gray-300"
-                    title="Imprimir ficha técnica en tamaño carta"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-gray-700" />
-                    <span>Imprimir</span>
-                  </button>
+                  
                   <button
                     type="button"
                     onClick={cerrarModalPunto}
@@ -2625,7 +2614,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                   </div>
                   <div className="text-center px-3 py-1 bg-white/40 rounded-lg">
                     <div className="text-[10px] font-bold uppercase tracking-wider opacity-85">Riesgo</div>
-                    <div className="text-xs font-bold leading-tight max-w-[130px] truncate">{sel.riesgo}</div>
+                    <div className="text-xs font-bold leading-tight max-w-[150px] break-words">{sel.riesgo}</div>
                   </div>
                   <div className="text-center px-3 py-1 bg-white/40 rounded-lg">
                     <div className="text-[10px] font-bold uppercase tracking-wider opacity-85">¿Nueva interv.?</div>
@@ -2653,7 +2642,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                       </div>
                       <div className="flex justify-between py-1 border-b border-gray-200">
                         <span className="text-gray-500">Dependencia:</span>
-                        <strong className="font-semibold text-gray-900 text-right truncate max-w-[180px]" title={sel.dependencia}>
+                        <strong className="font-semibold text-gray-900 text-right">
                           SDG - Gestión Local
                         </strong>
                       </div>
@@ -2709,7 +2698,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                             >
                               {c.mark}
                             </span>
-                            <span className="truncate text-gray-700">{c.k}</span>
+                            <span className="text-gray-800 text-[11px] font-medium leading-normal flex-1">{c.k}</span>
                           </div>
                           <strong style={{ color: c.bg }} className="font-bold shrink-0">{c.v}</strong>
                         </div>
@@ -2766,16 +2755,16 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                                     crossOrigin="anonymous"
                                     src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(e.url)}`}
                                     alt={e.label}
-                                    className="w-full h-24 object-cover bg-gray-100"
+                                    className="w-full h-32 object-cover bg-gray-100"
                                     loading="lazy"
                                   />
                                 ) : isVid ? (
-                                  <div className="w-full h-24 bg-slate-900 flex flex-col items-center justify-center p-2 text-center text-white">
+                                  <div className="w-full h-32 bg-slate-900 flex flex-col items-center justify-center p-2 text-center text-white">
                                     <Video className="w-6 h-6 text-yellow-400 mb-1" />
                                     <span className="text-[10px] text-gray-300 truncate max-w-full">{e.file}</span>
                                   </div>
                                 ) : (
-                                  <div className="w-full h-24 bg-gray-100 flex items-center justify-center text-gray-400">
+                                  <div className="w-full h-32 bg-gray-100 flex items-center justify-center text-gray-400">
                                     <Camera className="w-6 h-6" />
                                   </div>
                                 )}
@@ -2832,14 +2821,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                   {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                   <span>{generandoPdf ? 'Generando...' : 'Exportar PDF (Carta)'}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={imprimirFichaCarta}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5 text-gray-700" />
-                  <span>Imprimir</span>
-                </button>
+                
                 <button
                   type="button"
                   onClick={cerrarModalPunto}
@@ -3006,17 +2988,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                 >
                   🚶 P05 · Todo Espacio Público ({p05Full.length} puntos)
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setExportTab('AMBOS')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    exportTab === 'AMBOS'
-                      ? 'bg-purple-700 text-white shadow-sm'
-                      : 'bg-white text-gray-700 hover:bg-gray-200 border border-gray-300'
-                  }`}
-                >
-                  🏛 Ambos · Consolidado Distrital ({p04Full.length + p05Full.length} puntos)
-                </button>
+
               </div>
               <div className="text-xs text-gray-500 hidden sm:block">
                 Paginación automática en hojas <strong>Tamaño Carta (215.9 x 279.4 mm)</strong>
@@ -3579,250 +3551,13 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                 </>
               )}
 
-              {/* VISTA AMBOS: CONSOLIDADO DISTRITAL (2 HOJAS CARTA) */}
-              {exportTab === 'AMBOS' && (
-                <>
-                  {/* HOJA 1 DE 2 */}
-                  <div
-                    className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
-                    style={{
-                      width: '215.9mm',
-                      minHeight: '279.4mm',
-                      maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
-                      boxSizing: 'border-box',
-                      fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div>
-                      {/* Encabezado Hoja 1 */}
-                      <div className="border-b-2 border-red-600 pb-2 mb-3 flex justify-between items-start">
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                            Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
-                          </div>
-                          <div className="text-[9px] font-semibold text-gray-500">
-                            Subsecretaría de Gestión Local · Grupo de Espacio Público · RADAR
-                          </div>
-                          <h1 className="text-base font-bold text-gray-900 mt-0.5 uppercase" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
-                            Informe Distrital Consolidado · Sostenibilidad de Puntos (P04 + P05)
-                          </h1>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="inline-block bg-purple-50 text-purple-900 text-[10px] font-bold px-2 py-0.5 rounded border border-purple-200">
-                            Fecha de Corte: 15 de Octubre de 2026
-                          </div>
-                          <div className="text-[9px] text-gray-400 mt-0.5">
-                            Periodo de visita: {datos.periodoVisita} · Sync: {formatearFechaLectura(snapshot.ultimaLectura)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tarjetas KPI Distritales */}
-                      <div className="grid grid-cols-4 gap-2 mb-3">
-                        <div className="bg-gray-50 p-2 rounded border border-gray-200 text-center">
-                          <div className="text-[10px] text-gray-500 font-medium">Puntos Distritales</div>
-                          <div className="text-lg font-bold text-gray-900">{rTotalFull.pri}</div>
-                          <div className="text-[9px] text-gray-400">60 en P04 + 46 en P05</div>
-                        </div>
-                        <div className="bg-green-50 p-2 rounded border border-green-200 text-center">
-                          <div className="text-[10px] text-green-700 font-medium">% Sostenimiento Global</div>
-                          <div className="text-lg font-bold text-green-700">{rTotalFull.pctTxt}%</div>
-                          <div className="text-[9px] text-green-600">{rTotalFull.sost} puntos sostenidos</div>
-                        </div>
-                        <div className="bg-red-50 p-2 rounded border border-red-200 text-center">
-                          <div className="text-[10px] text-red-700 font-medium">Recaídas Totales</div>
-                          <div className="text-lg font-bold text-red-700">{rTotalFull.n}</div>
-                          <div className="text-[9px] text-red-600">{((rTotalFull.n / rTotalFull.pri) * 100).toFixed(1).replace('.', ',')}% en el Distrito</div>
-                        </div>
-                        <div className="bg-blue-50 p-2 rounded border border-blue-200 text-center">
-                          <div className="text-[10px] text-blue-700 font-medium">Cobertura de Visitas</div>
-                          <div className="text-lg font-bold text-blue-700">{rTotalFull.ver} de {rTotalFull.pri}</div>
-                          <div className="text-[9px] text-blue-600">{rTotalFull.v} sin verificar</div>
-                        </div>
-                      </div>
-
-                      {/* Comparativa por Producto */}
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="bg-blue-50/70 p-2 rounded border border-blue-200">
-                          <div className="text-[10px] font-bold text-blue-900 mb-0.5">P04 · Gestión de Residuos</div>
-                          <div className="text-xs font-semibold text-blue-800">
-                            {r4Full.pri} priorizados · {r4Full.pctTxt}% sostenimiento
-                          </div>
-                          <div className="text-[9px] text-blue-700 mt-0.5">
-                            {r4Full.sost} sostenidos / en riesgo · {r4Full.n} recaídas confirmadas
-                          </div>
-                        </div>
-                        <div className="bg-amber-50/70 p-2 rounded border border-amber-200">
-                          <div className="text-[10px] font-bold text-amber-900 mb-0.5">P05 · Espacio Público</div>
-                          <div className="text-xs font-semibold text-amber-800">
-                            {r5Full.pri} priorizados · {r5Full.pctTxt}% sostenimiento
-                          </div>
-                          <div className="text-[9px] text-amber-700 mt-0.5">
-                            {r5Full.sost} sostenidos / en riesgo · {r5Full.n} recaídas confirmadas
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Matriz Localidades Parte 1 (1 a 10) */}
-                      <div className="text-[11px] font-bold text-gray-800 uppercase mb-1.5 flex justify-between">
-                        <span>Matriz Distrital por Localidades (Parte 1: Localidades 1 a 10)</span>
-                        <span className="text-gray-400 font-normal text-[10px]">Consolidado Distrital P04 + P05</span>
-                      </div>
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200">
-                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
-                          <tr>
-                            <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">Cód</th>
-                            <th className="py-1 px-1.5 border-r border-gray-200">Localidad</th>
-                            <th className="py-1 px-1.5 text-center bg-blue-50/50 border-r border-gray-200">P04 Pri</th>
-                            <th className="py-1 px-1.5 text-center bg-blue-50/50 border-r border-gray-200">P04 Sost</th>
-                            <th className="py-1 px-1.5 text-center bg-blue-50/50 border-r border-gray-200">P04 Rec</th>
-                            <th className="py-1 px-1.5 text-center bg-amber-50/50 border-r border-gray-200">P05 Pri</th>
-                            <th className="py-1 px-1.5 text-center bg-amber-50/50 border-r border-gray-200">P05 Sost</th>
-                            <th className="py-1 px-1.5 text-center bg-amber-50/50 border-r border-gray-200">P05 Rec</th>
-                            <th className="py-1 px-1.5 text-center font-bold border-r border-gray-200">Total Pri</th>
-                            <th className="py-1 px-1.5 text-center font-bold">% Sostenimiento</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {matriz.slice(0, 10).map(m => {
-                            const totalPri = (typeof m.p4.pri === 'number' ? m.p4.pri : 0) + (typeof m.p5.pri === 'number' ? m.p5.pri : 0);
-                            const totalSost = (typeof m.p4.sost === 'number' ? m.p4.sost : 0) + (typeof m.p5.sost === 'number' ? m.p5.sost : 0);
-                            const pctGlobal = totalPri > 0 ? Math.round((totalSost / totalPri) * 100) : 0;
-                            return (
-                              <tr key={m.cod} className="hover:bg-gray-50/50">
-                                <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{m.cod}</td>
-                                <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{m.ld}</td>
-                                <td className="py-1 px-1.5 text-center bg-blue-50/20 border-r border-gray-100">{m.p4.pri}</td>
-                                <td className="py-1 px-1.5 text-center bg-blue-50/20 font-bold text-green-700 border-r border-gray-100">{m.p4.sost}</td>
-                                <td className="py-1 px-1.5 text-center bg-blue-50/20 text-red-700 border-r border-gray-100">{m.p4.noSost}</td>
-                                <td className="py-1 px-1.5 text-center bg-amber-50/20 border-r border-gray-100">{m.p5.pri}</td>
-                                <td className="py-1 px-1.5 text-center bg-amber-50/20 font-bold text-green-700 border-r border-gray-100">{m.p5.sost}</td>
-                                <td className="py-1 px-1.5 text-center bg-amber-50/20 text-red-700 border-r border-gray-100">{m.p5.noSost}</td>
-                                <td className="py-1 px-1.5 text-center font-bold text-gray-900 border-r border-gray-100">{totalPri || '—'}</td>
-                                <td className="py-1 px-1.5 text-center font-bold text-green-800">{totalPri > 0 ? `${pctGlobal}%` : '—'}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
-                      <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 1 de 2 · Formato Carta</span>
-                    </div>
-                  </div>
-
-                  {/* HOJA 2 DE 2 */}
-                  <div
-                    className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
-                    style={{
-                      width: '215.9mm',
-                      minHeight: '279.4mm',
-                      maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
-                      boxSizing: 'border-box',
-                      fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div>
-                      {/* Encabezado Hoja 2 */}
-                      <div className="border-b border-gray-200 pb-1.5 mb-3 flex justify-between items-center">
-                        <div className="text-[10px] font-bold text-gray-700 uppercase">
-                          Consolidado Distrital · Matriz Local (Parte 2: Localidades 11 a 20) y Total
-                        </div>
-                        <div className="text-[9px] text-gray-400">
-                          Corte: 15 Octubre 2026 · Cierre Distrital
-                        </div>
-                      </div>
-
-                      {/* Matriz Localidades Parte 2 (11 a 20) */}
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200 mb-4">
-                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
-                          <tr>
-                            <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">Cód</th>
-                            <th className="py-1 px-1.5 border-r border-gray-200">Localidad</th>
-                            <th className="py-1 px-1.5 text-center bg-blue-50/50 border-r border-gray-200">P04 Pri</th>
-                            <th className="py-1 px-1.5 text-center bg-blue-50/50 border-r border-gray-200">P04 Sost</th>
-                            <th className="py-1 px-1.5 text-center bg-blue-50/50 border-r border-gray-200">P04 Rec</th>
-                            <th className="py-1 px-1.5 text-center bg-amber-50/50 border-r border-gray-200">P05 Pri</th>
-                            <th className="py-1 px-1.5 text-center bg-amber-50/50 border-r border-gray-200">P05 Sost</th>
-                            <th className="py-1 px-1.5 text-center bg-amber-50/50 border-r border-gray-200">P05 Rec</th>
-                            <th className="py-1 px-1.5 text-center font-bold border-r border-gray-200">Total Pri</th>
-                            <th className="py-1 px-1.5 text-center font-bold">% Sostenimiento</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {matriz.slice(10, 20).map(m => {
-                            const totalPri = (typeof m.p4.pri === 'number' ? m.p4.pri : 0) + (typeof m.p5.pri === 'number' ? m.p5.pri : 0);
-                            const totalSost = (typeof m.p4.sost === 'number' ? m.p4.sost : 0) + (typeof m.p5.sost === 'number' ? m.p5.sost : 0);
-                            const pctGlobal = totalPri > 0 ? Math.round((totalSost / totalPri) * 100) : 0;
-                            return (
-                              <tr key={m.cod} className="hover:bg-gray-50/50">
-                                <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{m.cod}</td>
-                                <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{m.ld}</td>
-                                <td className="py-1 px-1.5 text-center bg-blue-50/20 border-r border-gray-100">{m.p4.pri}</td>
-                                <td className="py-1 px-1.5 text-center bg-blue-50/20 font-bold text-green-700 border-r border-gray-100">{m.p4.sost}</td>
-                                <td className="py-1 px-1.5 text-center bg-blue-50/20 text-red-700 border-r border-gray-100">{m.p4.noSost}</td>
-                                <td className="py-1 px-1.5 text-center bg-amber-50/20 border-r border-gray-100">{m.p5.pri}</td>
-                                <td className="py-1 px-1.5 text-center bg-amber-50/20 font-bold text-green-700 border-r border-gray-100">{m.p5.sost}</td>
-                                <td className="py-1 px-1.5 text-center bg-amber-50/20 text-red-700 border-r border-gray-100">{m.p5.noSost}</td>
-                                <td className="py-1 px-1.5 text-center font-bold text-gray-900 border-r border-gray-100">{totalPri || '—'}</td>
-                                <td className="py-1 px-1.5 text-center font-bold text-green-800">{totalPri > 0 ? `${pctGlobal}%` : '—'}</td>
-                              </tr>
-                            );
-                          })}
-                          {/* Fila Total Distrital */}
-                          <tr className="bg-gray-100 font-bold border-t-2 border-gray-400">
-                            <td className="py-1 px-1.5 text-center font-mono border-r border-gray-300">—</td>
-                            <td className="py-1 px-1.5 text-gray-900 border-r border-gray-300 uppercase">TOTAL DISTRITAL</td>
-                            <td className="py-1 px-1.5 text-center bg-blue-100/50 border-r border-gray-300">{r4Full.pri}</td>
-                            <td className="py-1 px-1.5 text-center bg-blue-100/50 text-green-800 border-r border-gray-300">{r4Full.sost}</td>
-                            <td className="py-1 px-1.5 text-center bg-blue-100/50 text-red-800 border-r border-gray-300">{r4Full.n}</td>
-                            <td className="py-1 px-1.5 text-center bg-amber-100/50 border-r border-gray-300">{r5Full.pri}</td>
-                            <td className="py-1 px-1.5 text-center bg-amber-100/50 text-green-800 border-r border-gray-300">{r5Full.sost}</td>
-                            <td className="py-1 px-1.5 text-center bg-amber-100/50 text-red-800 border-r border-gray-300">{r5Full.n}</td>
-                            <td className="py-1 px-1.5 text-center font-bold text-gray-900 border-r border-gray-300">{rTotalFull.pri}</td>
-                            <td className="py-1 px-1.5 text-center font-bold text-green-900">{rTotalFull.pctTxt}%</td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      {/* Lineamientos y Reglas Oficiales */}
-                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <div className="text-[10px] font-bold text-gray-800 uppercase mb-1.5">
-                          Lineamientos Operativos y Reglas Oficiales de Seguimiento
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-[9px] text-gray-600">
-                          <div>
-                            <div>• <strong>Sostenido suma dos clases:</strong> Los clasificados Sostenido y En riesgo cuentan como sostenidos.</div>
-                            <div>• <strong>Recaída confirmada:</strong> Es la única clase no sostenida que exige reintervención operativa inmediata.</div>
-                          </div>
-                          <div>
-                            <div>• <strong>Criterio de corte:</strong> Última verificación registrada en territorio dentro del periodo de corte.</div>
-                            <div>• <strong>Coordinación local:</strong> Las Alcaldías Locales priorizan jornadas de sostenimiento en puntos en riesgo.</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
-                      <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 2 de 2 · Formato Carta</span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+              </div>
 
             {/* Pie del Modal con Botones */}
             <div className="bg-white px-6 py-3 border-t border-gray-200 flex flex-wrap justify-between items-center gap-3">
               <div className="text-xs text-gray-500">
                 Puntos incluidos: <strong>
-                  {exportTab === 'P04' ? `${p04Full.length} puntos de Residuos (3 hojas carta)` : exportTab === 'P05' ? `${p05Full.length} puntos de Espacio Público (3 hojas carta)` : `${p04Full.length + p05Full.length} puntos distritales (2 hojas carta)`}
+                  {exportTab === 'P04' ? `${p04Full.length} puntos de Residuos (3 hojas carta)` : `${p05Full.length} puntos de Espacio Público (3 hojas carta)`}
                 </strong> · Corte oficial 15 de Octubre de 2026
               </div>
               <div className="flex items-center gap-2">

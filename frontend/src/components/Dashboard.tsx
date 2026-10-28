@@ -561,10 +561,12 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'fixed';
+    tempContainer.style.left = '0';
     tempContainer.style.top = '0';
-    tempContainer.style.left = '-99999px';
     tempContainer.style.width = '215.9mm';
-    tempContainer.style.zIndex = '-99999';
+    tempContainer.style.zIndex = '-9999';
+    tempContainer.style.opacity = '0';
+    tempContainer.style.pointerEvents = 'none';
     tempContainer.style.background = '#ffffff';
     document.body.appendChild(tempContainer);
 
@@ -579,8 +581,10 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
       const actList = locData.actList || [];
       const prodBars = locData.productosBars || [];
-      const pageSizeFirst = 7;
-      const pageSizeOther = 14;
+      
+      // Distribución calculada para aprovechar el 100% de la hoja carta sin cortes ni vacíos
+      const pageSizeFirst = 16;
+      const pageSizeOther = 26;
       
       const chunks: any[][] = [];
       if (actList.length <= pageSizeFirst) {
@@ -596,6 +600,77 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
       const totalPages = Math.max(1, chunks.length);
 
+      // Helper para renderizar velocímetro SVG exacto
+      const clamped = Math.max(0, Math.min(100, Math.round(locData.avanceGlobal || 0)));
+      const angleRad = Math.PI + (clamped / 100) * Math.PI;
+      const cx = 110;
+      const cy = 88;
+      const r = 64;
+      const strokeWidth = 13;
+      const needleLen = 50;
+      const nx = cx + needleLen * Math.cos(angleRad);
+      const ny = cy + needleLen * Math.sin(angleRad);
+      const color = clamped >= 90 ? '#16A34A' : clamped >= 60 ? '#EAB308' : '#DC2626';
+
+      const gaugeSvg = `
+        <svg width="220" height="110" viewBox="0 0 220 110" style="overflow: visible; margin: 0 auto; display: block;">
+          <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="#E5E7EB" stroke-width="${strokeWidth}" stroke-linecap="round" />
+          ${clamped > 0 ? `<path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r * Math.cos(angleRad)} ${cy + r * Math.sin(angleRad)}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" />` : ''}
+          <text x="${cx - r}" y="${cy + 14}" font-size="8.5" font-weight="700" fill="#9CA3AF" text-anchor="middle">0%</text>
+          <text x="${cx}" y="${cy - r - 5}" font-size="8.5" font-weight="700" fill="#9CA3AF" text-anchor="middle">50%</text>
+          <text x="${cx + r}" y="${cy + 14}" font-size="8.5" font-weight="700" fill="#9CA3AF" text-anchor="middle">100%</text>
+          <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#1F2937" stroke-width="2.8" stroke-linecap="round" />
+          <circle cx="${cx}" cy="${cy}" r="5.5" fill="#1F2937" />
+          <circle cx="${cx}" cy="${cy}" r="2" fill="#FFFFFF" />
+        </svg>
+      `;
+
+      // Helper para renderizar gráfico de barras por producto SVG
+      const generateBarChartSvg = (bars: any[]) => {
+        const width = 230;
+        const height = 110;
+        const marginL = 26;
+        const marginR = 8;
+        const marginT = 10;
+        const marginB = 22;
+        const plotW = width - marginL - marginR;
+        const plotH = height - marginT - marginB;
+
+        const yTicks = [0, 25, 50, 75, 100];
+        const gridLines = yTicks.map(t => {
+          const y = marginT + plotH - (t / 100) * plotH;
+          return `
+            <line x1="${marginL}" y1="${y}" x2="${width - marginR}" y2="${y}" stroke="#F3F4F6" stroke-width="1" />
+            <text x="${marginL - 3}" y="${y + 2.5}" font-size="7" fill="#9CA3AF" text-anchor="end" font-family="sans-serif">${t}%</text>
+          `;
+        }).join('');
+
+        const numItems = Math.max(1, bars.length);
+        const bandW = plotW / numItems;
+        const barW = Math.min(13, Math.max(6, (bandW - 8) / 2));
+
+        const barElements = bars.map((b, i) => {
+          const cxBand = marginL + i * bandW + bandW / 2;
+          const metaH = Math.max(1, (Math.min(100, b.meta || 0) / 100) * plotH);
+          const avanceH = Math.max(1, (Math.min(100, b.avance || 0) / 100) * plotH);
+          const metaY = marginT + plotH - metaH;
+          const avanceY = marginT + plotH - avanceH;
+
+          return `
+            <rect x="${cxBand - barW - 1}" y="${metaY}" width="${barW}" height="${metaH}" fill="#94A3B8" rx="2" />
+            <rect x="${cxBand + 1}" y="${avanceY}" width="${barW}" height="${avanceH}" fill="#16A34A" rx="2" />
+            <text x="${cxBand}" y="${height - 6}" font-size="8" font-weight="bold" fill="#4B5563" text-anchor="middle" font-family="monospace">${b.name}</text>
+          `;
+        }).join('');
+
+        return `
+          <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="display: block; margin: 0 auto; overflow: visible;">
+            ${gridLines}
+            ${barElements}
+          </svg>
+        `;
+      };
+
       for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
         tempContainer.innerHTML = '';
         const currentActs = chunks[pageIdx] || [];
@@ -607,7 +682,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
         pageEl.style.width = '215.9mm';
         pageEl.style.minHeight = '279.4mm';
         pageEl.style.maxHeight = '279.4mm';
-        pageEl.style.padding = '10mm 12mm';
+        pageEl.style.padding = '8.5mm 11mm';
         pageEl.style.boxSizing = 'border-box';
         pageEl.style.fontFamily = '"Source Sans 3", "Segoe UI", system-ui, sans-serif';
         pageEl.style.overflow = 'hidden';
@@ -617,107 +692,131 @@ export default function Dashboard({ userData }: { userData?: any }) {
         if (isFirstPage) {
           innerHTML += `
             <div>
-              <!-- Encabezado Institucional Oficial -->
-              <div style="border-bottom: 2px solid #DC2626; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 38px; width: auto; object-fit: contain;" />
-                  <div style="border-left: 2px solid #E5E7EB; padding-left: 10px;">
-                    <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #111827; letter-spacing: 0.05em;">
+              <!-- Encabezado Institucional Oficial Alcaldía de Bogotá + RADAR -->
+              <div style="border-bottom: 2px solid #DC2626; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 36px; width: auto; object-fit: contain;" />
+                  <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
+                    <div style="font-size: 9.5px; font-weight: 900; text-transform: uppercase; color: #111827; letter-spacing: 0.04em;">
                       Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
                     </div>
-                    <div style="font-size: 9px; font-weight: 700; color: #374151;">
+                    <div style="font-size: 8.5px; font-weight: 700; color: #374151;">
                       SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
                     </div>
-                    <div style="font-size: 13px; font-weight: 800; color: #111827; margin-top: 2px; text-transform: uppercase;">
+                    <div style="font-size: 12px; font-weight: 800; color: #111827; margin-top: 1px; text-transform: uppercase;">
                       Reporte Territorial de Actividades · ${locData.nombre}
                     </div>
                   </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                   <div style="text-align: right;">
-                    <div style="display: inline-block; background: #F3E8FF; color: #581C87; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; border: 1px solid #E9D5FF;">
+                    <div style="display: inline-block; background: #F3E8FF; color: #581C87; font-size: 8.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #E9D5FF;">
                       Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
                     </div>
-                    <div style="font-size: 8px; color: #6B7280; margin-top: 2px;">
+                    <div style="font-size: 7.5px; color: #6B7280; margin-top: 2px;">
                       Emisión: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </div>
                   </div>
-                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 34px; width: auto; object-fit: contain; padding-left: 8px; border-left: 1px solid #E5E7EB;" />
+                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 32px; width: auto; object-fit: contain; padding-left: 8px; border-left: 1px solid #E5E7EB;" />
                 </div>
               </div>
 
-              <!-- Tarjetas KPI Resumen Ejecutivo -->
-              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
-                <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; border: 1px solid #E5E7EB; text-align: center;">
-                  <div style="font-size: 9px; color: #6B7280; font-weight: 700; text-transform: uppercase;">Avance Global</div>
-                  <div style="font-size: 18px; font-weight: 900; color: #111827; margin: 2px 0;">${locData.avanceGlobal || 0}%</div>
-                  <div style="font-size: 8.5px; color: #4B5563;">Promedio Ponderado</div>
+              <!-- LAS 3 TARJETAS GRÁFICAS: VELOCÍMETRO, RESUMEN 2X2 Y GRÁFICO DE PRODUCTOS -->
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 8px;">
+                
+                <!-- 1. TACÓMETRO / VELOCÍMETRO -->
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; display: flex; flex-col; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 3px;">
+                    <span style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Avance A2 · ${locData.nombre}</span>
+                    <span style="font-size: 7.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: #DCFCE7; color: #166534;">Velocímetro</span>
+                  </div>
+                  <div style="margin: 2px 0;">
+                    ${gaugeSvg}
+                  </div>
+                  <div style="text-align: center; margin-top: -6px;">
+                    <div style="font-size: 20px; font-weight: 900; color: ${color}; line-height: 1;">${clamped}%</div>
+                    <div style="font-size: 7.5px; font-weight: 700; text-transform: uppercase; color: #6B7280; margin-top: 2px;">Avance Territorial ${locData.nombre}</div>
+                  </div>
+                  <div style="width: 100%; text-align: center; font-size: 7.5px; color: #6B7280; border-top: 1px solid #F3F4F6; padding-top: 3px; margin-top: 3px;">
+                    Cumplimiento: <strong>${locData.ejecutadasCount}</strong> de <strong>${locData.programadasCount}</strong> programadas
+                  </div>
                 </div>
-                <div style="background: #F0FDF4; padding: 8px; border-radius: 6px; border: 1px solid #DCFCE7; text-align: center;">
-                  <div style="font-size: 9px; color: #15803D; font-weight: 700; text-transform: uppercase;">Cumplimiento</div>
-                  <div style="font-size: 18px; font-weight: 900; color: #166534; margin: 2px 0;">${locData.cumplimientoPct}%</div>
-                  <div style="font-size: 8.5px; color: #15803D;">vs Programadas</div>
-                </div>
-                <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; border: 1px solid #E5E7EB; text-align: center;">
-                  <div style="font-size: 9px; color: #6B7280; font-weight: 700; text-transform: uppercase;">Programadas Corte</div>
-                  <div style="font-size: 18px; font-weight: 900; color: #111827; margin: 2px 0;">${locData.programadasCount} <span style="font-size: 11px; font-weight: 400; color: #6B7280;">/ ${locData.totalActividades}</span></div>
-                  <div style="font-size: 8.5px; color: #4B5563;">${locData.ejecutadasCount} completadas</div>
-                </div>
-                <div style="background: #FEF2F2; padding: 8px; border-radius: 6px; border: 1px solid #FEE2E2; text-align: center;">
-                  <div style="font-size: 9px; color: #B91C1C; font-weight: 700; text-transform: uppercase;">Pendientes / Alerta</div>
-                  <div style="font-size: 18px; font-weight: 900; color: #991B1B; margin: 2px 0;">${locData.noIniciadasCount}</div>
-                  <div style="font-size: 8.5px; color: #B91C1C;">${locData.enCursoCount} en ejecución</div>
-                </div>
-              </div>
 
-              <!-- Avance por Producto (Meta vs Avance Real) -->
-              <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px;">
-                  <span style="font-size: 9.5px; font-weight: 800; color: #374151; text-transform: uppercase;">
-                    Resumen de Avance por Producto (Meta Programada vs Avance Real)
-                  </span>
-                  <span style="font-size: 8.5px; color: #6B7280;">
-                    ${prodBars.length} productos registrados
-                  </span>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 14px;">
-                  ${prodBars.slice(0, 10).map((pb: any) => `
-                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 8.5px; gap: 8px;">
-                      <span style="font-weight: 700; color: #1F2937; width: 34px; font-family: monospace;">${pb.name}</span>
-                      <div style="flex: 1; height: 7px; background: #E5E7EB; border-radius: 4px; overflow: hidden; position: relative;">
-                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${Math.min(100, pb.meta)}%; background: #94A3B8; opacity: 0.5;"></div>
-                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${Math.min(100, pb.avance)}%; background: #16A34A;"></div>
-                      </div>
-                      <div style="font-family: monospace; font-size: 8px; width: 68px; text-align: right;">
-                        <span style="color: #16A34A; font-weight: bold;">${pb.avance}%</span> / <span style="color: #64748B;">${pb.meta}%</span>
-                      </div>
+                <!-- 2. RESUMEN DE ACTIVIDADES (2X2 KPI) -->
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; display: flex; flex-col; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 3px;">
+                    <span style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Resumen de Actividades</span>
+                    <span style="font-size: 8px; font-weight: bold; color: #DC2626;">Total: ${locData.totalActividades}</span>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin: 4px 0;">
+                    <div style="background: #F9FAFB; padding: 4px 5px; border-radius: 5px; border: 1px solid #E5E7EB;">
+                      <div style="font-size: 14px; font-weight: 900; color: #111827; line-height: 1;">${locData.programadasCount}</div>
+                      <div style="font-size: 7px; font-weight: 700; color: #6B7280; text-transform: uppercase; margin-top: 1px;">Programadas</div>
                     </div>
-                  `).join('')}
+                    <div style="background: #F0FDF4; padding: 4px 5px; border-radius: 5px; border: 1px solid #DCFCE7;">
+                      <div style="font-size: 14px; font-weight: 900; color: #166534; line-height: 1;">${locData.ejecutadasCount}</div>
+                      <div style="font-size: 7px; font-weight: 700; color: #15803D; text-transform: uppercase; margin-top: 1px;">Completadas</div>
+                    </div>
+                    <div style="background: #FFFBEB; padding: 4px 5px; border-radius: 5px; border: 1px solid #FEF3C7;">
+                      <div style="font-size: 14px; font-weight: 900; color: #B45309; line-height: 1;">${locData.enCursoCount}</div>
+                      <div style="font-size: 7px; font-weight: 700; color: #B45309; text-transform: uppercase; margin-top: 1px;">En Ejecución</div>
+                    </div>
+                    <div style="background: #FEF2F2; padding: 4px 5px; border-radius: 5px; border: 1px solid #FEE2E2;">
+                      <div style="font-size: 14px; font-weight: 900; color: #991B1B; line-height: 1;">${locData.noIniciadasCount}</div>
+                      <div style="font-size: 7px; font-weight: 700; color: #B91C1C; text-transform: uppercase; margin-top: 1px;">Alerta / No Inic.</div>
+                    </div>
+                  </div>
+
+                  <div style="background: #F9FAFB; padding: 4px 6px; border-radius: 5px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 7.5px; color: #4B5563; font-weight: 600;">Cumplimiento corte:</span>
+                    <span style="font-size: 9.5px; font-weight: 900; color: #DC2626; font-family: monospace;">${locData.cumplimientoPct}%</span>
+                  </div>
                 </div>
+
+                <!-- 3. AVANCE PRODUCTOS (META VS AVANCE) -->
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; display: flex; flex-col; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 3px;">
+                    <span style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Avance Productos</span>
+                    <span style="font-size: 7.5px; color: #9CA3AF;">${prodBars.length} productos</span>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 8px; font-size: 7px; color: #6B7280; margin: 2px 0;">
+                    <span style="display: flex; align-items: center; gap: 3px;"><span style="display: inline-block; width: 6px; height: 6px; background: #94A3B8; border-radius: 1px;"></span> Meta</span>
+                    <span style="display: flex; align-items: center; gap: 3px;"><span style="display: inline-block; width: 6px; height: 6px; background: #16A34A; border-radius: 1px;"></span> Avance</span>
+                  </div>
+                  <div>
+                    ${generateBarChartSvg(prodBars.slice(0, 6))}
+                  </div>
+                  <div style="width: 100%; text-align: right; font-size: 7px; color: #9CA3AF; border-top: 1px solid #F3F4F6; padding-top: 3px;">
+                    Meta Programada vs Avance Real
+                  </div>
+                </div>
+
               </div>
 
-              <!-- Detalle de Actividades -->
+              <!-- DETALLE DE ACTIVIDADES (HOJA 1: PRIMERAS 16 ACTIVIDADES) -->
               <div>
-                <div style="font-size: 9.5px; font-weight: 800; color: #374151; text-transform: uppercase; margin-bottom: 6px;">
-                  Detalle de Actividades · ${locData.nombre}
+                <div style="font-size: 9px; font-weight: 800; color: #374151; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Detalle de Actividades · ${locData.nombre} (1 a ${currentActs.length} de ${actList.length})</span>
+                  <span style="font-size: 8px; color: #6B7280; font-weight: normal;">Página 1 de ${totalPages}</span>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: left;">
                   <thead>
                     <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase;">
-                      <th style="padding: 4px 6px; width: 75px;">Código</th>
-                      <th style="padding: 4px 6px;">Actividad</th>
-                      <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
-                      <th style="padding: 4px 6px; width: 55px; text-align: right;">Meta</th>
-                      <th style="padding: 4px 6px; width: 60px; text-align: right;">Avance</th>
-                      <th style="padding: 4px 6px; width: 60px; text-align: center;">Cumplimiento</th>
+                      <th style="padding: 4px 5px; width: 75px;">Código</th>
+                      <th style="padding: 4px 5px;">Actividad</th>
+                      <th style="padding: 4px 5px; width: 75px; text-align: center;">Estado</th>
+                      <th style="padding: 4px 5px; width: 50px; text-align: right;">Meta</th>
+                      <th style="padding: 4px 5px; width: 55px; text-align: right;">Avance</th>
+                      <th style="padding: 4px 5px; width: 60px; text-align: center;">Cumplimiento</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${currentActs.map((a: any) => `
                       <tr style="border-bottom: 1px solid #E5E7EB;">
-                        <td style="padding: 3.5px 6px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
-                        <td style="padding: 3.5px 6px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
-                        <td style="padding: 3.5px 6px; text-align: center;">
+                        <td style="padding: 3.5px 5px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
+                        <td style="padding: 3.5px 5px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
+                        <td style="padding: 3.5px 5px; text-align: center;">
                           <span style="display: inline-block; padding: 1px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
                             a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
                           }; color: ${
@@ -726,9 +825,9 @@ export default function Dashboard({ userData }: { userData?: any }) {
                             ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
                           </span>
                         </td>
-                        <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
-                        <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
-                        <td style="padding: 3.5px 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
+                        <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
+                        <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
+                        <td style="padding: 3.5px 5px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -737,11 +836,14 @@ export default function Dashboard({ userData }: { userData?: any }) {
             </div>
           `;
         } else {
-          // Páginas siguientes
+          // Páginas siguientes (Continuación de tabla con hasta 26 filas que llenan toda la hoja)
+          const startIdx = pageSizeFirst + (pageIdx - 1) * pageSizeOther + 1;
+          const endIdx = startIdx + currentActs.length - 1;
+
           innerHTML += `
             <div>
               <!-- Encabezado Institucional Compacto -->
-              <div style="border-bottom: 1.5px solid #DC2626; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <div style="border-bottom: 1.5px solid #DC2626; padding-bottom: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 28px; width: auto; object-fit: contain;" />
                   <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
@@ -749,12 +851,12 @@ export default function Dashboard({ userData }: { userData?: any }) {
                       Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local
                     </div>
                     <div style="font-size: 11px; font-weight: 800; color: #111827; text-transform: uppercase;">
-                      Continuación: Detalle de Actividades · ${locData.nombre}
+                      Continuación: Detalle de Actividades · ${locData.nombre} (${startIdx} a ${endIdx} de ${actList.length})
                     </div>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                  <span style="font-size: 8.5px; font-weight: bold; background: #F3E8FF; color: #581C87; padding: 2px 6px; border-radius: 4px; border: 1px solid #E9D5FF;">
+                  <span style="font-size: 8px; font-weight: bold; background: #F3E8FF; color: #581C87; padding: 2px 6px; border-radius: 4px; border: 1px solid #E9D5FF;">
                     Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
                   </span>
                   <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 26px; width: auto; object-fit: contain; padding-left: 6px; border-left: 1px solid #E5E7EB;" />
@@ -765,20 +867,20 @@ export default function Dashboard({ userData }: { userData?: any }) {
               <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: left;">
                 <thead>
                   <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase;">
-                    <th style="padding: 4px 6px; width: 75px;">Código</th>
-                    <th style="padding: 4px 6px;">Actividad</th>
-                    <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
-                    <th style="padding: 4px 6px; width: 55px; text-align: right;">Meta</th>
-                    <th style="padding: 4px 6px; width: 60px; text-align: right;">Avance</th>
-                    <th style="padding: 4px 6px; width: 60px; text-align: center;">Cumplimiento</th>
+                    <th style="padding: 4px 5px; width: 75px;">Código</th>
+                    <th style="padding: 4px 5px;">Actividad</th>
+                    <th style="padding: 4px 5px; width: 75px; text-align: center;">Estado</th>
+                    <th style="padding: 4px 5px; width: 50px; text-align: right;">Meta</th>
+                    <th style="padding: 4px 5px; width: 55px; text-align: right;">Avance</th>
+                    <th style="padding: 4px 5px; width: 60px; text-align: center;">Cumplimiento</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${currentActs.map((a: any) => `
                     <tr style="border-bottom: 1px solid #E5E7EB;">
-                      <td style="padding: 3.5px 6px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
-                      <td style="padding: 3.5px 6px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
-                      <td style="padding: 3.5px 6px; text-align: center;">
+                      <td style="padding: 3.5px 5px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
+                      <td style="padding: 3.5px 5px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
+                      <td style="padding: 3.5px 5px; text-align: center;">
                         <span style="display: inline-block; padding: 1px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
                           a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
                         }; color: ${
@@ -787,9 +889,9 @@ export default function Dashboard({ userData }: { userData?: any }) {
                           ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
                         </span>
                       </td>
-                      <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
-                      <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
-                      <td style="padding: 3.5px 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
+                      <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
+                      <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
+                      <td style="padding: 3.5px 5px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -798,33 +900,41 @@ export default function Dashboard({ userData }: { userData?: any }) {
           `;
         }
 
+        // Fila resumen final al pie de la última página
+        let summaryFooter = '';
         if (isLastPage) {
-          innerHTML += `
-            <div style="margin-top: 10px; background: #1F2937; color: #FFFFFF; padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-weight: bold;">
-              <span>Total / Promedio Consolidado (${locData.nombre}):</span>
-              <div style="display: flex; gap: 14px; font-family: monospace;">
-                <span>Ejecutadas: ${locData.ejecutadasCount} / ${locData.programadasCount}</span>
-                <span>Avance Global: <span style="color: #FBBF24;">${locData.avanceGlobal || 0}%</span></span>
-                <span>Cumplimiento: <span style="color: #4ADE80;">${locData.cumplimientoPct}%</span></span>
+          summaryFooter = `
+            <div style="background: #1E293B; color: #FFFFFF; padding: 5px 10px; border-radius: 5px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px;">
+              <span style="font-weight: 700;">Total / Promedio Consolidado (${locData.nombre}):</span>
+              <div style="display: flex; gap: 14px;">
+                <span>Ejecutadas: <strong>${locData.ejecutadasCount} / ${locData.totalActividades}</strong></span>
+                <span>Avance Global: <strong>${locData.avanceGlobal}%</strong></span>
+                <span>Cumplimiento: <strong>${locData.cumplimientoPct}%</strong></span>
               </div>
             </div>
           `;
         }
 
-        innerHTML += `
-          <div style="border-top: 1px solid #E5E7EB; padding-top: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #6B7280;">
-            <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local Grupo de Espacio Público · RADAR</span>
-            <span>Página ${pageIdx + 1} de ${totalPages} · Formato Carta</span>
+        pageEl.innerHTML = `
+          ${innerHTML}
+          <div>
+            ${summaryFooter}
+            <div style="border-top: 1px solid #E5E7EB; padding-top: 4px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 7.5px; color: #6B7280;">
+              <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local Grupo de Espacio Público · RADAR</span>
+              <span>Página ${pageIdx + 1} de ${totalPages} · Formato Carta</span>
+            </div>
           </div>
         `;
 
-        pageEl.innerHTML = innerHTML;
         tempContainer.appendChild(pageEl);
 
-        await new Promise(r => setTimeout(r, 60));
+        if ((document as any).fonts && (document as any).fonts.ready) {
+          await (document as any).fonts.ready;
+        }
+        await new Promise(r => setTimeout(r, 90));
 
         const canvas = await html2canvas(pageEl, {
-          scale: 1.8,
+          scale: 2,
           useCORS: true,
           allowTaint: false,
           logging: false,
@@ -834,18 +944,18 @@ export default function Dashboard({ userData }: { userData?: any }) {
           windowHeight: pageEl.scrollHeight,
         });
 
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
         if (pageIdx > 0) {
           pdf.addPage('letter', 'portrait');
         }
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
         pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
       }
 
-      const nombreLimpio = `Reporte_Actividades_${locData.nombre.replace(/[\s/\\:]+/g, '_')}_Corte_15Oct2026.pdf`;
-      pdf.save(nombreLimpio);
+      const nombreLoc = locData.nombre.replace(/[\s/\\:]+/g, '_');
+      pdf.save(`Reporte_Territorial_${nombreLoc}_${corteActivo?.nombre || 'Corte'}.pdf`);
     } catch (err) {
-      console.error('Error generando reporte territorial en PDF:', err);
-      alert('Hubo un inconveniente al generar el PDF del reporte territorial.');
+      console.error('Error al generar PDF territorial:', err);
+      alert('Hubo un inconveniente al generar el reporte en PDF.');
     } finally {
       if (document.body.contains(tempContainer)) {
         document.body.removeChild(tempContainer);
@@ -853,7 +963,6 @@ export default function Dashboard({ userData }: { userData?: any }) {
       setGenerandoPdfLoc(false);
     }
   };
-
 
   // VISTA DRILL-DOWN POR LOCALIDAD
   if (localidadFiltro !== 'TODAS') {
