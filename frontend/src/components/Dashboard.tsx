@@ -583,28 +583,19 @@ export default function Dashboard({ userData }: { userData?: any }) {
       const totalActs = actList.length;
       const prodBars = locData.productosBars || [];
 
-      // Reparto balanceado para que NINGUNA página quede a medias ni vacía
-      const MAX_PAGE_1 = 18;
-      const MAX_PAGE_OTHER = 26;
-
+      // Si tiene hasta 30 actividades (como Chapinero con 29), cabe TODO en 1 SOLA PÁGINA sin cortes
       let chunks: any[][] = [];
-      if (totalActs <= MAX_PAGE_1) {
+      if (totalActs <= 30) {
         chunks = [actList];
-      } else if (totalActs <= MAX_PAGE_1 + MAX_PAGE_OTHER) {
-        // Exactamente 2 páginas balanceadas (ej: Chapinero 29 -> 15 y 14)
-        const p1Count = Math.min(MAX_PAGE_1, Math.ceil(totalActs / 2));
-        chunks = [
-          actList.slice(0, p1Count),
-          actList.slice(p1Count)
-        ];
       } else {
-        // 3 o más páginas balanceadas
-        const rem = actList.slice(MAX_PAGE_1);
-        const numOtherPages = Math.ceil(rem.length / MAX_PAGE_OTHER);
-        const perPage = Math.ceil(rem.length / numOtherPages);
+        // Para más de 30 actividades (ej. 37 de Santa Fe), página 1 lleva 22 y página 2 el resto
+        const MAX_PAGE_1 = 22;
+        const MAX_PAGE_OTHER = 28;
         chunks = [actList.slice(0, MAX_PAGE_1)];
-        for (let i = 0; i < rem.length; i += perPage) {
-          chunks.push(rem.slice(i, i + perPage));
+        let rem = actList.slice(MAX_PAGE_1);
+        while (rem.length > 0) {
+          chunks.push(rem.slice(0, MAX_PAGE_OTHER));
+          rem = rem.slice(MAX_PAGE_OTHER);
         }
       }
 
@@ -623,7 +614,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
       const color = clamped >= 90 ? '#16A34A' : clamped >= 60 ? '#EAB308' : '#DC2626';
 
       const gaugeSvg = `
-        <svg viewBox="0 0 200 95" style="width: 100%; max-width: 180px; height: auto; max-height: 75px; overflow: visible; margin: 0 auto; display: block;">
+        <svg viewBox="0 0 200 95" style="width: 100%; max-width: 175px; height: auto; max-height: 70px; overflow: visible; margin: 0 auto; display: block;">
           <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="#E5E7EB" stroke-width="${strokeWidth}" stroke-linecap="round" />
           ${clamped > 0 ? `<path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r * Math.cos(angleRad)} ${cy + r * Math.sin(angleRad)}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" />` : ''}
           <text x="${cx - r}" y="${cy + 13}" font-size="8" font-weight="700" fill="#9CA3AF" text-anchor="middle">0%</text>
@@ -674,7 +665,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
         }).join('');
 
         return `
-          <svg viewBox="0 0 ${width} ${height}" style="width: 100%; max-width: 180px; height: auto; max-height: 75px; display: block; margin: 0 auto; overflow: visible;">
+          <svg viewBox="0 0 ${width} ${height}" style="width: 100%; max-width: 175px; height: auto; max-height: 70px; display: block; margin: 0 auto; overflow: visible;">
             ${gridLines}
             ${barElements}
           </svg>
@@ -688,151 +679,230 @@ export default function Dashboard({ userData }: { userData?: any }) {
         const isLastPage = pageIdx === totalPages - 1;
         const rowsCount = currentActs.length;
 
-        // Altura y padding dinámicos para que las filas llenen la página con elegancia
-        const rowPy = rowsCount <= 14 ? '8px' : rowsCount <= 18 ? '6px' : '4px';
-        const fontSize = rowsCount <= 16 ? '9.5px' : '8.5px';
+        // Si es 1 sola página (ej: 29 actividades), padding compacto para que quepa todo perfecto
+        // Si son 2 páginas y la última tiene menos de 16, padding más amplio
+        const rowPy = totalPages === 1 ? '4px' : rowsCount <= 16 ? '6.5px' : '4px';
+        const fontSize = totalPages === 1 ? '8.5px' : rowsCount <= 16 ? '9px' : '8.5px';
 
         const pageEl = document.createElement('div');
         pageEl.className = 'bg-white text-gray-900 flex flex-col justify-between';
         pageEl.style.width = '215.9mm';
         pageEl.style.minHeight = '279.4mm';
         pageEl.style.maxHeight = '279.4mm';
-        pageEl.style.padding = '8mm 10mm';
+        pageEl.style.padding = '7mm 10mm';
         pageEl.style.boxSizing = 'border-box';
         pageEl.style.fontFamily = '"Source Sans 3", "Segoe UI", system-ui, sans-serif';
         pageEl.style.overflow = 'hidden';
 
-        let innerHTML = '';
+        let topContent = '';
 
         if (isFirstPage) {
-          innerHTML += `
+          topContent += `
             <div>
               <!-- Encabezado Institucional Oficial Alcaldía de Bogotá + RADAR -->
-              <div style="border-bottom: 2px solid #DC2626; padding-bottom: 5px; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <div style="border-bottom: 2px solid #DC2626; padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 34px; width: auto; object-fit: contain;" />
+                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 32px; width: auto; object-fit: contain;" />
                   <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
-                    <div style="font-size: 9.5px; font-weight: 900; text-transform: uppercase; color: #111827; letter-spacing: 0.04em;">
+                    <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #111827; letter-spacing: 0.04em;">
                       Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
                     </div>
-                    <div style="font-size: 8.5px; font-weight: 700; color: #374151;">
+                    <div style="font-size: 8px; font-weight: 700; color: #374151;">
                       SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
                     </div>
-                    <div style="font-size: 11.5px; font-weight: 800; color: #111827; margin-top: 1px; text-transform: uppercase;">
+                    <div style="font-size: 11px; font-weight: 800; color: #111827; margin-top: 1px; text-transform: uppercase;">
                       Reporte Territorial de Actividades · ${locData.nombre}
                     </div>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                   <div style="text-align: right;">
-                    <div style="display: inline-block; background: #F3E8FF; color: #581C87; font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #E9D5FF;">
+                    <div style="display: inline-block; background: #F3E8FF; color: #581C87; font-size: 8px; font-weight: 700; padding: 1.5px 6px; border-radius: 4px; border: 1px solid #E9D5FF;">
                       Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
                     </div>
-                    <div style="font-size: 7.5px; color: #6B7280; margin-top: 2px;">
+                    <div style="font-size: 7px; color: #6B7280; margin-top: 1px;">
                       Emisión: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </div>
                   </div>
-                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 30px; width: auto; object-fit: contain; padding-left: 8px; border-left: 1px solid #E5E7EB;" />
+                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 28px; width: auto; object-fit: contain; padding-left: 8px; border-left: 1px solid #E5E7EB;" />
                 </div>
               </div>
 
-              <!-- LAS 3 TARJETAS GRÁFICAS: VELOCÍMETRO, RESUMEN 2X2 Y GRÁFICO DE PRODUCTOS (SIN DESBORDES) -->
-              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 7px;">
+              <!-- LAS 3 TARJETAS GRÁFICAS: VELOCÍMETRO, RESUMEN 2X2 Y GRÁFICO DE PRODUCTOS (ADAPTADAS Y SIN DESBORDE) -->
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px;">
                 
                 <!-- 1. TACÓMETRO / VELOCÍMETRO -->
-                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 7px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 6px; padding: 5px 7px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
                   <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 2px;">
-                    <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #4B5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Avance Territorial</span>
-                    <span style="font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: #DCFCE7; color: #166534;">Velocímetro</span>
+                    <span style="font-size: 7.5px; font-weight: 800; text-transform: uppercase; color: #4B5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Avance Territorial</span>
+                    <span style="font-size: 6.8px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: #DCFCE7; color: #166534;">Velocímetro</span>
                   </div>
-                  <div style="margin: 2px 0; width: 100%;">
+                  <div style="margin: 1px 0; width: 100%;">
                     ${gaugeSvg}
                   </div>
-                  <div style="text-align: center; margin-top: -5px;">
-                    <div style="font-size: 19px; font-weight: 900; color: ${color}; line-height: 1;">${clamped}%</div>
-                    <div style="font-size: 7px; font-weight: 700; text-transform: uppercase; color: #6B7280; margin-top: 1px;">${locData.nombre}</div>
+                  <div style="text-align: center; margin-top: -4px;">
+                    <div style="font-size: 18px; font-weight: 900; color: ${color}; line-height: 1;">${clamped}%</div>
+                    <div style="font-size: 6.8px; font-weight: 700; text-transform: uppercase; color: #6B7280; margin-top: 1px;">${locData.nombre}</div>
                   </div>
-                  <div style="width: 100%; text-align: center; font-size: 7px; color: #6B7280; border-top: 1px solid #F3F4F6; padding-top: 2px; margin-top: 2px;">
+                  <div style="width: 100%; text-align: center; font-size: 6.8px; color: #6B7280; border-top: 1px solid #F3F4F6; padding-top: 2px; margin-top: 2px;">
                     Cumplimiento: <strong>${locData.ejecutadasCount}</strong> de <strong>${locData.programadasCount}</strong>
                   </div>
                 </div>
 
                 <!-- 2. RESUMEN DE ACTIVIDADES (2X2 KPI) -->
-                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 7px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 6px; padding: 5px 7px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
                   <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 2px;">
-                    <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Resumen</span>
-                    <span style="font-size: 7.5px; font-weight: bold; color: #DC2626;">Total: ${locData.totalActividades}</span>
+                    <span style="font-size: 7.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Resumen</span>
+                    <span style="font-size: 7px; font-weight: bold; color: #DC2626;">Total: ${locData.totalActividades}</span>
                   </div>
 
-                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; margin: 3px 0;">
-                    <div style="background: #F9FAFB; padding: 3px 4px; border-radius: 4px; border: 1px solid #E5E7EB;">
-                      <div style="font-size: 13px; font-weight: 900; color: #111827; line-height: 1;">${locData.programadasCount}</div>
-                      <div style="font-size: 6.8px; font-weight: 700; color: #6B7280; text-transform: uppercase;">Programadas</div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2.5px; margin: 2.5px 0;">
+                    <div style="background: #F9FAFB; padding: 2.5px 3.5px; border-radius: 4px; border: 1px solid #E5E7EB;">
+                      <div style="font-size: 12px; font-weight: 900; color: #111827; line-height: 1;">${locData.programadasCount}</div>
+                      <div style="font-size: 6.5px; font-weight: 700; color: #6B7280; text-transform: uppercase;">Programadas</div>
                     </div>
-                    <div style="background: #F0FDF4; padding: 3px 4px; border-radius: 4px; border: 1px solid #DCFCE7;">
-                      <div style="font-size: 13px; font-weight: 900; color: #166534; line-height: 1;">${locData.ejecutadasCount}</div>
-                      <div style="font-size: 6.8px; font-weight: 700; color: #15803D; text-transform: uppercase;">Completadas</div>
+                    <div style="background: #F0FDF4; padding: 2.5px 3.5px; border-radius: 4px; border: 1px solid #DCFCE7;">
+                      <div style="font-size: 12px; font-weight: 900; color: #166534; line-height: 1;">${locData.ejecutadasCount}</div>
+                      <div style="font-size: 6.5px; font-weight: 700; color: #15803D; text-transform: uppercase;">Completadas</div>
                     </div>
-                    <div style="background: #FFFBEB; padding: 3px 4px; border-radius: 4px; border: 1px solid #FEF3C7;">
-                      <div style="font-size: 13px; font-weight: 900; color: #B45309; line-height: 1;">${locData.enCursoCount}</div>
-                      <div style="font-size: 6.8px; font-weight: 700; color: #B45309; text-transform: uppercase;">En Ejecución</div>
+                    <div style="background: #FFFBEB; padding: 2.5px 3.5px; border-radius: 4px; border: 1px solid #FEF3C7;">
+                      <div style="font-size: 12px; font-weight: 900; color: #B45309; line-height: 1;">${locData.enCursoCount}</div>
+                      <div style="font-size: 6.5px; font-weight: 700; color: #B45309; text-transform: uppercase;">En Ejecución</div>
                     </div>
-                    <div style="background: #FEF2F2; padding: 3px 4px; border-radius: 4px; border: 1px solid #FEE2E2;">
-                      <div style="font-size: 13px; font-weight: 900; color: #991B1B; line-height: 1;">${locData.noIniciadasCount}</div>
-                      <div style="font-size: 6.8px; font-weight: 700; color: #B91C1C; text-transform: uppercase;">Alerta/No Inic.</div>
+                    <div style="background: #FEF2F2; padding: 2.5px 3.5px; border-radius: 4px; border: 1px solid #FEE2E2;">
+                      <div style="font-size: 12px; font-weight: 900; color: #991B1B; line-height: 1;">${locData.noIniciadasCount}</div>
+                      <div style="font-size: 6.5px; font-weight: 700; color: #B91C1C; text-transform: uppercase;">Alerta/No Inic.</div>
                     </div>
                   </div>
 
-                  <div style="background: #F9FAFB; padding: 3px 5px; border-radius: 4px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 7px; color: #4B5563; font-weight: 600;">Cumplimiento corte:</span>
-                    <span style="font-size: 9px; font-weight: 900; color: #DC2626; font-family: monospace;">${locData.cumplimientoPct}%</span>
+                  <div style="background: #F9FAFB; padding: 2.5px 4px; border-radius: 4px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 6.8px; color: #4B5563; font-weight: 600;">Cumplimiento corte:</span>
+                    <span style="font-size: 8.5px; font-weight: 900; color: #DC2626; font-family: monospace;">${locData.cumplimientoPct}%</span>
                   </div>
                 </div>
 
                 <!-- 3. AVANCE PRODUCTOS (META VS AVANCE) -->
-                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 7px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 6px; padding: 5px 7px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
                   <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 2px;">
-                    <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Avance Productos</span>
-                    <span style="font-size: 7px; color: #9CA3AF;">${prodBars.length} prod.</span>
+                    <span style="font-size: 7.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Avance Productos</span>
+                    <span style="font-size: 6.8px; color: #9CA3AF;">${prodBars.length} prod.</span>
                   </div>
-                  <div style="display: flex; justify-content: flex-end; gap: 6px; font-size: 6.8px; color: #6B7280; margin: 1px 0;">
+                  <div style="display: flex; justify-content: flex-end; gap: 5px; font-size: 6.5px; color: #6B7280; margin: 1px 0;">
                     <span style="display: flex; align-items: center; gap: 2px;"><span style="display: inline-block; width: 5px; height: 5px; background: #94A3B8; border-radius: 1px;"></span> Meta</span>
                     <span style="display: flex; align-items: center; gap: 2px;"><span style="display: inline-block; width: 5px; height: 5px; background: #16A34A; border-radius: 1px;"></span> Avance</span>
                   </div>
                   <div style="width: 100%;">
                     ${generateBarChartSvg(prodBars.slice(0, 6))}
                   </div>
-                  <div style="width: 100%; text-align: right; font-size: 6.8px; color: #9CA3AF; border-top: 1px solid #F3F4F6; padding-top: 2px;">
+                  <div style="width: 100%; text-align: right; font-size: 6.5px; color: #9CA3AF; border-top: 1px solid #F3F4F6; padding-top: 2px;">
                     Meta vs Avance
                   </div>
                 </div>
 
               </div>
+            </div>
+          `;
+        } else {
+          // Páginas siguientes: Encabezado compacto
+          let startIdx = 1;
+          for (let p = 0; p < pageIdx; p++) {
+            startIdx += (chunks[p] || []).length;
+          }
+          const endIdx = startIdx + currentActs.length - 1;
 
-              <!-- DETALLE DE ACTIVIDADES (TABLA CON FILAS DISTRIBUIDAS) -->
-              <div>
-                <div style="font-size: 8.5px; font-weight: 800; color: #374151; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                  <span>Detalle de Actividades · ${locData.nombre} (1 a ${currentActs.length} de ${actList.length})</span>
-                  <span style="font-size: 7.5px; color: #6B7280; font-weight: normal;">Página 1 de ${totalPages}</span>
+          topContent += `
+            <div>
+              <div style="border-bottom: 1.5px solid #DC2626; padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 26px; width: auto; object-fit: contain;" />
+                  <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
+                    <div style="font-size: 8px; font-weight: 900; text-transform: uppercase; color: #111827;">
+                      Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local
+                    </div>
+                    <div style="font-size: 10.5px; font-weight: 800; color: #111827; text-transform: uppercase;">
+                      Continuación: Detalle de Actividades · ${locData.nombre} (${startIdx} a ${endIdx} de ${actList.length})
+                    </div>
+                  </div>
                 </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                  <span style="font-size: 7.5px; font-weight: bold; background: #F3E8FF; color: #581C87; padding: 2px 6px; border-radius: 4px; border: 1px solid #E9D5FF;">
+                    Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
+                  </span>
+                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 24px; width: auto; object-fit: contain; padding-left: 6px; border-left: 1px solid #E5E7EB;" />
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Barra de Total Consolidado DIRECTAMENTE PEGADA AL PIE DE LA TABLA (NUNCA DESCONECTADA)
+        const summaryBarConnected = isLastPage ? `
+          <div style="background: #0F172A; color: #FFFFFF; padding: 5px 10px; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; border-top: 1.5px solid #334155;">
+            <span style="font-weight: 800; letter-spacing: 0.03em;">TOTAL CONSOLIDADO · ${locData.nombre}:</span>
+            <div style="display: flex; gap: 14px; font-weight: 600;">
+              <span>Actividades: <strong>${locData.ejecutadasCount} / ${locData.totalActividades} completadas</strong></span>
+              <span>Avance Territorial: <strong>${locData.avanceGlobal}%</strong></span>
+              <span>Eficacia a Corte: <strong>${locData.cumplimientoPct}%</strong></span>
+            </div>
+          </div>
+        ` : '';
+
+        // Bloque de síntesis territorial complementario en la última página si hay pocas actividades
+        const extraAnalysisCard = (isLastPage && totalPages > 1 && rowsCount <= 16) ? `
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 10px; margin-top: 8px;">
+            <div style="font-size: 8.5px; font-weight: 800; color: #1E293B; text-transform: uppercase; margin-bottom: 4px;">
+              Directrices de Gestión y Cumplimiento Territorial · ${locData.nombre}
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 7.5px;">
+              <div style="background: #FFFFFF; padding: 5px 6px; border-radius: 4px; border: 1px solid #E2E8F0;">
+                <div style="font-weight: 700; color: #475569;">Estatus de Operatividad</div>
+                <div style="color: #0F172A; font-weight: 800; font-size: 10px; margin-top: 1px;">${locData.ejecutadasCount >= locData.programadasCount ? 'En Meta Programada' : 'Atención Prioritaria'}</div>
+              </div>
+              <div style="background: #FFFFFF; padding: 5px 6px; border-radius: 4px; border: 1px solid #E2E8F0;">
+                <div style="font-weight: 700; color: #475569;">Alerta Preventiva</div>
+                <div style="color: ${locData.noIniciadasCount > 0 ? '#DC2626' : '#16A34A'}; font-weight: 800; font-size: 10px; margin-top: 1px;">${locData.noIniciadasCount} act. pendientes</div>
+              </div>
+              <div style="background: #FFFFFF; padding: 5px 6px; border-radius: 4px; border: 1px solid #E2E8F0;">
+                <div style="font-weight: 700; color: #475569;">Fecha de Corte Evaluada</div>
+                <div style="color: #0F172A; font-weight: 800; font-size: 10px; margin-top: 1px;">${corteActivo?.nombre || '15 Octubre 2026'}</div>
+              </div>
+            </div>
+          </div>
+        ` : '';
+
+        let tableHeaderTitle = isFirstPage
+          ? `Detalle de Actividades · ${locData.nombre} (${totalPages === 1 ? 'Todas las ' + actList.length + ' actividades' : '1 a ' + currentActs.length + ' de ' + actList.length})`
+          : `Continuación de Actividades · ${locData.nombre}`;
+
+        pageEl.innerHTML = `
+          <div>
+            ${topContent}
+
+            <!-- TABLA DE ACTIVIDADES CON CONTENEDOR INTEGRADO (TOTALES CONECTADOS DIRECTAMENTE) -->
+            <div>
+              <div style="font-size: 8px; font-weight: 800; color: #374151; text-transform: uppercase; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center;">
+                <span>${tableHeaderTitle}</span>
+                <span style="font-size: 7px; color: #6B7280; font-weight: normal;">Página ${pageIdx + 1} de ${totalPages}</span>
+              </div>
+              <div style="border: 1px solid #E5E7EB; border-radius: 6px; overflow: hidden; background: #FFFFFF;">
                 <table style="width: 100%; border-collapse: collapse; font-size: ${fontSize}; text-align: left;">
                   <thead>
-                    <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase; font-size: 8px;">
-                      <th style="padding: 4px 6px; width: 95px;">Código</th>
-                      <th style="padding: 4px 6px;">Actividad</th>
-                      <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
-                      <th style="padding: 4px 6px; width: 46px; text-align: right;">Meta</th>
-                      <th style="padding: 4px 6px; width: 48px; text-align: right;">Avance</th>
-                      <th style="padding: 4px 6px; width: 58px; text-align: center;">Cumplimiento</th>
+                    <tr style="background: #F1F5F9; color: #334155; font-weight: 700; border-bottom: 1.5px solid #CBD5E1; text-transform: uppercase; font-size: 7.5px;">
+                      <th style="padding: 3.5px 5px; width: 95px;">Código</th>
+                      <th style="padding: 3.5px 5px;">Actividad</th>
+                      <th style="padding: 3.5px 5px; width: 75px; text-align: center;">Estado</th>
+                      <th style="padding: 3.5px 5px; width: 44px; text-align: right;">Meta</th>
+                      <th style="padding: 3.5px 5px; width: 46px; text-align: right;">Avance</th>
+                      <th style="padding: 3.5px 5px; width: 56px; text-align: center;">Cumplimiento</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${currentActs.map((a: any) => `
-                      <tr style="border-bottom: 1px solid #E5E7EB; vertical-align: middle;">
-                        <td style="padding: ${rowPy} 6px; font-family: monospace; font-weight: bold; color: #111827; font-size: 8px; white-space: nowrap;">${a.codigo}</td>
-                        <td style="padding: ${rowPy} 6px; color: #1F2937; font-weight: 500; line-height: 1.25;">${a.nombre}</td>
-                        <td style="padding: ${rowPy} 6px; text-align: center;">
-                          <span style="display: inline-block; padding: 1.5px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
+                      <tr style="border-bottom: 1px solid #F1F5F9; vertical-align: middle;">
+                        <td style="padding: ${rowPy} 5px; font-family: monospace; font-weight: bold; color: #0F172A; font-size: 7.8px; white-space: nowrap;">${a.codigo}</td>
+                        <td style="padding: ${rowPy} 5px; color: #1E293B; font-weight: 500; line-height: 1.2;">${a.nombre}</td>
+                        <td style="padding: ${rowPy} 5px; text-align: center;">
+                          <span style="display: inline-block; padding: 1px 4.5px; border-radius: 9999px; font-size: 7px; font-weight: bold; background: ${
                             a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
                           }; color: ${
                             a.estado === 'COMPLETADA' ? '#166534' : a.estado === 'EN_CURSO' ? '#92400E' : '#991B1B'
@@ -840,107 +910,23 @@ export default function Dashboard({ userData }: { userData?: any }) {
                             ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
                           </span>
                         </td>
-                        <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
-                        <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
-                        <td style="padding: ${rowPy} 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
+                        <td style="padding: ${rowPy} 5px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
+                        <td style="padding: ${rowPy} 5px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
+                        <td style="padding: ${rowPy} 5px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
                       </tr>
                     `).join('')}
                   </tbody>
                 </table>
+                ${summaryBarConnected}
               </div>
+              ${extraAnalysisCard}
             </div>
-          `;
-        } else {
-          // Páginas siguientes (Continuación con filas cómodas que llenan la hoja)
-          let startIdx = 1;
-          for (let p = 0; p < pageIdx; p++) {
-            startIdx += (chunks[p] || []).length;
-          }
-          const endIdx = startIdx + currentActs.length - 1;
+          </div>
 
-          innerHTML += `
-            <div>
-              <!-- Encabezado Institucional Compacto -->
-              <div style="border-bottom: 1.5px solid #DC2626; padding-bottom: 5px; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 28px; width: auto; object-fit: contain;" />
-                  <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
-                    <div style="font-size: 8.5px; font-weight: 900; text-transform: uppercase; color: #111827;">
-                      Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local
-                    </div>
-                    <div style="font-size: 11px; font-weight: 800; color: #111827; text-transform: uppercase;">
-                      Continuación: Detalle de Actividades · ${locData.nombre} (${startIdx} a ${endIdx} de ${actList.length})
-                    </div>
-                  </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                  <span style="font-size: 8px; font-weight: bold; background: #F3E8FF; color: #581C87; padding: 2px 6px; border-radius: 4px; border: 1px solid #E9D5FF;">
-                    Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
-                  </span>
-                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 26px; width: auto; object-fit: contain; padding-left: 6px; border-left: 1px solid #E5E7EB;" />
-                </div>
-              </div>
-
-              <!-- Tabla de Actividades Continuación -->
-              <table style="width: 100%; border-collapse: collapse; font-size: ${fontSize}; text-align: left;">
-                <thead>
-                  <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase; font-size: 8px;">
-                    <th style="padding: 4px 6px; width: 95px;">Código</th>
-                    <th style="padding: 4px 6px;">Actividad</th>
-                    <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
-                    <th style="padding: 4px 6px; width: 46px; text-align: right;">Meta</th>
-                    <th style="padding: 4px 6px; width: 48px; text-align: right;">Avance</th>
-                    <th style="padding: 4px 6px; width: 58px; text-align: center;">Cumplimiento</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${currentActs.map((a: any) => `
-                    <tr style="border-bottom: 1px solid #E5E7EB; vertical-align: middle;">
-                      <td style="padding: ${rowPy} 6px; font-family: monospace; font-weight: bold; color: #111827; font-size: 8px; white-space: nowrap;">${a.codigo}</td>
-                      <td style="padding: ${rowPy} 6px; color: #1F2937; font-weight: 500; line-height: 1.25;">${a.nombre}</td>
-                      <td style="padding: ${rowPy} 6px; text-align: center;">
-                        <span style="display: inline-block; padding: 1.5px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
-                          a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
-                        }; color: ${
-                          a.estado === 'COMPLETADA' ? '#166534' : a.estado === 'EN_CURSO' ? '#92400E' : '#991B1B'
-                        };">
-                          ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
-                        </span>
-                      </td>
-                      <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
-                      <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
-                      <td style="padding: ${rowPy} 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          `;
-        }
-
-        // Fila resumen final al pie de la última página + Bloque de síntesis si queda espacio
-        let summaryFooter = '';
-        if (isLastPage) {
-          summaryFooter = `
-            <div style="background: #0F172A; color: #FFFFFF; padding: 6px 12px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <span style="font-weight: 800; letter-spacing: 0.03em;">TOTAL CONSOLIDADO · ${locData.nombre}:</span>
-              <div style="display: flex; gap: 16px; font-weight: 600;">
-                <span>Actividades: <strong>${locData.ejecutadasCount} / ${locData.totalActividades} completadas</strong></span>
-                <span>Avance Territorial: <strong>${locData.avanceGlobal}%</strong></span>
-                <span>Eficacia a Corte: <strong>${locData.cumplimientoPct}%</strong></span>
-              </div>
-            </div>
-          `;
-        }
-
-        pageEl.innerHTML = `
-          ${innerHTML}
-          <div>
-            ${summaryFooter}
-            <div style="border-top: 1px solid #E5E7EB; padding-top: 4px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 7.5px; color: #6B7280;">
-              <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local Grupo de Espacio Público · RADAR</span>
-              <span>Página ${pageIdx + 1} de ${totalPages} · Formato Carta</span>
-            </div>
+          <!-- Pie Institucional Oficial de Página -->
+          <div style="border-top: 1px solid #E2E8F0; padding-top: 3px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 7px; color: #64748B;">
+            <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local Grupo de Espacio Público · RADAR</span>
+            <span>Página ${pageIdx + 1} de ${totalPages} · Formato Carta</span>
           </div>
         `;
 
