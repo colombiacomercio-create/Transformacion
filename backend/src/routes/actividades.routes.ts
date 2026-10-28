@@ -197,10 +197,44 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
 
       if (actividades && Array.isArray(actividades)) {
         for (const act of actividades) {
-            const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites, correosNotificacion } = act;
+            const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites, correosNotificacion, asignadoA } = act;
             
             if (!nombre) {
               throw new Error('El nombre de la actividad es obligatorio');
+            }
+
+            // Normalizar correos asignados / notificaciones
+            let cleanCorreos: string[] = [];
+            if (Array.isArray(correosNotificacion)) {
+              cleanCorreos = correosNotificacion.map((c: any) => String(c).trim().toLowerCase()).filter(Boolean);
+            } else if (typeof correosNotificacion === 'string' && correosNotificacion.trim()) {
+              cleanCorreos = correosNotificacion.split(',').map((c: string) => c.trim().toLowerCase()).filter(Boolean);
+            } else if (typeof asignadoA === 'string' && asignadoA.trim()) {
+              cleanCorreos = asignadoA.split(',').map((c: string) => c.trim().toLowerCase()).filter(Boolean);
+            }
+            cleanCorreos = Array.from(new Set(cleanCorreos));
+
+            // Asegurar que existan o tengan rol GESTOR para interactuar
+            for (const em of cleanCorreos) {
+              try {
+                const exists = await tx.usuario.findFirst({ where: { email: { equals: em, mode: 'insensitive' } } });
+                if (!exists) {
+                  await tx.usuario.create({
+                    data: {
+                      email: em,
+                      nombre: em.split('@')[0],
+                      rol: 'GESTOR'
+                    }
+                  });
+                } else if (exists.rol === 'OBSERVADOR') {
+                  await tx.usuario.update({
+                    where: { id: exists.id },
+                    data: { rol: 'GESTOR' }
+                  });
+                }
+              } catch (uErr) {
+                console.warn('Advertencia registrando gestor por correo:', em, uErr);
+              }
             }
 
           // Parse Aspiracion
@@ -268,7 +302,7 @@ router.post('/importar', azureADAuth, requireRole(['ADMIN']), async (req: AuthRe
               indicadorUnidad: '%',
               prioridad: 'MEDIA',
               creadoPor: req.user?.id || 'admin',
-                  correosNotificacion: correosNotificacion || [],
+              correosNotificacion: cleanCorreos,
               estado: 'PENDIENTE'
             }
           });

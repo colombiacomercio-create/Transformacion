@@ -164,9 +164,45 @@ router.post('/importar', auth_middleware_1.azureADAuth, (0, auth_middleware_1.re
             }
             if (actividades && Array.isArray(actividades)) {
                 for (const act of actividades) {
-                    const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites, correosNotificacion } = act;
+                    const { codigoActividad, aspiracion, producto, nombre, descripcion, fechaInicio, fechaLimite, valorActividad, esRepetitiva, numRepeticiones, fechasLimites, correosNotificacion, asignadoA } = act;
                     if (!nombre) {
                         throw new Error('El nombre de la actividad es obligatorio');
+                    }
+                    // Normalizar correos asignados / notificaciones
+                    let cleanCorreos = [];
+                    if (Array.isArray(correosNotificacion)) {
+                        cleanCorreos = correosNotificacion.map((c) => String(c).trim().toLowerCase()).filter(Boolean);
+                    }
+                    else if (typeof correosNotificacion === 'string' && correosNotificacion.trim()) {
+                        cleanCorreos = correosNotificacion.split(',').map((c) => c.trim().toLowerCase()).filter(Boolean);
+                    }
+                    else if (typeof asignadoA === 'string' && asignadoA.trim()) {
+                        cleanCorreos = asignadoA.split(',').map((c) => c.trim().toLowerCase()).filter(Boolean);
+                    }
+                    cleanCorreos = Array.from(new Set(cleanCorreos));
+                    // Asegurar que existan o tengan rol GESTOR para interactuar
+                    for (const em of cleanCorreos) {
+                        try {
+                            const exists = await tx.usuario.findFirst({ where: { email: { equals: em, mode: 'insensitive' } } });
+                            if (!exists) {
+                                await tx.usuario.create({
+                                    data: {
+                                        email: em,
+                                        nombre: em.split('@')[0],
+                                        rol: 'GESTOR'
+                                    }
+                                });
+                            }
+                            else if (exists.rol === 'OBSERVADOR') {
+                                await tx.usuario.update({
+                                    where: { id: exists.id },
+                                    data: { rol: 'GESTOR' }
+                                });
+                            }
+                        }
+                        catch (uErr) {
+                            console.warn('Advertencia registrando gestor por correo:', em, uErr);
+                        }
                     }
                     // Parse Aspiracion
                     let objCodigo = "A0";
@@ -228,7 +264,7 @@ router.post('/importar', auth_middleware_1.azureADAuth, (0, auth_middleware_1.re
                             indicadorUnidad: '%',
                             prioridad: 'MEDIA',
                             creadoPor: req.user?.id || 'admin',
-                            correosNotificacion: correosNotificacion || [],
+                            correosNotificacion: cleanCorreos,
                             estado: 'PENDIENTE'
                         }
                     });

@@ -7,6 +7,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { PUNTOS_FOCALIZADOS_OCT_2026, GESTION_P04_DEFAULT, PuntoFocalizadoOct } from './datosGestionP04';
 import { BloquesGestionP04, ModalPuntoFocalizadoOct } from './BloquesGestionP04';
+import { LOGO_BOGOTA_BASE64, LOGO_SDG_BASE64, LOGO_RADAR_BASE64 } from '../../utils/logos';
 
 const API = import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app';
 const SURVEY_SHARE_URL = 'https://survey123.arcgis.com/share/6ad0fc8ddc574571bcb6252a49ebab4d/result';
@@ -1455,14 +1456,39 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     const el = document.getElementById('ficha-imprimible-carta');
     if (!el) return;
     setGenerandoPdf(true);
+
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'fixed';
+    tempContainer.style.top = '0';
+    tempContainer.style.left = '-99999px';
+    tempContainer.style.width = '215.9mm';
+    tempContainer.style.zIndex = '-99999';
+    tempContainer.style.background = '#ffffff';
+    document.body.appendChild(tempContainer);
+
     try {
-      const canvas = await html2canvas(el, {
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone.style.width = '215.9mm';
+      clone.style.height = 'auto';
+      clone.style.maxHeight = 'none';
+      clone.style.overflow = 'visible';
+      clone.style.padding = '8mm 10mm';
+      clone.style.boxSizing = 'border-box';
+      tempContainer.appendChild(clone);
+
+      await new Promise(r => setTimeout(r, 80));
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         logging: false,
+        imageTimeout: 5000,
         backgroundColor: '#ffffff',
+        windowWidth: clone.scrollWidth,
+        windowHeight: clone.scrollHeight,
       });
+
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -1471,12 +1497,14 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       });
       const pageWidth = 215.9;
       const pageHeight = 279.4;
-      const margin = 8;
+      const margin = 7;
       const contentWidth = pageWidth - margin * 2;
+      const contentHeight = pageHeight - margin * 2;
       const imgHeight = (canvas.height * contentWidth) / canvas.width;
 
-      if (imgHeight <= pageHeight - margin * 2) {
-        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, imgHeight);
+      if (imgHeight <= contentHeight + 18) {
+        const fitHeight = Math.min(contentHeight, imgHeight);
+        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, fitHeight);
       } else {
         let heightLeft = imgHeight;
         let position = margin;
@@ -1494,8 +1522,11 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       pdf.save(`${nombreLimpio}.pdf`);
     } catch (err) {
       console.error('Error al exportar ficha en PDF:', err);
-      alert('Hubo un inconveniente al generar el PDF. Por favor utiliza la opción de Imprimir.');
+      alert('Hubo un inconveniente al generar el PDF de la ficha.');
     } finally {
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
       setGenerandoPdf(false);
     }
   };
@@ -1508,6 +1539,17 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
     const pageNodes = document.querySelectorAll<HTMLElement>('.hoja-carta-exportable');
     if (!pageNodes || pageNodes.length === 0) return;
     setGenerandoConsolidadoPdf(true);
+
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'fixed';
+    tempContainer.style.top = '0';
+    tempContainer.style.left = '-99999px';
+    tempContainer.style.width = '215.9mm';
+    tempContainer.style.height = '279.4mm';
+    tempContainer.style.zIndex = '-99999';
+    tempContainer.style.background = '#ffffff';
+    document.body.appendChild(tempContainer);
+
     try {
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -1518,16 +1560,31 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       const pageHeight = 279.4;
 
       for (let i = 0; i < pageNodes.length; i++) {
+        tempContainer.innerHTML = '';
+        const clone = pageNodes[i].cloneNode(true) as HTMLElement;
+        clone.style.width = '215.9mm';
+        clone.style.minHeight = '279.4mm';
+        clone.style.maxHeight = '279.4mm';
+        clone.style.boxSizing = 'border-box';
+        clone.style.overflow = 'hidden';
+        tempContainer.appendChild(clone);
+
+        await new Promise(r => setTimeout(r, 60));
+
+        const canvas = await html2canvas(clone, {
+          scale: 1.8,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          imageTimeout: 5000,
+          backgroundColor: '#ffffff',
+          windowWidth: clone.scrollWidth,
+          windowHeight: clone.scrollHeight,
+        });
+
         if (i > 0) {
           pdf.addPage('letter', 'portrait');
         }
-        const canvas = await html2canvas(pageNodes[i], {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          backgroundColor: '#ffffff',
-        });
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
         pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
       }
@@ -1538,6 +1595,9 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
       console.error('Error generando PDF consolidado:', err);
       alert('Hubo un inconveniente al generar el PDF.');
     } finally {
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
       setGenerandoConsolidadoPdf(false);
     }
   };
@@ -2500,30 +2560,33 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
             </div>
 
             {/* Contenedor Imprimible y Exportable a PDF Tamaño Carta */}
-            <div id="ficha-imprimible-carta" className="p-6 overflow-y-auto space-y-5 bg-white text-gray-900">
-              {/* Encabezado Institucional Oficial Alcaldía de Bogotá */}
-              <div className="border-b-2 border-slate-800 pb-3 flex flex-wrap items-center justify-between gap-4">
+            <div id="ficha-imprimible-carta" className="p-5 overflow-y-auto space-y-4 bg-white text-gray-900">
+              {/* Encabezado Institucional Oficial Alcaldía de Bogotá + Marca RADAR */}
+              <div className="border-b-2 border-red-600 pb-2.5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-12 bg-gradient-to-b from-red-600 via-yellow-400 to-blue-800 rounded-full" />
-                  <div>
-                    <div className="text-[12px] font-black tracking-wide text-gray-900 uppercase">
+                  <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-11 w-auto object-contain" />
+                  <div className="border-l-2 border-gray-200 pl-3">
+                    <div className="text-[11px] font-black tracking-wide text-gray-900 uppercase">
                       Alcaldía Mayor de Bogotá · Secretaría Distrital de Gobierno
                     </div>
-                    <div className="text-xs font-bold text-gray-700">
+                    <div className="text-[10px] font-bold text-gray-700">
                       SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
                     </div>
-                    <div className="text-[11px] text-gray-500">
-                      Sistema de Monitoreo y Seguimiento Territorial de Sostenibilidad · Vigencia 2026
+                    <div className="text-[9px] text-gray-500 font-medium">
+                      Sistema de Monitoreo Territorial RADAR · Sostenibilidad Vigencia 2026
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-800 border border-slate-300 uppercase tracking-wider mb-1">
-                    Ficha Técnica · Tamaño Carta
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300 uppercase tracking-wider mb-0.5">
+                      Ficha Técnica · Tamaño Carta
+                    </div>
+                    <div className="text-[10px] text-gray-600 font-mono">
+                      ID Registro: {sel.id} · {sel.ld}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-gray-600 font-mono">
-                    ID Registro: {sel.id} · {sel.ld}
-                  </div>
+                  <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-10 w-auto object-contain border-l pl-3 border-gray-200" />
                 </div>
               </div>
 
@@ -2572,7 +2635,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
               </div>
 
               {/* Grilla técnica: 3 Columnas debidamente distribuidas */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-3 gap-3.5">
                 {/* Columna 1: Datos de visita y estado general */}
                 <div className="space-y-4">
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5">
@@ -2703,16 +2766,16 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                                     crossOrigin="anonymous"
                                     src={`${API}/api/sostenibilidad/attachment?url=${encodeURIComponent(e.url)}`}
                                     alt={e.label}
-                                    className="w-full h-32 object-cover bg-gray-100"
+                                    className="w-full h-24 object-cover bg-gray-100"
                                     loading="lazy"
                                   />
                                 ) : isVid ? (
-                                  <div className="w-full h-32 bg-slate-900 flex flex-col items-center justify-center p-3 text-center text-white">
+                                  <div className="w-full h-24 bg-slate-900 flex flex-col items-center justify-center p-2 text-center text-white">
                                     <Video className="w-6 h-6 text-yellow-400 mb-1" />
                                     <span className="text-[10px] text-gray-300 truncate max-w-full">{e.file}</span>
                                   </div>
                                 ) : (
-                                  <div className="w-full h-32 bg-gray-100 flex items-center justify-center text-gray-400">
+                                  <div className="w-full h-24 bg-gray-100 flex items-center justify-center text-gray-400">
                                     <Camera className="w-6 h-6" />
                                   </div>
                                 )}
@@ -2980,26 +3043,32 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                     }}
                   >
                     <div>
-                      {/* Encabezado Hoja 1 */}
-                      <div className="border-b-2 border-red-600 pb-2 mb-3 flex justify-between items-start">
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                            Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
+                      {/* Encabezado Hoja 1 con Marca Institucional Oficial */}
+                      <div className="border-b-2 border-red-600 pb-2 mb-3 flex justify-between items-center gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-10 w-auto object-contain" />
+                          <div className="border-l border-gray-300 pl-2.5">
+                            <div className="text-[9.5px] font-black text-gray-900 uppercase tracking-wide">
+                              Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
+                            </div>
+                            <div className="text-[8.5px] font-bold text-gray-700 leading-tight">
+                              SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
+                            </div>
+                            <h1 className="text-sm font-extrabold text-gray-900 mt-0.5 uppercase tracking-tight" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                              Informe Consolidado · P04 Gestión de Residuos
+                            </h1>
                           </div>
-                          <div className="text-[9px] font-semibold text-gray-500">
-                            Subsecretaría de Gestión Local · Grupo de Espacio Público · RADAR
-                          </div>
-                          <h1 className="text-base font-bold text-gray-900 mt-0.5 uppercase" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
-                            Informe Consolidado · P04 Gestión de Residuos
-                          </h1>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="inline-block bg-purple-50 text-purple-900 text-[10px] font-bold px-2 py-0.5 rounded border border-purple-200">
-                            Fecha de Corte: 15 de Octubre de 2026
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <div className="text-right">
+                            <div className="inline-block bg-purple-50 text-purple-900 text-[9px] font-bold px-2 py-0.5 rounded border border-purple-200">
+                              Corte: 15 de Octubre de 2026
+                            </div>
+                            <div className="text-[8px] text-gray-400 mt-0.5">
+                              Periodo: {datos.periodoVisita} · Sync: {formatearFechaLectura(snapshot.ultimaLectura)}
+                            </div>
                           </div>
-                          <div className="text-[9px] text-gray-400 mt-0.5">
-                            Periodo de visita: {datos.periodoVisita} · Sync: {formatearFechaLectura(snapshot.ultimaLectura)}
-                          </div>
+                          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-8 w-auto object-contain pl-2 border-l border-gray-200" />
                         </div>
                       </div>
 
@@ -3237,26 +3306,32 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                     }}
                   >
                     <div>
-                      {/* Encabezado Hoja 1 */}
-                      <div className="border-b-2 border-red-600 pb-2 mb-3 flex justify-between items-start">
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                            Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
+                      {/* Encabezado Hoja 1 con Marca Institucional Oficial */}
+                      <div className="border-b-2 border-red-600 pb-2 mb-3 flex justify-between items-center gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-10 w-auto object-contain" />
+                          <div className="border-l border-gray-300 pl-2.5">
+                            <div className="text-[9.5px] font-black text-gray-900 uppercase tracking-wide">
+                              Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
+                            </div>
+                            <div className="text-[8.5px] font-bold text-gray-700 leading-tight">
+                              SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
+                            </div>
+                            <h1 className="text-sm font-extrabold text-gray-900 mt-0.5 uppercase tracking-tight" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                              Informe Consolidado · P05 Recuperación de Espacio Público
+                            </h1>
                           </div>
-                          <div className="text-[9px] font-semibold text-gray-500">
-                            Subsecretaría de Gestión Local · Grupo de Espacio Público · RADAR
-                          </div>
-                          <h1 className="text-base font-bold text-gray-900 mt-0.5 uppercase" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
-                            Informe Consolidado · P05 Recuperación de Espacio Público
-                          </h1>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="inline-block bg-purple-50 text-purple-900 text-[10px] font-bold px-2 py-0.5 rounded border border-purple-200">
-                            Fecha de Corte: 15 de Octubre de 2026
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <div className="text-right">
+                            <div className="inline-block bg-purple-50 text-purple-900 text-[9px] font-bold px-2 py-0.5 rounded border border-purple-200">
+                              Corte: 15 de Octubre de 2026
+                            </div>
+                            <div className="text-[8px] text-gray-400 mt-0.5">
+                              Periodo: {datos.periodoVisita} · Sync: {formatearFechaLectura(snapshot.ultimaLectura)}
+                            </div>
                           </div>
-                          <div className="text-[9px] text-gray-400 mt-0.5">
-                            Periodo de visita: {datos.periodoVisita} · Sync: {formatearFechaLectura(snapshot.ultimaLectura)}
-                          </div>
+                          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-8 w-auto object-contain pl-2 border-l border-gray-200" />
                         </div>
                       </div>
 

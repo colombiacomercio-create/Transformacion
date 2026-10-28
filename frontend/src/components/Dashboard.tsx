@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { CheckCircle, Save, Edit2, Info, Flag, Sparkles, AlertTriangle, Clock, Layers, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Save, Edit2, Info, Flag, Sparkles, AlertTriangle, Clock, Layers, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { LOGO_BOGOTA_BASE64, LOGO_SDG_BASE64, LOGO_RADAR_BASE64 } from '../utils/logos';
 import { fetchApi } from '../utils/api';
 
 const NUM_LOCALIDAD_MAP: Record<string, string> = {
@@ -423,6 +426,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
   const [editandoCualitativo, setEditandoCualitativo] = useState<string | null>(null);
   const [formCualitativo, setFormCualitativo] = useState({ principalesAvances: '', alertasRecomendaciones: '' });
   const [generandoIA, setGenerandoIA] = useState<string | null>(null);
+  const [generandoPdfLoc, setGenerandoPdfLoc] = useState(false);
 
   const handleGenerateIA = async (objId: string) => {
     setGenerandoIA(objId);
@@ -551,6 +555,306 @@ export default function Dashboard({ userData }: { userData?: any }) {
     </div>
   );
 
+  const exportarReporteTerritorialPdf = async () => {
+    if (!locData || localidadFiltro === 'TODAS') return;
+    setGenerandoPdfLoc(true);
+
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'fixed';
+    tempContainer.style.top = '0';
+    tempContainer.style.left = '-99999px';
+    tempContainer.style.width = '215.9mm';
+    tempContainer.style.zIndex = '-99999';
+    tempContainer.style.background = '#ffffff';
+    document.body.appendChild(tempContainer);
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'letter',
+      });
+      const pageWidth = 215.9;
+      const pageHeight = 279.4;
+
+      const actList = locData.actList || [];
+      const prodBars = locData.productosBars || [];
+      const pageSizeFirst = 7;
+      const pageSizeOther = 14;
+      
+      const chunks: any[][] = [];
+      if (actList.length <= pageSizeFirst) {
+        chunks.push(actList);
+      } else {
+        chunks.push(actList.slice(0, pageSizeFirst));
+        let rem = actList.slice(pageSizeFirst);
+        while (rem.length > 0) {
+          chunks.push(rem.slice(0, pageSizeOther));
+          rem = rem.slice(pageSizeOther);
+        }
+      }
+
+      const totalPages = Math.max(1, chunks.length);
+
+      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+        tempContainer.innerHTML = '';
+        const currentActs = chunks[pageIdx] || [];
+        const isFirstPage = pageIdx === 0;
+        const isLastPage = pageIdx === totalPages - 1;
+
+        const pageEl = document.createElement('div');
+        pageEl.className = 'bg-white text-gray-900 flex flex-col justify-between';
+        pageEl.style.width = '215.9mm';
+        pageEl.style.minHeight = '279.4mm';
+        pageEl.style.maxHeight = '279.4mm';
+        pageEl.style.padding = '10mm 12mm';
+        pageEl.style.boxSizing = 'border-box';
+        pageEl.style.fontFamily = '"Source Sans 3", "Segoe UI", system-ui, sans-serif';
+        pageEl.style.overflow = 'hidden';
+
+        let innerHTML = '';
+
+        if (isFirstPage) {
+          innerHTML += `
+            <div>
+              <!-- Encabezado Institucional Oficial -->
+              <div style="border-bottom: 2px solid #DC2626; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 38px; width: auto; object-fit: contain;" />
+                  <div style="border-left: 2px solid #E5E7EB; padding-left: 10px;">
+                    <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #111827; letter-spacing: 0.05em;">
+                      Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
+                    </div>
+                    <div style="font-size: 9px; font-weight: 700; color: #374151;">
+                      SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
+                    </div>
+                    <div style="font-size: 13px; font-weight: 800; color: #111827; margin-top: 2px; text-transform: uppercase;">
+                      Reporte Territorial de Actividades · ${locData.nombre}
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                  <div style="text-align: right;">
+                    <div style="display: inline-block; background: #F3E8FF; color: #581C87; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; border: 1px solid #E9D5FF;">
+                      Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
+                    </div>
+                    <div style="font-size: 8px; color: #6B7280; margin-top: 2px;">
+                      Emisión: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 34px; width: auto; object-fit: contain; padding-left: 8px; border-left: 1px solid #E5E7EB;" />
+                </div>
+              </div>
+
+              <!-- Tarjetas KPI Resumen Ejecutivo -->
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
+                <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; border: 1px solid #E5E7EB; text-align: center;">
+                  <div style="font-size: 9px; color: #6B7280; font-weight: 700; text-transform: uppercase;">Avance Global</div>
+                  <div style="font-size: 18px; font-weight: 900; color: #111827; margin: 2px 0;">${locData.avanceGlobal || 0}%</div>
+                  <div style="font-size: 8.5px; color: #4B5563;">Promedio Ponderado</div>
+                </div>
+                <div style="background: #F0FDF4; padding: 8px; border-radius: 6px; border: 1px solid #DCFCE7; text-align: center;">
+                  <div style="font-size: 9px; color: #15803D; font-weight: 700; text-transform: uppercase;">Cumplimiento</div>
+                  <div style="font-size: 18px; font-weight: 900; color: #166534; margin: 2px 0;">${locData.cumplimientoPct}%</div>
+                  <div style="font-size: 8.5px; color: #15803D;">vs Programadas</div>
+                </div>
+                <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; border: 1px solid #E5E7EB; text-align: center;">
+                  <div style="font-size: 9px; color: #6B7280; font-weight: 700; text-transform: uppercase;">Programadas Corte</div>
+                  <div style="font-size: 18px; font-weight: 900; color: #111827; margin: 2px 0;">${locData.programadasCount} <span style="font-size: 11px; font-weight: 400; color: #6B7280;">/ ${locData.totalActividades}</span></div>
+                  <div style="font-size: 8.5px; color: #4B5563;">${locData.ejecutadasCount} completadas</div>
+                </div>
+                <div style="background: #FEF2F2; padding: 8px; border-radius: 6px; border: 1px solid #FEE2E2; text-align: center;">
+                  <div style="font-size: 9px; color: #B91C1C; font-weight: 700; text-transform: uppercase;">Pendientes / Alerta</div>
+                  <div style="font-size: 18px; font-weight: 900; color: #991B1B; margin: 2px 0;">${locData.noIniciadasCount}</div>
+                  <div style="font-size: 8.5px; color: #B91C1C;">${locData.enCursoCount} en ejecución</div>
+                </div>
+              </div>
+
+              <!-- Avance por Producto (Meta vs Avance Real) -->
+              <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px;">
+                  <span style="font-size: 9.5px; font-weight: 800; color: #374151; text-transform: uppercase;">
+                    Resumen de Avance por Producto (Meta Programada vs Avance Real)
+                  </span>
+                  <span style="font-size: 8.5px; color: #6B7280;">
+                    ${prodBars.length} productos registrados
+                  </span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 14px;">
+                  ${prodBars.slice(0, 10).map((pb: any) => `
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 8.5px; gap: 8px;">
+                      <span style="font-weight: 700; color: #1F2937; width: 34px; font-family: monospace;">${pb.name}</span>
+                      <div style="flex: 1; height: 7px; background: #E5E7EB; border-radius: 4px; overflow: hidden; position: relative;">
+                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${Math.min(100, pb.meta)}%; background: #94A3B8; opacity: 0.5;"></div>
+                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${Math.min(100, pb.avance)}%; background: #16A34A;"></div>
+                      </div>
+                      <div style="font-family: monospace; font-size: 8px; width: 68px; text-align: right;">
+                        <span style="color: #16A34A; font-weight: bold;">${pb.avance}%</span> / <span style="color: #64748B;">${pb.meta}%</span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Detalle de Actividades -->
+              <div>
+                <div style="font-size: 9.5px; font-weight: 800; color: #374151; text-transform: uppercase; margin-bottom: 6px;">
+                  Detalle de Actividades · ${locData.nombre}
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: left;">
+                  <thead>
+                    <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase;">
+                      <th style="padding: 4px 6px; width: 75px;">Código</th>
+                      <th style="padding: 4px 6px;">Actividad</th>
+                      <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
+                      <th style="padding: 4px 6px; width: 55px; text-align: right;">Meta</th>
+                      <th style="padding: 4px 6px; width: 60px; text-align: right;">Avance</th>
+                      <th style="padding: 4px 6px; width: 60px; text-align: center;">Cumplimiento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${currentActs.map((a: any) => `
+                      <tr style="border-bottom: 1px solid #E5E7EB;">
+                        <td style="padding: 3.5px 6px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
+                        <td style="padding: 3.5px 6px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
+                        <td style="padding: 3.5px 6px; text-align: center;">
+                          <span style="display: inline-block; padding: 1px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
+                            a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
+                          }; color: ${
+                            a.estado === 'COMPLETADA' ? '#166534' : a.estado === 'EN_CURSO' ? '#92400E' : '#991B1B'
+                          };">
+                            ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
+                          </span>
+                        </td>
+                        <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
+                        <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
+                        <td style="padding: 3.5px 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        } else {
+          // Páginas siguientes
+          innerHTML += `
+            <div>
+              <!-- Encabezado Institucional Compacto -->
+              <div style="border-bottom: 1.5px solid #DC2626; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 28px; width: auto; object-fit: contain;" />
+                  <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
+                    <div style="font-size: 8.5px; font-weight: 900; text-transform: uppercase; color: #111827;">
+                      Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local
+                    </div>
+                    <div style="font-size: 11px; font-weight: 800; color: #111827; text-transform: uppercase;">
+                      Continuación: Detalle de Actividades · ${locData.nombre}
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                  <span style="font-size: 8.5px; font-weight: bold; background: #F3E8FF; color: #581C87; padding: 2px 6px; border-radius: 4px; border: 1px solid #E9D5FF;">
+                    Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
+                  </span>
+                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 26px; width: auto; object-fit: contain; padding-left: 6px; border-left: 1px solid #E5E7EB;" />
+                </div>
+              </div>
+
+              <!-- Tabla de Actividades Continuación -->
+              <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: left;">
+                <thead>
+                  <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase;">
+                    <th style="padding: 4px 6px; width: 75px;">Código</th>
+                    <th style="padding: 4px 6px;">Actividad</th>
+                    <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
+                    <th style="padding: 4px 6px; width: 55px; text-align: right;">Meta</th>
+                    <th style="padding: 4px 6px; width: 60px; text-align: right;">Avance</th>
+                    <th style="padding: 4px 6px; width: 60px; text-align: center;">Cumplimiento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${currentActs.map((a: any) => `
+                    <tr style="border-bottom: 1px solid #E5E7EB;">
+                      <td style="padding: 3.5px 6px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
+                      <td style="padding: 3.5px 6px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
+                      <td style="padding: 3.5px 6px; text-align: center;">
+                        <span style="display: inline-block; padding: 1px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
+                          a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
+                        }; color: ${
+                          a.estado === 'COMPLETADA' ? '#166534' : a.estado === 'EN_CURSO' ? '#92400E' : '#991B1B'
+                        };">
+                          ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
+                        </span>
+                      </td>
+                      <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
+                      <td style="padding: 3.5px 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
+                      <td style="padding: 3.5px 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        if (isLastPage) {
+          innerHTML += `
+            <div style="margin-top: 10px; background: #1F2937; color: #FFFFFF; padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-weight: bold;">
+              <span>Total / Promedio Consolidado (${locData.nombre}):</span>
+              <div style="display: flex; gap: 14px; font-family: monospace;">
+                <span>Ejecutadas: ${locData.ejecutadasCount} / ${locData.programadasCount}</span>
+                <span>Avance Global: <span style="color: #FBBF24;">${locData.avanceGlobal || 0}%</span></span>
+                <span>Cumplimiento: <span style="color: #4ADE80;">${locData.cumplimientoPct}%</span></span>
+              </div>
+            </div>
+          `;
+        }
+
+        innerHTML += `
+          <div style="border-top: 1px solid #E5E7EB; padding-top: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #6B7280;">
+            <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local Grupo de Espacio Público · RADAR</span>
+            <span>Página ${pageIdx + 1} de ${totalPages} · Formato Carta</span>
+          </div>
+        `;
+
+        pageEl.innerHTML = innerHTML;
+        tempContainer.appendChild(pageEl);
+
+        await new Promise(r => setTimeout(r, 60));
+
+        const canvas = await html2canvas(pageEl, {
+          scale: 1.8,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          imageTimeout: 5000,
+          backgroundColor: '#ffffff',
+          windowWidth: pageEl.scrollWidth,
+          windowHeight: pageEl.scrollHeight,
+        });
+
+        if (pageIdx > 0) {
+          pdf.addPage('letter', 'portrait');
+        }
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+      }
+
+      const nombreLimpio = `Reporte_Actividades_${locData.nombre.replace(/[\s/\\:]+/g, '_')}_Corte_15Oct2026.pdf`;
+      pdf.save(nombreLimpio);
+    } catch (err) {
+      console.error('Error generando reporte territorial en PDF:', err);
+      alert('Hubo un inconveniente al generar el PDF del reporte territorial.');
+    } finally {
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
+      setGenerandoPdfLoc(false);
+    }
+  };
+
+
   // VISTA DRILL-DOWN POR LOCALIDAD
   if (localidadFiltro !== 'TODAS') {
     return (
@@ -589,8 +893,20 @@ export default function Dashboard({ userData }: { userData?: any }) {
             </div>
           </div>
 
-          <div className="text-xs text-gray-500 font-medium">
-            Fecha de corte evaluada: <strong className="text-gray-800">{corteActivo?.nombre || '15 de Octubre de 2026'}</strong>
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-gray-500 font-medium hidden sm:block">
+              Fecha de corte: <strong className="text-gray-800">{corteActivo?.nombre || '15 de Octubre de 2026'}</strong>
+            </div>
+            <button
+              type="button"
+              onClick={exportarReporteTerritorialPdf}
+              disabled={generandoPdfLoc}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-purple-700 hover:bg-purple-800 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+              title="Descargar reporte territorial completo en PDF tamaño carta"
+            >
+              {generandoPdfLoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{generandoPdfLoc ? 'Generando PDF...' : 'Descargar Reporte PDF (Carta)'}</span>
+            </button>
           </div>
         </div>
 

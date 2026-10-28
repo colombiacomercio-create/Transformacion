@@ -18,7 +18,8 @@ const TEMPLATE_HEADERS = [
   'Fecha final (Separar con coma si es repetitiva)',
   'Valor actividad (%)',
   'Es Repetitiva (SI/NO)',
-  'Cuantas veces se repite la actividad'
+  'Cuantas veces se repite la actividad',
+  'Asignado a (Correos separados por coma)'
 ];
 
 export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
@@ -54,6 +55,7 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
       ["Valor actividad (%)", "Porcentaje global que suma esta actividad al plan. Solo pon el numero (Ej: 100)."],
       ["Es Repetitiva (SI/NO)", "Escribe SI si la actividad tiene multiples entregas, de lo contrario escribe NO."],
       ["Cuantas veces se repite la actividad", "Solo si es repetitiva. Pon el numero de veces (Ej: 4). El sistema dividira el valor (%) equitativamente entre estas entregas."],
+      ["Asignado a", "Opcional. Correos electrónicos institucionales de los responsables asignados a la actividad, separados por coma (Ej: usuario@gobiernobogota.gov.co, gestor@alcaldia.gov.co). Se registrarán para seguimiento y notificaciones."],
       [""],
       [""],
       ["CATALOGO DE ASPIRACIONES Y PRODUCTOS (COPIA Y PEGA LOS NOMBRES)"],
@@ -147,6 +149,12 @@ export default function ModalImportarRutas({ onClose, onSuccess }: Props) {
                act.fechasLimites = act.fechaLimite.split(',').map((f: string) => f.trim());
                act.fechaLimite = act.fechasLimites[0];
             }
+
+            const rawAsignado = row[10] ? String(row[10]).trim() : '';
+            act.asignadoA = rawAsignado;
+            act.correosNotificacion = rawAsignado
+              ? rawAsignado.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+              : [];
             
             parsedActs.push(act);
           }
