@@ -2998,17 +2998,17 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
             {/* Vista previa con Hojas Tamaño Carta individuales para evitar cortes */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-200/80 flex flex-col items-center gap-6">
               
-              {/* VISTA P04: TODO RESIDUOS (3 HOJAS CARTA) */}
+              {/* VISTA P04: TODO RESIDUOS (2 HOJAS CARTA COMPLETAS) */}
               {exportTab === 'P04' && (
                 <>
-                  {/* HOJA 1 DE 3 */}
+                  {/* HOJA 1 DE 2 */}
                   <div
                     className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
                     style={{
                       width: '215.9mm',
                       minHeight: '279.4mm',
                       maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
+                      padding: '8mm 11mm',
                       boxSizing: 'border-box',
                       fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
                       overflow: 'hidden'
@@ -3016,64 +3016,64 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                   >
                     <div>
                       {/* Encabezado Hoja 1 con Marca Institucional Oficial */}
-                      <div className="border-b-2 border-red-600 pb-2 mb-3 flex justify-between items-center gap-3">
+                      <div className="border-b-2 border-red-600 pb-1.5 mb-2.5 flex justify-between items-center gap-3">
                         <div className="flex items-center gap-2.5">
-                          <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-10 w-auto object-contain" />
+                          <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-9 w-auto object-contain" />
                           <div className="border-l border-gray-300 pl-2.5">
-                            <div className="text-[9.5px] font-black text-gray-900 uppercase tracking-wide">
+                            <div className="text-[9px] font-black text-gray-900 uppercase tracking-wide">
                               Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
                             </div>
-                            <div className="text-[8.5px] font-bold text-gray-700 leading-tight">
+                            <div className="text-[8px] font-bold text-gray-700 leading-tight">
                               SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
                             </div>
-                            <h1 className="text-sm font-extrabold text-gray-900 mt-0.5 uppercase tracking-tight" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                            <h1 className="text-xs font-extrabold text-gray-900 mt-0.5 uppercase tracking-tight" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
                               Informe Consolidado · P04 Gestión de Residuos
                             </h1>
                           </div>
                         </div>
                         <div className="flex items-center gap-2.5 shrink-0">
                           <div className="text-right">
-                            <div className="inline-block bg-purple-50 text-purple-900 text-[9px] font-bold px-2 py-0.5 rounded border border-purple-200">
+                            <div className="inline-block bg-purple-50 text-purple-900 text-[8.5px] font-bold px-2 py-0.5 rounded border border-purple-200">
                               Corte: 15 de Octubre de 2026
                             </div>
-                            <div className="text-[8px] text-gray-400 mt-0.5">
+                            <div className="text-[7.5px] text-gray-400 mt-0.5">
                               Periodo: {datos.periodoVisita} · Sync: {formatearFechaLectura(snapshot.ultimaLectura)}
                             </div>
                           </div>
-                          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-8 w-auto object-contain pl-2 border-l border-gray-200" />
+                          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-7 w-auto object-contain pl-2 border-l border-gray-200" />
                         </div>
                       </div>
 
                       {/* Tarjetas KPI dinámicas */}
-                      <div className="grid grid-cols-4 gap-2 mb-3">
-                        <div className="bg-gray-50 p-2 rounded border border-gray-200 text-center">
-                          <div className="text-[10px] text-gray-500 font-medium">Puntos Priorizados</div>
-                          <div className="text-lg font-bold text-gray-900">{r4Full.pri}</div>
-                          <div className="text-[9px] text-gray-400">100% Universo P04</div>
+                      <div className="grid grid-cols-4 gap-2 mb-2">
+                        <div className="bg-gray-50 p-1.5 rounded border border-gray-200 text-center">
+                          <div className="text-[9px] text-gray-500 font-medium">Puntos Priorizados</div>
+                          <div className="text-base font-bold text-gray-900">{r4Full.pri}</div>
+                          <div className="text-[8px] text-gray-400">100% Universo P04</div>
                         </div>
-                        <div className="bg-green-50 p-2 rounded border border-green-200 text-center">
-                          <div className="text-[10px] text-green-700 font-medium">% Sostenimiento</div>
-                          <div className="text-lg font-bold text-green-700">{r4Full.pctTxt}%</div>
-                          <div className="text-[9px] text-green-600">{r4Full.sost} sostenidos / en riesgo</div>
+                        <div className="bg-green-50 p-1.5 rounded border border-green-200 text-center">
+                          <div className="text-[9px] text-green-700 font-medium">% Sostenimiento</div>
+                          <div className="text-base font-bold text-green-700">{r4Full.pctTxt}%</div>
+                          <div className="text-[8px] text-green-600">{r4Full.sost} sostenidos</div>
                         </div>
-                        <div className="bg-red-50 p-2 rounded border border-red-200 text-center">
-                          <div className="text-[10px] text-red-700 font-medium">Recaída Confirmada</div>
-                          <div className="text-lg font-bold text-red-700">{r4Full.n}</div>
-                          <div className="text-[9px] text-red-600">{((r4Full.n / r4Full.pri) * 100).toFixed(1).replace('.', ',')}% del universo</div>
+                        <div className="bg-red-50 p-1.5 rounded border border-red-200 text-center">
+                          <div className="text-[9px] text-red-700 font-medium">Recaída Confirmada</div>
+                          <div className="text-base font-bold text-red-700">{r4Full.n}</div>
+                          <div className="text-[8px] text-red-600">{((r4Full.n / r4Full.pri) * 100).toFixed(1).replace('.', ',')}% del universo</div>
                         </div>
-                        <div className="bg-blue-50 p-2 rounded border border-blue-200 text-center">
-                          <div className="text-[10px] text-blue-700 font-medium">Cobertura Visitas</div>
-                          <div className="text-lg font-bold text-blue-700">{r4Full.ver} de {r4Full.pri}</div>
-                          <div className="text-[9px] text-blue-600">{r4Full.v} sin verificar</div>
+                        <div className="bg-blue-50 p-1.5 rounded border border-blue-200 text-center">
+                          <div className="text-[9px] text-blue-700 font-medium">Cobertura Visitas</div>
+                          <div className="text-base font-bold text-blue-700">{r4Full.ver} de {r4Full.pri}</div>
+                          <div className="text-[8px] text-blue-600">{r4Full.v} sin verificar</div>
                         </div>
                       </div>
 
-                      {/* Tabla Chunk 1: Puntos 1 a 18 */}
-                      <div className="text-[11px] font-bold text-gray-800 uppercase mb-1.5 flex justify-between">
-                        <span>Puntos Priorizados de Residuos (1 a 18 de {p04Full.length})</span>
-                        <span className="text-gray-400 font-normal text-[10px]">Sostenido = S + A · Recaída = N</span>
+                      {/* Tabla Chunk 1: Puntos 1 a 30 (Llenando toda la hoja 1) */}
+                      <div className="text-[10px] font-bold text-gray-800 uppercase mb-1 flex justify-between items-center">
+                        <span>Puntos Priorizados de Residuos (1 a {Math.min(30, p04Full.length)} de {p04Full.length})</span>
+                        <span className="text-gray-400 font-normal text-[9px]">Sostenido = S + A · Recaída = N</span>
                       </div>
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200">
+                      <table className="w-full text-left text-[9px] border-collapse border border-gray-200">
                         <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
                           <tr>
                             <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">#</th>
@@ -3085,13 +3085,13 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {p04Full.slice(0, 18).map((p, idx) => (
+                          {p04Full.slice(0, 30).map((p, idx) => (
                             <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
                               <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{idx + 1}</td>
                               <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{p.ld}</td>
                               <td className="py-1 px-1.5 text-gray-900 border-r border-gray-100">{p.d}</td>
                               <td className="py-1 px-1.5 text-center border-r border-gray-100">
-                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8.5px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
+                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
                                   {p.estado}
                                 </span>
                               </td>
@@ -3103,20 +3103,20 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                       </table>
                     </div>
 
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
+                    <div className="border-t border-gray-200 pt-1 flex justify-between items-center text-[8.5px] text-gray-500">
                       <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 1 de 3 · Formato Carta</span>
+                      <span>Página 1 de 2 · Formato Carta</span>
                     </div>
                   </div>
 
-                  {/* HOJA 2 DE 3 */}
+                  {/* HOJA 2 DE 2 */}
                   <div
                     className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
                     style={{
                       width: '215.9mm',
                       minHeight: '279.4mm',
                       maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
+                      padding: '8mm 11mm',
                       boxSizing: 'border-box',
                       fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
                       overflow: 'hidden'
@@ -3124,16 +3124,16 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                   >
                     <div>
                       {/* Encabezado Hoja 2 */}
-                      <div className="border-b border-gray-200 pb-1.5 mb-3 flex justify-between items-center">
-                        <div className="text-[10px] font-bold text-gray-700 uppercase">
-                          P04 Gestión de Residuos · Puntos Priorizados (19 a 42 de {p04Full.length})
+                      <div className="border-b border-gray-200 pb-1 mb-2 flex justify-between items-center">
+                        <div className="text-[9.5px] font-bold text-gray-700 uppercase">
+                          P04 Gestión de Residuos · Puntos Priorizados (31 a {p04Full.length} de {p04Full.length}) y Factores
                         </div>
-                        <div className="text-[9px] text-gray-400">
+                        <div className="text-[8.5px] text-gray-400">
                           Corte: 15 Octubre 2026 · Sostenimiento Distrital P04: <strong>{r4Full.pctTxt}%</strong>
                         </div>
                       </div>
 
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200">
+                      <table className="w-full text-left text-[9px] border-collapse border border-gray-200 mb-3">
                         <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
                           <tr>
                             <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">#</th>
@@ -3145,74 +3145,13 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {p04Full.slice(18, 42).map((p, idx) => (
+                          {p04Full.slice(30).map((p, idx) => (
                             <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
-                              <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{idx + 19}</td>
+                              <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{idx + 31}</td>
                               <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{p.ld}</td>
                               <td className="py-1 px-1.5 text-gray-900 border-r border-gray-100">{p.d}</td>
                               <td className="py-1 px-1.5 text-center border-r border-gray-100">
-                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8.5px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
-                                  {p.estado}
-                                </span>
-                              </td>
-                              <td className="py-1 px-1.5 text-center font-mono font-bold text-gray-700 border-r border-gray-100">{p.ispTxt}</td>
-                              <td className="py-1 px-1.5 text-gray-600 truncate max-w-[140px]">{p.riesgo}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
-                      <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 2 de 3 · Formato Carta</span>
-                    </div>
-                  </div>
-
-                  {/* HOJA 3 DE 3 */}
-                  <div
-                    className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
-                    style={{
-                      width: '215.9mm',
-                      minHeight: '279.4mm',
-                      maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
-                      boxSizing: 'border-box',
-                      fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div>
-                      {/* Encabezado Hoja 3 */}
-                      <div className="border-b border-gray-200 pb-1.5 mb-3 flex justify-between items-center">
-                        <div className="text-[10px] font-bold text-gray-700 uppercase">
-                          P04 Gestión de Residuos · Puntos Priorizados (43 a 60 de {p04Full.length}) y Factores
-                        </div>
-                        <div className="text-[9px] text-gray-400">
-                          Corte: 15 Octubre 2026 · Cierre de Evaluación
-                        </div>
-                      </div>
-
-                      {/* Tabla Chunk 3 */}
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200 mb-4">
-                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
-                          <tr>
-                            <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">#</th>
-                            <th className="py-1 px-1.5 w-24 border-r border-gray-200">Localidad</th>
-                            <th className="py-1 px-1.5 border-r border-gray-200">Dirección del Punto</th>
-                            <th className="py-1 px-1.5 w-24 text-center border-r border-gray-200">Clasificación</th>
-                            <th className="py-1 px-1.5 w-10 text-center border-r border-gray-200">ISP</th>
-                            <th className="py-1 px-1.5 w-36">Principal Factor Riesgo</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {p04Full.slice(42, 60).map((p, idx) => (
-                            <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
-                              <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{idx + 43}</td>
-                              <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{p.ld}</td>
-                              <td className="py-1 px-1.5 text-gray-900 border-r border-gray-100">{p.d}</td>
-                              <td className="py-1 px-1.5 text-center border-r border-gray-100">
-                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8.5px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
+                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
                                   {p.estado}
                                 </span>
                               </td>
@@ -3223,7 +3162,7 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                         </tbody>
                       </table>
 
-                      {/* Análisis de Factores de Riesgo y Criterios */}
+                      {/* Análisis de Factores de Riesgo y Criterios que llena el espacio restante */}
                       <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                         <div>
                           <div className="text-[10px] font-bold text-gray-800 uppercase mb-1.5">
@@ -3253,25 +3192,25 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                       </div>
                     </div>
 
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
+                    <div className="border-t border-gray-200 pt-1 flex justify-between items-center text-[8.5px] text-gray-500">
                       <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 3 de 3 · Formato Carta</span>
+                      <span>Página 2 de 2 · Formato Carta</span>
                     </div>
                   </div>
                 </>
               )}
 
-              {/* VISTA P05: TODO ESPACIO PÚBLICO (3 HOJAS CARTA) */}
+              {/* VISTA P05: TODO ESPACIO PÚBLICO (1 HOJA CARTA COMPLETA) */}
               {exportTab === 'P05' && (
                 <>
-                  {/* HOJA 1 DE 3 */}
+                  {/* HOJA 1 DE 1 */}
                   <div
                     className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
                     style={{
                       width: '215.9mm',
                       minHeight: '279.4mm',
                       maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
+                      padding: '8mm 11mm',
                       boxSizing: 'border-box',
                       fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
                       overflow: 'hidden'
@@ -3279,86 +3218,80 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                   >
                     <div>
                       {/* Encabezado Hoja 1 con Marca Institucional Oficial */}
-                      <div className="border-b-2 border-red-600 pb-2 mb-3 flex justify-between items-center gap-3">
+                      <div className="border-b-2 border-red-600 pb-1.5 mb-2.5 flex justify-between items-center gap-3">
                         <div className="flex items-center gap-2.5">
-                          <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-10 w-auto object-contain" />
+                          <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-9 w-auto object-contain" />
                           <div className="border-l border-gray-300 pl-2.5">
-                            <div className="text-[9.5px] font-black text-gray-900 uppercase tracking-wide">
+                            <div className="text-[9px] font-black text-gray-900 uppercase tracking-wide">
                               Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
                             </div>
-                            <div className="text-[8.5px] font-bold text-gray-700 leading-tight">
+                            <div className="text-[8px] font-bold text-gray-700 leading-tight">
                               SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
                             </div>
-                            <h1 className="text-sm font-extrabold text-gray-900 mt-0.5 uppercase tracking-tight" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
+                            <h1 className="text-xs font-extrabold text-gray-900 mt-0.5 uppercase tracking-tight" style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}>
                               Informe Consolidado · P05 Recuperación de Espacio Público
                             </h1>
                           </div>
                         </div>
                         <div className="flex items-center gap-2.5 shrink-0">
                           <div className="text-right">
-                            <div className="inline-block bg-purple-50 text-purple-900 text-[9px] font-bold px-2 py-0.5 rounded border border-purple-200">
+                            <div className="inline-block bg-purple-50 text-purple-900 text-[8.5px] font-bold px-2 py-0.5 rounded border border-purple-200">
                               Corte: 15 de Octubre de 2026
                             </div>
-                            <div className="text-[8px] text-gray-400 mt-0.5">
+                            <div className="text-[7.5px] text-gray-400 mt-0.5">
                               Periodo: {datos.periodoVisita} · Sync: {formatearFechaLectura(snapshot.ultimaLectura)}
                             </div>
                           </div>
-                          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-8 w-auto object-contain pl-2 border-l border-gray-200" />
+                          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-7 w-auto object-contain pl-2 border-l border-gray-200" />
                         </div>
                       </div>
 
                       {/* Tarjetas KPI dinámicas */}
-                      <div className="grid grid-cols-4 gap-2 mb-3">
-                        <div className="bg-gray-50 p-2 rounded border border-gray-200 text-center">
-                          <div className="text-[10px] text-gray-500 font-medium">Puntos Priorizados</div>
-                          <div className="text-lg font-bold text-gray-900">{r5Full.pri}</div>
-                          <div className="text-[9px] text-gray-400">100% Universo P05</div>
+                      <div className="grid grid-cols-4 gap-2 mb-2">
+                        <div className="bg-gray-50 p-1.5 rounded border border-gray-200 text-center">
+                          <div className="text-[9px] text-gray-500 font-medium">Puntos Priorizados</div>
+                          <div className="text-base font-bold text-gray-900">{r5Full.pri}</div>
+                          <div className="text-[8px] text-gray-400">100% Universo P05</div>
                         </div>
-                        <div className="bg-green-50 p-2 rounded border border-green-200 text-center">
-                          <div className="text-[10px] text-green-700 font-medium">% Sostenimiento</div>
-                          <div className="text-lg font-bold text-green-700">{r5Full.pctTxt}%</div>
-                          <div className="text-[9px] text-green-600">{r5Full.sost} sostenidos / en riesgo</div>
+                        <div className="bg-green-50 p-1.5 rounded border border-green-200 text-center">
+                          <div className="text-[9px] text-green-700 font-medium">% Sostenimiento</div>
+                          <div className="text-base font-bold text-green-700">{r5Full.pctTxt}%</div>
+                          <div className="text-[8px] text-green-600">{r5Full.sost} sostenidos</div>
                         </div>
-                        <div className="bg-red-50 p-2 rounded border border-red-200 text-center">
-                          <div className="text-[10px] text-red-700 font-medium">Recaída Confirmada</div>
-                          <div className="text-lg font-bold text-red-700">{r5Full.n}</div>
-                          <div className="text-[9px] text-red-600">{((r5Full.n / r5Full.pri) * 100).toFixed(1).replace('.', ',')}% del universo</div>
+                        <div className="bg-red-50 p-1.5 rounded border border-red-200 text-center">
+                          <div className="text-[9px] text-red-700 font-medium">Recaída Confirmada</div>
+                          <div className="text-base font-bold text-red-700">{r5Full.n}</div>
+                          <div className="text-[8px] text-red-600">{((r5Full.n / r5Full.pri) * 100).toFixed(1).replace('.', ',')}% del universo</div>
                         </div>
-                        <div className="bg-blue-50 p-2 rounded border border-blue-200 text-center">
-                          <div className="text-[10px] text-blue-700 font-medium">Cobertura Visitas</div>
-                          <div className="text-lg font-bold text-blue-700">{r5Full.ver} de {r5Full.pri}</div>
-                          <div className="text-[9px] text-blue-600">{r5Full.v} sin verificar</div>
+                        <div className="bg-blue-50 p-1.5 rounded border border-blue-200 text-center">
+                          <div className="text-[9px] text-blue-700 font-medium">Cobertura Visitas</div>
+                          <div className="text-base font-bold text-blue-700">{r5Full.ver} de {r5Full.pri}</div>
+                          <div className="text-[8px] text-blue-600">{r5Full.v} sin verificar</div>
                         </div>
                       </div>
 
                       {/* Desglose de Vocación */}
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="bg-amber-50/70 p-2 rounded border border-amber-200">
-                          <div className="text-[10px] font-bold text-amber-900 mb-0.5">Ventas Informales</div>
-                          <div className="text-xs font-semibold text-amber-800">
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div className="bg-amber-50/70 p-1.5 rounded border border-amber-200">
+                          <div className="text-[9px] font-bold text-amber-900 mb-0.5">Ventas Informales</div>
+                          <div className="text-[11px] font-semibold text-amber-800">
                             {vocacionP05List[0]?.total || 0} puntos · {vocacionP05List[0]?.pctSostenimientoTxt || '—'} sostenimiento
                           </div>
-                          <div className="text-[9px] text-amber-700 mt-0.5">
-                            {vocacionP05List[0]?.sostenidos + vocacionP05List[0]?.enRiesgo} sostenidos · {vocacionP05List[0]?.recaida} recaídas
-                          </div>
                         </div>
-                        <div className="bg-blue-50/70 p-2 rounded border border-blue-200">
-                          <div className="text-[10px] font-bold text-blue-900 mb-0.5">Parqueo Indebido</div>
-                          <div className="text-xs font-semibold text-blue-800">
+                        <div className="bg-blue-50/70 p-1.5 rounded border border-blue-200">
+                          <div className="text-[9px] font-bold text-blue-900 mb-0.5">Parqueo Indebido</div>
+                          <div className="text-[11px] font-semibold text-blue-800">
                             {vocacionP05List[1]?.total || 0} puntos · {vocacionP05List[1]?.pctSostenimientoTxt || '—'} sostenimiento
-                          </div>
-                          <div className="text-[9px] text-blue-700 mt-0.5">
-                            {vocacionP05List[1]?.sostenidos + vocacionP05List[1]?.enRiesgo} sostenidos · {vocacionP05List[1]?.recaida} recaídas
                           </div>
                         </div>
                       </div>
 
-                      {/* Tabla Chunk 1: Puntos 1 a 14 */}
-                      <div className="text-[11px] font-bold text-gray-800 uppercase mb-1.5 flex justify-between">
-                        <span>Puntos Priorizados de Espacio Público (1 a 14 de {p05Full.length})</span>
-                        <span className="text-gray-400 font-normal text-[10px]">Sostenido = S + A · Recaída = N</span>
+                      {/* Tabla Completa: Todos los 21 puntos priorizados en 1 sola hoja carta */}
+                      <div className="text-[10px] font-bold text-gray-800 uppercase mb-1 flex justify-between items-center">
+                        <span>Puntos Priorizados de Espacio Público (1 a {p05Full.length} de {p05Full.length})</span>
+                        <span className="text-gray-400 font-normal text-[9px]">Sostenido = S + A · Recaída = N</span>
                       </div>
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200">
+                      <table className="w-full text-left text-[9px] border-collapse border border-gray-200 mb-2">
                         <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
                           <tr>
                             <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">#</th>
@@ -3370,134 +3303,13 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {p05Full.slice(0, 14).map((p, idx) => (
+                          {p05Full.map((p, idx) => (
                             <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
                               <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{idx + 1}</td>
                               <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{p.ld}</td>
                               <td className="py-1 px-1.5 text-gray-900 border-r border-gray-100">{p.d}</td>
                               <td className="py-1 px-1.5 text-center border-r border-gray-100">
-                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8.5px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
-                                  {p.estado}
-                                </span>
-                              </td>
-                              <td className="py-1 px-1.5 text-center font-mono font-bold text-gray-700 border-r border-gray-100">{p.ispTxt}</td>
-                              <td className="py-1 px-1.5 text-gray-600 truncate max-w-[140px]">{p.riesgo}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
-                      <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 1 de 3 · Formato Carta</span>
-                    </div>
-                  </div>
-
-                  {/* HOJA 2 DE 3 */}
-                  <div
-                    className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
-                    style={{
-                      width: '215.9mm',
-                      minHeight: '279.4mm',
-                      maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
-                      boxSizing: 'border-box',
-                      fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div>
-                      {/* Encabezado Hoja 2 */}
-                      <div className="border-b border-gray-200 pb-1.5 mb-3 flex justify-between items-center">
-                        <div className="text-[10px] font-bold text-gray-700 uppercase">
-                          P05 Recuperación de Espacio Público · Puntos Priorizados (15 a 34 de {p05Full.length})
-                        </div>
-                        <div className="text-[9px] text-gray-400">
-                          Corte: 15 Octubre 2026 · Sostenimiento Distrital P05: <strong>{r5Full.pctTxt}%</strong>
-                        </div>
-                      </div>
-
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200">
-                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
-                          <tr>
-                            <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">#</th>
-                            <th className="py-1 px-1.5 w-24 border-r border-gray-200">Localidad</th>
-                            <th className="py-1 px-1.5 border-r border-gray-200">Dirección del Punto</th>
-                            <th className="py-1 px-1.5 w-24 text-center border-r border-gray-200">Clasificación</th>
-                            <th className="py-1 px-1.5 w-10 text-center border-r border-gray-200">ISP</th>
-                            <th className="py-1 px-1.5 w-36">Problemática del Punto</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {p05Full.slice(14, 34).map((p, idx) => (
-                            <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
-                              <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{idx + 15}</td>
-                              <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{p.ld}</td>
-                              <td className="py-1 px-1.5 text-gray-900 border-r border-gray-100">{p.d}</td>
-                              <td className="py-1 px-1.5 text-center border-r border-gray-100">
-                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8.5px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
-                                  {p.estado}
-                                </span>
-                              </td>
-                              <td className="py-1 px-1.5 text-center font-mono font-bold text-gray-700 border-r border-gray-100">{p.ispTxt}</td>
-                              <td className="py-1 px-1.5 text-gray-600 truncate max-w-[140px]">{p.riesgo}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
-                      <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 2 de 3 · Formato Carta</span>
-                    </div>
-                  </div>
-
-                  {/* HOJA 3 DE 3 */}
-                  <div
-                    className="hoja-carta-exportable bg-white shadow-xl rounded-sm text-gray-900 flex flex-col justify-between"
-                    style={{
-                      width: '215.9mm',
-                      minHeight: '279.4mm',
-                      maxHeight: '279.4mm',
-                      padding: '11mm 13mm',
-                      boxSizing: 'border-box',
-                      fontFamily: '"Source Sans 3", "Segoe UI", system-ui, sans-serif',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div>
-                      {/* Encabezado Hoja 3 */}
-                      <div className="border-b border-gray-200 pb-1.5 mb-3 flex justify-between items-center">
-                        <div className="text-[10px] font-bold text-gray-700 uppercase">
-                          P05 Recuperación de Espacio Público · Puntos Priorizados (35 a 46 de {p05Full.length}) y Condiciones
-                        </div>
-                        <div className="text-[9px] text-gray-400">
-                          Corte: 15 Octubre 2026 · Cierre de Evaluación
-                        </div>
-                      </div>
-
-                      {/* Tabla Chunk 3 */}
-                      <table className="w-full text-left text-[9.5px] border-collapse border border-gray-200 mb-4">
-                        <thead className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
-                          <tr>
-                            <th className="py-1 px-1.5 w-6 text-center border-r border-gray-200">#</th>
-                            <th className="py-1 px-1.5 w-24 border-r border-gray-200">Localidad</th>
-                            <th className="py-1 px-1.5 border-r border-gray-200">Dirección del Punto</th>
-                            <th className="py-1 px-1.5 w-24 text-center border-r border-gray-200">Clasificación</th>
-                            <th className="py-1 px-1.5 w-10 text-center border-r border-gray-200">ISP</th>
-                            <th className="py-1 px-1.5 w-36">Problemática del Punto</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {p05Full.slice(34, 46).map((p, idx) => (
-                            <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
-                              <td className="py-1 px-1.5 text-center font-mono text-gray-400 border-r border-gray-100">{idx + 35}</td>
-                              <td className="py-1 px-1.5 font-semibold text-gray-800 border-r border-gray-100">{p.ld}</td>
-                              <td className="py-1 px-1.5 text-gray-900 border-r border-gray-100">{p.d}</td>
-                              <td className="py-1 px-1.5 text-center border-r border-gray-100">
-                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8.5px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
+                                <span className="inline-block px-1.5 py-0.2 rounded-full text-[8px] font-bold" style={{ background: p.chipBg, color: p.chipFg }}>
                                   {p.estado}
                                 </span>
                               </td>
@@ -3508,56 +3320,27 @@ export default function SeccionSostenibilidadEP({ userData }: Props) {
                         </tbody>
                       </table>
 
-                      {/* Condiciones físicas y acciones de control */}
-                      <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-800 uppercase mb-1.5">
-                            Condiciones Físicas de Entrega
-                          </div>
-                          <div className="space-y-1.5 text-[9px]">
-                            {condicionesP05List.map(c => (
-                              <div key={c.label}>
-                                <div className="flex justify-between font-semibold text-gray-700">
-                                  <span>{c.label}</span>
-                                  <span>{c.pctAvance}%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-1 mt-0.5">
-                                  <div className="bg-green-600 h-1 rounded-full" style={{ width: `${c.pctAvance}%` }} />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-800 uppercase mb-1.5">
-                            Directrices de Gestión y Control (IVC)
-                          </div>
-                          <div className="space-y-1 text-[9px] text-gray-600">
-                            <div>• Mantener operativos periódicos de Inspección, Vigilancia y Control.</div>
-                            <div>• Sensibilización continua a vendedores informales hacia relocalización.</div>
-                            <div>• Control preventivo estricto sobre parqueo indebido sobre andenes.</div>
-                            <div>• Sostenimiento consolidado distrital: <strong className="text-green-700">{r5Full.pctTxt}%</strong></div>
-                          </div>
-                        </div>
+                      {/* Directrices al pie de la hoja para cerrar de forma elegante */}
+                      <div className="p-2 bg-gray-50 border border-gray-200 rounded text-[8.5px] text-gray-600 flex justify-between items-center">
+                        <div><strong>Directrices de Control (IVC):</strong> Mantener operativos periódicos y control preventivo sobre parqueo y ventas informales.</div>
+                        <div className="font-bold text-green-700">Sostenimiento P05: {r5Full.pctTxt}%</div>
                       </div>
                     </div>
 
-                    <div className="border-t border-gray-200 pt-1.5 flex justify-between items-center text-[9px] text-gray-500">
+                    <div className="border-t border-gray-200 pt-1 flex justify-between items-center text-[8.5px] text-gray-500">
                       <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local</span>
-                      <span>Página 3 de 3 · Formato Carta</span>
+                      <span>Página 1 de 1 · Formato Carta</span>
                     </div>
                   </div>
                 </>
               )}
-
-              </div>
+            </div>
 
             {/* Pie del Modal con Botones */}
             <div className="bg-white px-6 py-3 border-t border-gray-200 flex flex-wrap justify-between items-center gap-3">
               <div className="text-xs text-gray-500">
                 Puntos incluidos: <strong>
-                  {exportTab === 'P04' ? `${p04Full.length} puntos de Residuos (3 hojas carta)` : `${p05Full.length} puntos de Espacio Público (3 hojas carta)`}
+                  {exportTab === 'P04' ? `${p04Full.length} puntos de Residuos (2 hojas carta)` : `${p05Full.length} puntos de Espacio Público (1 hoja carta)`}
                 </strong> · Corte oficial 15 de Octubre de 2026
               </div>
               <div className="flex items-center gap-2">

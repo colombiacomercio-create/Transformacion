@@ -580,63 +580,73 @@ export default function Dashboard({ userData }: { userData?: any }) {
       const pageHeight = 279.4;
 
       const actList = locData.actList || [];
+      const totalActs = actList.length;
       const prodBars = locData.productosBars || [];
-      
-      // Distribución calculada para aprovechar el 100% de la hoja carta sin cortes ni vacíos
-      const pageSizeFirst = 16;
-      const pageSizeOther = 26;
-      
-      const chunks: any[][] = [];
-      if (actList.length <= pageSizeFirst) {
-        chunks.push(actList);
+
+      // Reparto balanceado para que NINGUNA página quede a medias ni vacía
+      const MAX_PAGE_1 = 18;
+      const MAX_PAGE_OTHER = 26;
+
+      let chunks: any[][] = [];
+      if (totalActs <= MAX_PAGE_1) {
+        chunks = [actList];
+      } else if (totalActs <= MAX_PAGE_1 + MAX_PAGE_OTHER) {
+        // Exactamente 2 páginas balanceadas (ej: Chapinero 29 -> 15 y 14)
+        const p1Count = Math.min(MAX_PAGE_1, Math.ceil(totalActs / 2));
+        chunks = [
+          actList.slice(0, p1Count),
+          actList.slice(p1Count)
+        ];
       } else {
-        chunks.push(actList.slice(0, pageSizeFirst));
-        let rem = actList.slice(pageSizeFirst);
-        while (rem.length > 0) {
-          chunks.push(rem.slice(0, pageSizeOther));
-          rem = rem.slice(pageSizeOther);
+        // 3 o más páginas balanceadas
+        const rem = actList.slice(MAX_PAGE_1);
+        const numOtherPages = Math.ceil(rem.length / MAX_PAGE_OTHER);
+        const perPage = Math.ceil(rem.length / numOtherPages);
+        chunks = [actList.slice(0, MAX_PAGE_1)];
+        for (let i = 0; i < rem.length; i += perPage) {
+          chunks.push(rem.slice(i, i + perPage));
         }
       }
 
       const totalPages = Math.max(1, chunks.length);
 
-      // Helper para renderizar velocímetro SVG exacto
+      // Helper para renderizar velocímetro SVG exacto sin desborde
       const clamped = Math.max(0, Math.min(100, Math.round(locData.avanceGlobal || 0)));
       const angleRad = Math.PI + (clamped / 100) * Math.PI;
-      const cx = 110;
-      const cy = 88;
-      const r = 64;
-      const strokeWidth = 13;
-      const needleLen = 50;
+      const cx = 100;
+      const cy = 82;
+      const r = 58;
+      const strokeWidth = 12;
+      const needleLen = 45;
       const nx = cx + needleLen * Math.cos(angleRad);
       const ny = cy + needleLen * Math.sin(angleRad);
       const color = clamped >= 90 ? '#16A34A' : clamped >= 60 ? '#EAB308' : '#DC2626';
 
       const gaugeSvg = `
-        <svg width="220" height="110" viewBox="0 0 220 110" style="overflow: visible; margin: 0 auto; display: block;">
+        <svg viewBox="0 0 200 95" style="width: 100%; max-width: 180px; height: auto; max-height: 75px; overflow: visible; margin: 0 auto; display: block;">
           <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="#E5E7EB" stroke-width="${strokeWidth}" stroke-linecap="round" />
           ${clamped > 0 ? `<path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r * Math.cos(angleRad)} ${cy + r * Math.sin(angleRad)}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" />` : ''}
-          <text x="${cx - r}" y="${cy + 14}" font-size="8.5" font-weight="700" fill="#9CA3AF" text-anchor="middle">0%</text>
-          <text x="${cx}" y="${cy - r - 5}" font-size="8.5" font-weight="700" fill="#9CA3AF" text-anchor="middle">50%</text>
-          <text x="${cx + r}" y="${cy + 14}" font-size="8.5" font-weight="700" fill="#9CA3AF" text-anchor="middle">100%</text>
-          <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#1F2937" stroke-width="2.8" stroke-linecap="round" />
-          <circle cx="${cx}" cy="${cy}" r="5.5" fill="#1F2937" />
-          <circle cx="${cx}" cy="${cy}" r="2" fill="#FFFFFF" />
+          <text x="${cx - r}" y="${cy + 13}" font-size="8" font-weight="700" fill="#9CA3AF" text-anchor="middle">0%</text>
+          <text x="${cx}" y="${cy - r - 4}" font-size="8" font-weight="700" fill="#9CA3AF" text-anchor="middle">50%</text>
+          <text x="${cx + r}" y="${cy + 13}" font-size="8" font-weight="700" fill="#9CA3AF" text-anchor="middle">100%</text>
+          <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#1F2937" stroke-width="2.6" stroke-linecap="round" />
+          <circle cx="${cx}" cy="${cy}" r="5" fill="#1F2937" />
+          <circle cx="${cx}" cy="${cy}" r="1.8" fill="#FFFFFF" />
         </svg>
       `;
 
-      // Helper para renderizar gráfico de barras por producto SVG
+      // Helper para renderizar gráfico de barras por producto SVG adaptativo
       const generateBarChartSvg = (bars: any[]) => {
-        const width = 230;
-        const height = 110;
-        const marginL = 26;
-        const marginR = 8;
-        const marginT = 10;
-        const marginB = 22;
+        const width = 200;
+        const height = 95;
+        const marginL = 22;
+        const marginR = 6;
+        const marginT = 8;
+        const marginB = 20;
         const plotW = width - marginL - marginR;
         const plotH = height - marginT - marginB;
 
-        const yTicks = [0, 25, 50, 75, 100];
+        const yTicks = [0, 50, 100];
         const gridLines = yTicks.map(t => {
           const y = marginT + plotH - (t / 100) * plotH;
           return `
@@ -647,7 +657,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
         const numItems = Math.max(1, bars.length);
         const bandW = plotW / numItems;
-        const barW = Math.min(13, Math.max(6, (bandW - 8) / 2));
+        const barW = Math.min(12, Math.max(5, (bandW - 6) / 2));
 
         const barElements = bars.map((b, i) => {
           const cxBand = marginL + i * bandW + bandW / 2;
@@ -657,14 +667,14 @@ export default function Dashboard({ userData }: { userData?: any }) {
           const avanceY = marginT + plotH - avanceH;
 
           return `
-            <rect x="${cxBand - barW - 1}" y="${metaY}" width="${barW}" height="${metaH}" fill="#94A3B8" rx="2" />
-            <rect x="${cxBand + 1}" y="${avanceY}" width="${barW}" height="${avanceH}" fill="#16A34A" rx="2" />
-            <text x="${cxBand}" y="${height - 6}" font-size="8" font-weight="bold" fill="#4B5563" text-anchor="middle" font-family="monospace">${b.name}</text>
+            <rect x="${cxBand - barW - 1}" y="${metaY}" width="${barW}" height="${metaH}" fill="#94A3B8" rx="1.5" />
+            <rect x="${cxBand + 1}" y="${avanceY}" width="${barW}" height="${avanceH}" fill="#16A34A" rx="1.5" />
+            <text x="${cxBand}" y="${height - 5}" font-size="7.5" font-weight="bold" fill="#4B5563" text-anchor="middle" font-family="monospace">${b.name}</text>
           `;
         }).join('');
 
         return `
-          <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="display: block; margin: 0 auto; overflow: visible;">
+          <svg viewBox="0 0 ${width} ${height}" style="width: 100%; max-width: 180px; height: auto; max-height: 75px; display: block; margin: 0 auto; overflow: visible;">
             ${gridLines}
             ${barElements}
           </svg>
@@ -676,13 +686,18 @@ export default function Dashboard({ userData }: { userData?: any }) {
         const currentActs = chunks[pageIdx] || [];
         const isFirstPage = pageIdx === 0;
         const isLastPage = pageIdx === totalPages - 1;
+        const rowsCount = currentActs.length;
+
+        // Altura y padding dinámicos para que las filas llenen la página con elegancia
+        const rowPy = rowsCount <= 14 ? '8px' : rowsCount <= 18 ? '6px' : '4px';
+        const fontSize = rowsCount <= 16 ? '9.5px' : '8.5px';
 
         const pageEl = document.createElement('div');
         pageEl.className = 'bg-white text-gray-900 flex flex-col justify-between';
         pageEl.style.width = '215.9mm';
         pageEl.style.minHeight = '279.4mm';
         pageEl.style.maxHeight = '279.4mm';
-        pageEl.style.padding = '8.5mm 11mm';
+        pageEl.style.padding = '8mm 10mm';
         pageEl.style.boxSizing = 'border-box';
         pageEl.style.fontFamily = '"Source Sans 3", "Segoe UI", system-ui, sans-serif';
         pageEl.style.overflow = 'hidden';
@@ -693,9 +708,9 @@ export default function Dashboard({ userData }: { userData?: any }) {
           innerHTML += `
             <div>
               <!-- Encabezado Institucional Oficial Alcaldía de Bogotá + RADAR -->
-              <div style="border-bottom: 2px solid #DC2626; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <div style="border-bottom: 2px solid #DC2626; padding-bottom: 5px; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 36px; width: auto; object-fit: contain;" />
+                  <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 34px; width: auto; object-fit: contain;" />
                   <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
                     <div style="font-size: 9.5px; font-weight: 900; text-transform: uppercase; color: #111827; letter-spacing: 0.04em;">
                       Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
@@ -703,121 +718,121 @@ export default function Dashboard({ userData }: { userData?: any }) {
                     <div style="font-size: 8.5px; font-weight: 700; color: #374151;">
                       SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
                     </div>
-                    <div style="font-size: 12px; font-weight: 800; color: #111827; margin-top: 1px; text-transform: uppercase;">
+                    <div style="font-size: 11.5px; font-weight: 800; color: #111827; margin-top: 1px; text-transform: uppercase;">
                       Reporte Territorial de Actividades · ${locData.nombre}
                     </div>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                   <div style="text-align: right;">
-                    <div style="display: inline-block; background: #F3E8FF; color: #581C87; font-size: 8.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #E9D5FF;">
+                    <div style="display: inline-block; background: #F3E8FF; color: #581C87; font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #E9D5FF;">
                       Corte: ${corteActivo?.nombre || '15 de Octubre de 2026'}
                     </div>
                     <div style="font-size: 7.5px; color: #6B7280; margin-top: 2px;">
                       Emisión: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </div>
                   </div>
-                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 32px; width: auto; object-fit: contain; padding-left: 8px; border-left: 1px solid #E5E7EB;" />
+                  <img src="${LOGO_RADAR_BASE64}" alt="RADAR" style="height: 30px; width: auto; object-fit: contain; padding-left: 8px; border-left: 1px solid #E5E7EB;" />
                 </div>
               </div>
 
-              <!-- LAS 3 TARJETAS GRÁFICAS: VELOCÍMETRO, RESUMEN 2X2 Y GRÁFICO DE PRODUCTOS -->
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 8px;">
+              <!-- LAS 3 TARJETAS GRÁFICAS: VELOCÍMETRO, RESUMEN 2X2 Y GRÁFICO DE PRODUCTOS (SIN DESBORDES) -->
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 7px;">
                 
                 <!-- 1. TACÓMETRO / VELOCÍMETRO -->
-                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; display: flex; flex-col; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 3px;">
-                    <span style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Avance A2 · ${locData.nombre}</span>
-                    <span style="font-size: 7.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: #DCFCE7; color: #166534;">Velocímetro</span>
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 7px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
+                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 2px;">
+                    <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #4B5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Avance Territorial</span>
+                    <span style="font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: #DCFCE7; color: #166534;">Velocímetro</span>
                   </div>
-                  <div style="margin: 2px 0;">
+                  <div style="margin: 2px 0; width: 100%;">
                     ${gaugeSvg}
                   </div>
-                  <div style="text-align: center; margin-top: -6px;">
-                    <div style="font-size: 20px; font-weight: 900; color: ${color}; line-height: 1;">${clamped}%</div>
-                    <div style="font-size: 7.5px; font-weight: 700; text-transform: uppercase; color: #6B7280; margin-top: 2px;">Avance Territorial ${locData.nombre}</div>
+                  <div style="text-align: center; margin-top: -5px;">
+                    <div style="font-size: 19px; font-weight: 900; color: ${color}; line-height: 1;">${clamped}%</div>
+                    <div style="font-size: 7px; font-weight: 700; text-transform: uppercase; color: #6B7280; margin-top: 1px;">${locData.nombre}</div>
                   </div>
-                  <div style="width: 100%; text-align: center; font-size: 7.5px; color: #6B7280; border-top: 1px solid #F3F4F6; padding-top: 3px; margin-top: 3px;">
-                    Cumplimiento: <strong>${locData.ejecutadasCount}</strong> de <strong>${locData.programadasCount}</strong> programadas
+                  <div style="width: 100%; text-align: center; font-size: 7px; color: #6B7280; border-top: 1px solid #F3F4F6; padding-top: 2px; margin-top: 2px;">
+                    Cumplimiento: <strong>${locData.ejecutadasCount}</strong> de <strong>${locData.programadasCount}</strong>
                   </div>
                 </div>
 
                 <!-- 2. RESUMEN DE ACTIVIDADES (2X2 KPI) -->
-                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; display: flex; flex-col; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 3px;">
-                    <span style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Resumen de Actividades</span>
-                    <span style="font-size: 8px; font-weight: bold; color: #DC2626;">Total: ${locData.totalActividades}</span>
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 7px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
+                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 2px;">
+                    <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Resumen</span>
+                    <span style="font-size: 7.5px; font-weight: bold; color: #DC2626;">Total: ${locData.totalActividades}</span>
                   </div>
 
-                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin: 4px 0;">
-                    <div style="background: #F9FAFB; padding: 4px 5px; border-radius: 5px; border: 1px solid #E5E7EB;">
-                      <div style="font-size: 14px; font-weight: 900; color: #111827; line-height: 1;">${locData.programadasCount}</div>
-                      <div style="font-size: 7px; font-weight: 700; color: #6B7280; text-transform: uppercase; margin-top: 1px;">Programadas</div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; margin: 3px 0;">
+                    <div style="background: #F9FAFB; padding: 3px 4px; border-radius: 4px; border: 1px solid #E5E7EB;">
+                      <div style="font-size: 13px; font-weight: 900; color: #111827; line-height: 1;">${locData.programadasCount}</div>
+                      <div style="font-size: 6.8px; font-weight: 700; color: #6B7280; text-transform: uppercase;">Programadas</div>
                     </div>
-                    <div style="background: #F0FDF4; padding: 4px 5px; border-radius: 5px; border: 1px solid #DCFCE7;">
-                      <div style="font-size: 14px; font-weight: 900; color: #166534; line-height: 1;">${locData.ejecutadasCount}</div>
-                      <div style="font-size: 7px; font-weight: 700; color: #15803D; text-transform: uppercase; margin-top: 1px;">Completadas</div>
+                    <div style="background: #F0FDF4; padding: 3px 4px; border-radius: 4px; border: 1px solid #DCFCE7;">
+                      <div style="font-size: 13px; font-weight: 900; color: #166534; line-height: 1;">${locData.ejecutadasCount}</div>
+                      <div style="font-size: 6.8px; font-weight: 700; color: #15803D; text-transform: uppercase;">Completadas</div>
                     </div>
-                    <div style="background: #FFFBEB; padding: 4px 5px; border-radius: 5px; border: 1px solid #FEF3C7;">
-                      <div style="font-size: 14px; font-weight: 900; color: #B45309; line-height: 1;">${locData.enCursoCount}</div>
-                      <div style="font-size: 7px; font-weight: 700; color: #B45309; text-transform: uppercase; margin-top: 1px;">En Ejecución</div>
+                    <div style="background: #FFFBEB; padding: 3px 4px; border-radius: 4px; border: 1px solid #FEF3C7;">
+                      <div style="font-size: 13px; font-weight: 900; color: #B45309; line-height: 1;">${locData.enCursoCount}</div>
+                      <div style="font-size: 6.8px; font-weight: 700; color: #B45309; text-transform: uppercase;">En Ejecución</div>
                     </div>
-                    <div style="background: #FEF2F2; padding: 4px 5px; border-radius: 5px; border: 1px solid #FEE2E2;">
-                      <div style="font-size: 14px; font-weight: 900; color: #991B1B; line-height: 1;">${locData.noIniciadasCount}</div>
-                      <div style="font-size: 7px; font-weight: 700; color: #B91C1C; text-transform: uppercase; margin-top: 1px;">Alerta / No Inic.</div>
+                    <div style="background: #FEF2F2; padding: 3px 4px; border-radius: 4px; border: 1px solid #FEE2E2;">
+                      <div style="font-size: 13px; font-weight: 900; color: #991B1B; line-height: 1;">${locData.noIniciadasCount}</div>
+                      <div style="font-size: 6.8px; font-weight: 700; color: #B91C1C; text-transform: uppercase;">Alerta/No Inic.</div>
                     </div>
                   </div>
 
-                  <div style="background: #F9FAFB; padding: 4px 6px; border-radius: 5px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 7.5px; color: #4B5563; font-weight: 600;">Cumplimiento corte:</span>
-                    <span style="font-size: 9.5px; font-weight: 900; color: #DC2626; font-family: monospace;">${locData.cumplimientoPct}%</span>
+                  <div style="background: #F9FAFB; padding: 3px 5px; border-radius: 4px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 7px; color: #4B5563; font-weight: 600;">Cumplimiento corte:</span>
+                    <span style="font-size: 9px; font-weight: 900; color: #DC2626; font-family: monospace;">${locData.cumplimientoPct}%</span>
                   </div>
                 </div>
 
                 <!-- 3. AVANCE PRODUCTOS (META VS AVANCE) -->
-                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; display: flex; flex-col; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 3px;">
-                    <span style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Avance Productos</span>
-                    <span style="font-size: 7.5px; color: #9CA3AF;">${prodBars.length} productos</span>
+                <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 7px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0;">
+                  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 2px;">
+                    <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #4B5563;">Avance Productos</span>
+                    <span style="font-size: 7px; color: #9CA3AF;">${prodBars.length} prod.</span>
                   </div>
-                  <div style="display: flex; justify-content: flex-end; gap: 8px; font-size: 7px; color: #6B7280; margin: 2px 0;">
-                    <span style="display: flex; align-items: center; gap: 3px;"><span style="display: inline-block; width: 6px; height: 6px; background: #94A3B8; border-radius: 1px;"></span> Meta</span>
-                    <span style="display: flex; align-items: center; gap: 3px;"><span style="display: inline-block; width: 6px; height: 6px; background: #16A34A; border-radius: 1px;"></span> Avance</span>
+                  <div style="display: flex; justify-content: flex-end; gap: 6px; font-size: 6.8px; color: #6B7280; margin: 1px 0;">
+                    <span style="display: flex; align-items: center; gap: 2px;"><span style="display: inline-block; width: 5px; height: 5px; background: #94A3B8; border-radius: 1px;"></span> Meta</span>
+                    <span style="display: flex; align-items: center; gap: 2px;"><span style="display: inline-block; width: 5px; height: 5px; background: #16A34A; border-radius: 1px;"></span> Avance</span>
                   </div>
-                  <div>
+                  <div style="width: 100%;">
                     ${generateBarChartSvg(prodBars.slice(0, 6))}
                   </div>
-                  <div style="width: 100%; text-align: right; font-size: 7px; color: #9CA3AF; border-top: 1px solid #F3F4F6; padding-top: 3px;">
-                    Meta Programada vs Avance Real
+                  <div style="width: 100%; text-align: right; font-size: 6.8px; color: #9CA3AF; border-top: 1px solid #F3F4F6; padding-top: 2px;">
+                    Meta vs Avance
                   </div>
                 </div>
 
               </div>
 
-              <!-- DETALLE DE ACTIVIDADES (HOJA 1: PRIMERAS 16 ACTIVIDADES) -->
+              <!-- DETALLE DE ACTIVIDADES (TABLA CON FILAS DISTRIBUIDAS) -->
               <div>
-                <div style="font-size: 9px; font-weight: 800; color: #374151; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 8.5px; font-weight: 800; color: #374151; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
                   <span>Detalle de Actividades · ${locData.nombre} (1 a ${currentActs.length} de ${actList.length})</span>
-                  <span style="font-size: 8px; color: #6B7280; font-weight: normal;">Página 1 de ${totalPages}</span>
+                  <span style="font-size: 7.5px; color: #6B7280; font-weight: normal;">Página 1 de ${totalPages}</span>
                 </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: left;">
+                <table style="width: 100%; border-collapse: collapse; font-size: ${fontSize}; text-align: left;">
                   <thead>
-                    <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase;">
-                      <th style="padding: 4px 5px; width: 75px;">Código</th>
-                      <th style="padding: 4px 5px;">Actividad</th>
-                      <th style="padding: 4px 5px; width: 75px; text-align: center;">Estado</th>
-                      <th style="padding: 4px 5px; width: 50px; text-align: right;">Meta</th>
-                      <th style="padding: 4px 5px; width: 55px; text-align: right;">Avance</th>
-                      <th style="padding: 4px 5px; width: 60px; text-align: center;">Cumplimiento</th>
+                    <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase; font-size: 8px;">
+                      <th style="padding: 4px 6px; width: 95px;">Código</th>
+                      <th style="padding: 4px 6px;">Actividad</th>
+                      <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
+                      <th style="padding: 4px 6px; width: 46px; text-align: right;">Meta</th>
+                      <th style="padding: 4px 6px; width: 48px; text-align: right;">Avance</th>
+                      <th style="padding: 4px 6px; width: 58px; text-align: center;">Cumplimiento</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${currentActs.map((a: any) => `
-                      <tr style="border-bottom: 1px solid #E5E7EB;">
-                        <td style="padding: 3.5px 5px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
-                        <td style="padding: 3.5px 5px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
-                        <td style="padding: 3.5px 5px; text-align: center;">
-                          <span style="display: inline-block; padding: 1px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
+                      <tr style="border-bottom: 1px solid #E5E7EB; vertical-align: middle;">
+                        <td style="padding: ${rowPy} 6px; font-family: monospace; font-weight: bold; color: #111827; font-size: 8px; white-space: nowrap;">${a.codigo}</td>
+                        <td style="padding: ${rowPy} 6px; color: #1F2937; font-weight: 500; line-height: 1.25;">${a.nombre}</td>
+                        <td style="padding: ${rowPy} 6px; text-align: center;">
+                          <span style="display: inline-block; padding: 1.5px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
                             a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
                           }; color: ${
                             a.estado === 'COMPLETADA' ? '#166534' : a.estado === 'EN_CURSO' ? '#92400E' : '#991B1B'
@@ -825,9 +840,9 @@ export default function Dashboard({ userData }: { userData?: any }) {
                             ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
                           </span>
                         </td>
-                        <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
-                        <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
-                        <td style="padding: 3.5px 5px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
+                        <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
+                        <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
+                        <td style="padding: ${rowPy} 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -836,14 +851,17 @@ export default function Dashboard({ userData }: { userData?: any }) {
             </div>
           `;
         } else {
-          // Páginas siguientes (Continuación de tabla con hasta 26 filas que llenan toda la hoja)
-          const startIdx = pageSizeFirst + (pageIdx - 1) * pageSizeOther + 1;
+          // Páginas siguientes (Continuación con filas cómodas que llenan la hoja)
+          let startIdx = 1;
+          for (let p = 0; p < pageIdx; p++) {
+            startIdx += (chunks[p] || []).length;
+          }
           const endIdx = startIdx + currentActs.length - 1;
 
           innerHTML += `
             <div>
               <!-- Encabezado Institucional Compacto -->
-              <div style="border-bottom: 1.5px solid #DC2626; padding-bottom: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <div style="border-bottom: 1.5px solid #DC2626; padding-bottom: 5px; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 28px; width: auto; object-fit: contain;" />
                   <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
@@ -864,24 +882,24 @@ export default function Dashboard({ userData }: { userData?: any }) {
               </div>
 
               <!-- Tabla de Actividades Continuación -->
-              <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: left;">
+              <table style="width: 100%; border-collapse: collapse; font-size: ${fontSize}; text-align: left;">
                 <thead>
-                  <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase;">
-                    <th style="padding: 4px 5px; width: 75px;">Código</th>
-                    <th style="padding: 4px 5px;">Actividad</th>
-                    <th style="padding: 4px 5px; width: 75px; text-align: center;">Estado</th>
-                    <th style="padding: 4px 5px; width: 50px; text-align: right;">Meta</th>
-                    <th style="padding: 4px 5px; width: 55px; text-align: right;">Avance</th>
-                    <th style="padding: 4px 5px; width: 60px; text-align: center;">Cumplimiento</th>
+                  <tr style="background: #F3F4F6; color: #374151; font-weight: 700; border-bottom: 1.5px solid #D1D5DB; text-transform: uppercase; font-size: 8px;">
+                    <th style="padding: 4px 6px; width: 95px;">Código</th>
+                    <th style="padding: 4px 6px;">Actividad</th>
+                    <th style="padding: 4px 6px; width: 75px; text-align: center;">Estado</th>
+                    <th style="padding: 4px 6px; width: 46px; text-align: right;">Meta</th>
+                    <th style="padding: 4px 6px; width: 48px; text-align: right;">Avance</th>
+                    <th style="padding: 4px 6px; width: 58px; text-align: center;">Cumplimiento</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${currentActs.map((a: any) => `
-                    <tr style="border-bottom: 1px solid #E5E7EB;">
-                      <td style="padding: 3.5px 5px; font-family: monospace; font-weight: bold; color: #111827;">${a.codigo}</td>
-                      <td style="padding: 3.5px 5px; color: #1F2937; font-weight: 500;">${a.nombre}</td>
-                      <td style="padding: 3.5px 5px; text-align: center;">
-                        <span style="display: inline-block; padding: 1px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
+                    <tr style="border-bottom: 1px solid #E5E7EB; vertical-align: middle;">
+                      <td style="padding: ${rowPy} 6px; font-family: monospace; font-weight: bold; color: #111827; font-size: 8px; white-space: nowrap;">${a.codigo}</td>
+                      <td style="padding: ${rowPy} 6px; color: #1F2937; font-weight: 500; line-height: 1.25;">${a.nombre}</td>
+                      <td style="padding: ${rowPy} 6px; text-align: center;">
+                        <span style="display: inline-block; padding: 1.5px 5px; border-radius: 9999px; font-size: 7.5px; font-weight: bold; background: ${
                           a.estado === 'COMPLETADA' ? '#DCFCE7' : a.estado === 'EN_CURSO' ? '#FEF3C7' : '#FEE2E2'
                         }; color: ${
                           a.estado === 'COMPLETADA' ? '#166534' : a.estado === 'EN_CURSO' ? '#92400E' : '#991B1B'
@@ -889,9 +907,9 @@ export default function Dashboard({ userData }: { userData?: any }) {
                           ${a.estado === 'COMPLETADA' ? 'Completada' : a.estado === 'EN_CURSO' ? 'En ejecución' : 'No iniciada'}
                         </span>
                       </td>
-                      <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
-                      <td style="padding: 3.5px 5px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
-                      <td style="padding: 3.5px 5px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
+                      <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 600;">${a.meta}%</td>
+                      <td style="padding: ${rowPy} 6px; text-align: right; font-family: monospace; font-weight: 700; color: ${a.avance >= 90 ? '#15803D' : a.avance >= 50 ? '#B45309' : '#B91C1C'};">${a.avance}%</td>
+                      <td style="padding: ${rowPy} 6px; text-align: center; font-weight: bold; color: ${a.cumplimiento >= 100 ? '#15803D' : a.cumplimiento >= 50 ? '#B45309' : '#B91C1C'};">${a.cumplimiento}%</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -900,16 +918,16 @@ export default function Dashboard({ userData }: { userData?: any }) {
           `;
         }
 
-        // Fila resumen final al pie de la última página
+        // Fila resumen final al pie de la última página + Bloque de síntesis si queda espacio
         let summaryFooter = '';
         if (isLastPage) {
           summaryFooter = `
-            <div style="background: #1E293B; color: #FFFFFF; padding: 5px 10px; border-radius: 5px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px;">
-              <span style="font-weight: 700;">Total / Promedio Consolidado (${locData.nombre}):</span>
-              <div style="display: flex; gap: 14px;">
-                <span>Ejecutadas: <strong>${locData.ejecutadasCount} / ${locData.totalActividades}</strong></span>
-                <span>Avance Global: <strong>${locData.avanceGlobal}%</strong></span>
-                <span>Cumplimiento: <strong>${locData.cumplimientoPct}%</strong></span>
+            <div style="background: #0F172A; color: #FFFFFF; padding: 6px 12px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <span style="font-weight: 800; letter-spacing: 0.03em;">TOTAL CONSOLIDADO · ${locData.nombre}:</span>
+              <div style="display: flex; gap: 16px; font-weight: 600;">
+                <span>Actividades: <strong>${locData.ejecutadasCount} / ${locData.totalActividades} completadas</strong></span>
+                <span>Avance Territorial: <strong>${locData.avanceGlobal}%</strong></span>
+                <span>Eficacia a Corte: <strong>${locData.cumplimientoPct}%</strong></span>
               </div>
             </div>
           `;
@@ -919,7 +937,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
           ${innerHTML}
           <div>
             ${summaryFooter}
-            <div style="border-top: 1px solid #E5E7EB; padding-top: 4px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 7.5px; color: #6B7280;">
+            <div style="border-top: 1px solid #E5E7EB; padding-top: 4px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 7.5px; color: #6B7280;">
               <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local Grupo de Espacio Público · RADAR</span>
               <span>Página ${pageIdx + 1} de ${totalPages} · Formato Carta</span>
             </div>
