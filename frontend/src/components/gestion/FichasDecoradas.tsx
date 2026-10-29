@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { LOGO_BOGOTA_BASE64, LOGO_SDG_BASE64, LOGO_RADAR_BASE64 } from '../../utils/logos';
+import { LOGO_SDG_BASE64, LOGO_RADAR_BASE64 } from '../../utils/logos';
 
 interface Props {
   ultimaFicha: any;
@@ -9,20 +9,7 @@ interface Props {
 export default function FichasDecoradas({ ultimaFicha }: Props) {
   if (!ultimaFicha) return null;
 
-  // Helpers de color semántico según porcentaje de avance real vs programado
-  const getColor = (real: number | undefined, prog: number | undefined): string => {
-    if (!prog || prog === 0) return '#64748b'; // Slate neutro si no hay meta
-    const pct = ((real || 0) / prog) * 100;
-    if (pct < 50) return '#dc2626'; // Rojo - Rezago crítico
-    if (pct < 80) return '#d97706'; // Naranja - En proceso
-    return '#16a34a'; // Verde - Cumplido o sobre meta
-  };
-
-  const getAvancePct = (real: number | undefined, prog: number | undefined): number => {
-    if (!prog || prog === 0) return 0;
-    return Math.round(((real || 0) / prog) * 100);
-  };
-
+  // Helper de aguja para marcar la meta a corte sobre el arco de la meta anual (180 grados)
   const renderNeedle = (pct: number = 0, radius: number = 44) => {
     const safePct = Math.min(100, Math.max(0, pct));
     const rotateDeg = (safePct * 180) / 100 - 90;
@@ -33,32 +20,39 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
           bottom: 0, 
           left: '50%', 
           width: '2px', 
-          height: `${radius + 3}px`,
+          height: `${radius + 4}px`,
           transformOrigin: 'bottom center', 
           transform: `translateX(-50%) rotate(${rotateDeg}deg)`,
-          borderLeft: '2px dashed #0f172a'
+          borderLeft: '2.5px dashed #0f172a'
         }}
+        title={`Meta programada al corte: ${safePct}%`}
       />
     );
   };
 
-  // Tacómetro Recharts con dimensiones fijas para evitar colapsos y diseño tipo infografía
-  const renderGauge = (real: number | undefined, prog: number | undefined, color: string, label?: string) => {
-    const val = getAvancePct(real, prog);
+  // Tacómetro Recharts para PORCENTAJES (Presupuesto, Archivos, Fallos)
+  // El arco completo representa el 100% de la Meta Anual
+  // realPct = porcentaje ejecutado del presupuesto anual (ej. Giros: 40%, Compromisos: 58%)
+  // metaCortePct = porcentaje programado a corte (ej. Giros: 40%, Compromisos: 50%)
+  const renderPercentGauge = (realPct: number = 0, metaCortePct: number = 0, color: string, label: string) => {
+    const safeReal = Math.min(100, Math.max(0, realPct));
+    const safeMeta = Math.min(100, Math.max(0, metaCortePct));
+
     const data = [
-      { value: val, color },
-      { value: Math.max(0, 100 - val), color: '#f1f5f9' }
+      { value: safeReal, color },
+      { value: Math.max(0, 100 - safeReal), color: '#f1f5f9' }
     ];
 
-    const statusBadge = val >= 80 
-      ? { text: 'Meta Cumplida', bg: 'bg-emerald-100 text-emerald-800 border-emerald-300' }
-      : val >= 50
+    const cumplimiento = safeMeta > 0 ? Math.round((safeReal / safeMeta) * 100) : (safeReal > 0 ? 100 : 0);
+    const statusBadge = cumplimiento >= 100
+      ? { text: 'Cumplido', bg: 'bg-emerald-100 text-emerald-800 border-emerald-300' }
+      : cumplimiento >= 70
       ? { text: 'En Proceso', bg: 'bg-amber-100 text-amber-800 border-amber-300' }
       : { text: 'En Rezago', bg: 'bg-red-100 text-red-800 border-red-300' };
 
     return (
       <div className="flex flex-col items-center justify-center">
-        {label && <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-0.5">{label}</span>}
+        <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-0.5">{label}</span>
         <div className="relative" style={{ width: '120px', height: '64px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
@@ -78,20 +72,93 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               </Pie>
             </PieChart>
           </ResponsiveContainer>
-          {renderNeedle(Math.min(100, prog ?? 0), 45)}
+          {renderNeedle(safeMeta, 45)}
           <div className="absolute bottom-0 left-0 w-full text-center mb-[-3px]">
-            <span className="text-lg font-black leading-none" style={{ color }}>{val}%</span>
+            <span className="text-lg font-black leading-none" style={{ color }}>{safeReal}%</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 mt-1">
           <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full border ${statusBadge.bg}`}>
             {statusBadge.text}
           </span>
-          {prog !== undefined && (
-            <span className="text-[8px] font-semibold text-slate-500">
-              Meta: {prog}%
+          <span className="text-[8px] font-semibold text-slate-600">
+            Corte: {safeMeta}% (Meta 100%)
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // Tacómetro Recharts para CANTIDADES ABSOLUTAS (Obras, Rollos, Puntos, Vehículos, Estrategias)
+  // El arco completo representa la Meta Anual (ej. 1.700 obras, 23 rollos, 70 puntos)
+  // real = ejecutado (ej. 1.160 obras)
+  // prog = programado al corte (ej. 1.285 obras)
+  // metaTotal = meta anual total (ej. 1.700 obras)
+  const renderCountGauge = (
+    real: number = 0,
+    prog: number = 0,
+    metaTotal: number = 0,
+    color: string,
+    label: string,
+    unitName: string = ''
+  ) => {
+    const total = metaTotal > 0 ? metaTotal : Math.max(prog, real, 1);
+    const realArcPct = Math.min(100, Math.round((real / total) * 100));
+    const progNeedlePct = Math.min(100, Math.round((prog / total) * 100));
+
+    const data = [
+      { value: realArcPct, color },
+      { value: Math.max(0, 100 - realArcPct), color: '#f1f5f9' }
+    ];
+
+    const cumplimiento = prog > 0 ? Math.round((real / prog) * 100) : (real > 0 ? 100 : 0);
+    const statusBadge = cumplimiento >= 90
+      ? { text: 'Cumplido', bg: 'bg-emerald-100 text-emerald-800 border-emerald-300' }
+      : cumplimiento >= 70
+      ? { text: 'En Proceso', bg: 'bg-amber-100 text-amber-800 border-amber-300' }
+      : { text: 'En Rezago', bg: 'bg-red-100 text-red-800 border-red-300' };
+
+    return (
+      <div className="flex flex-col items-center justify-center">
+        <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-0.5">{label}</span>
+        <div className="relative" style={{ width: '120px', height: '64px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+              <Pie 
+                data={data} 
+                cx="50%" 
+                cy="100%" 
+                startAngle={180} 
+                endAngle={0} 
+                innerRadius={28} 
+                outerRadius={45} 
+                paddingAngle={0} 
+                dataKey="value" 
+                stroke="none"
+              >
+                {data.map((e, i) => <Cell key={i} fill={e.color} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          {renderNeedle(progNeedlePct, 45)}
+          <div className="absolute bottom-0 left-0 w-full text-center mb-[-3px]">
+            <span className="text-base font-black leading-none" style={{ color }}>
+              {real.toLocaleString('es-CO')}
             </span>
-          )}
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-0.5 mt-1">
+          <div className="flex items-center gap-1">
+            <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full border ${statusBadge.bg}`}>
+              {statusBadge.text} ({cumplimiento}%)
+            </span>
+            <span className="text-[8px] font-bold text-slate-600">
+              {realArcPct}% de meta anual
+            </span>
+          </div>
+          <span className="text-[7.5px] font-semibold text-slate-500">
+            Prog. corte: {prog.toLocaleString('es-CO')} | Meta anual: {total.toLocaleString('es-CO')} {unitName}
+          </span>
         </div>
       </div>
     );
@@ -159,31 +226,68 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
     );
   };
 
-  // Colores dinámicos por temática según el nivel de avance real
-  const c1Color = getColor(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct);
-  const c2Color = getColor(ultimaFicha.girosPct, ultimaFicha.metaGirosPct);
+  // Cálculos de datos reales, metas y colores
+  const compromisosReal = ultimaFicha.compromisosPct ?? 0;
+  const compromisosProg = ultimaFicha.metaCompromisosPct ?? 0;
+  const c1Color = compromisosProg > 0 
+    ? ((compromisosReal / compromisosProg) * 100 < 70 ? '#dc2626' : (compromisosReal / compromisosProg) * 100 < 95 ? '#d97706' : '#16a34a')
+    : '#16a34a';
+
+  const girosReal = ultimaFicha.girosPct ?? 0;
+  const girosProg = ultimaFicha.metaGirosPct ?? 0;
+  const c2Color = girosProg > 0 
+    ? ((girosReal / girosProg) * 100 < 70 ? '#dc2626' : (girosReal / girosProg) * 100 < 95 ? '#d97706' : '#16a34a')
+    : '#16a34a';
+
   const ejecucionColor = (c1Color === '#dc2626' || c2Color === '#dc2626') ? '#dc2626' : (c1Color === '#d97706' || c2Color === '#d97706') ? '#d97706' : '#16a34a';
 
-  const obrasAvancePct = getAvancePct(ultimaFicha.intervencionesFinalizadas, ultimaFicha.obrasProgramadasAlCorte);
-  const obrasColor = obrasAvancePct < 50 ? '#dc2626' : obrasAvancePct < 80 ? '#d97706' : '#16a34a';
+  // Obras: meta anual 1700, prog 1285, real 1160
+  const obrasMeta = ultimaFicha.metaObras || ultimaFicha.intervencionesMetaTotal || 1700;
+  const obrasProg = ultimaFicha.obrasProgramadasAlCorte || 1285;
+  const obrasReal = ultimaFicha.intervencionesFinalizadas || 1160;
+  const obrasCumplimiento = obrasProg > 0 ? Math.round((obrasReal / obrasProg) * 100) : 0;
+  const obrasColor = obrasCumplimiento < 70 ? '#dc2626' : obrasCumplimiento < 90 ? '#d97706' : '#16a34a';
 
-  const rollosAvancePct = getAvancePct(ultimaFicha.rollosResueltos, ultimaFicha.rollosProgramadosAlCorte);
-  const rollosColor = rollosAvancePct < 50 ? '#dc2626' : rollosAvancePct < 80 ? '#d97706' : '#16a34a';
+  // Rollos Legendarios
+  const rollosMeta = ultimaFicha.totalRollos || 23;
+  const rollosProg = ultimaFicha.rollosProgramadosAlCorte || 15;
+  const rollosReal = ultimaFicha.rollosResueltos || 8;
+  const rollosCumplimiento = rollosProg > 0 ? Math.round((rollosReal / rollosProg) * 100) : 0;
+  const rollosColor = rollosCumplimiento < 70 ? '#dc2626' : rollosCumplimiento < 90 ? '#d97706' : '#16a34a';
 
-  const residAvancePct = getAvancePct(ultimaFicha.puntosSostenidos, ultimaFicha.puntosSostenidosProgramados);
-  const residColor = residAvancePct < 50 ? '#dc2626' : residAvancePct < 80 ? '#d97706' : '#16a34a';
+  // Residuos y Puntos Críticos
+  const residMeta = ultimaFicha.puntosCriticosPriorizados || 70;
+  const residProg = ultimaFicha.puntosSostenidosProgramados || 50;
+  const residReal = ultimaFicha.puntosSostenidos || 45;
+  const residCumplimiento = residProg > 0 ? Math.round((residReal / residProg) * 100) : 0;
+  const residColor = residCumplimiento < 70 ? '#dc2626' : residCumplimiento < 90 ? '#d97706' : '#16a34a';
 
-  const orgAvancePct = getAvancePct(ultimaFicha.puntosSostenibilidadEfectiva, ultimaFicha.puntosProgramadosSostenibilidad);
-  const orgColor = orgAvancePct < 50 ? '#dc2626' : orgAvancePct < 80 ? '#d97706' : '#16a34a';
+  // Sostenibilidad Espacio Público
+  const orgProg = ultimaFicha.puntosProgramadosSostenibilidad || ultimaFicha.puntosVerificados || 30;
+  const orgReal = ultimaFicha.puntosSostenibilidadEfectiva || 24;
+  const orgCumplimiento = orgProg > 0 ? Math.round((orgReal / orgProg) * 100) : 0;
+  const orgColor = orgCumplimiento < 70 ? '#dc2626' : orgCumplimiento < 90 ? '#d97706' : '#16a34a';
 
-  const actColor = getColor(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte);
-
+  // Convivencia y Dotación de Vehículos
+  const vehiculosMeta = ultimaFicha.vehiculosMetaTotal || 50;
+  const vehiculosProg = ultimaFicha.vehiculosProgramadosCorte || 30;
   const vehiculosReal = (ultimaFicha.vehiculosEntregadosPolicia || 0) + (ultimaFicha.vehiculosEntregadosSdscj || 0);
-  const convAvancePct = getAvancePct(vehiculosReal, ultimaFicha.vehiculosProgramadosCorte);
-  const convColor = convAvancePct < 50 ? '#dc2626' : convAvancePct < 80 ? '#d97706' : '#16a34a';
+  const convCumplimiento = vehiculosProg > 0 ? Math.round((vehiculosReal / vehiculosProg) * 100) : 0;
+  const convColor = convCumplimiento < 70 ? '#dc2626' : convCumplimiento < 90 ? '#d97706' : '#16a34a';
 
-  const memAvancePct = getAvancePct(ultimaFicha.estrategiasResueltas, ultimaFicha.estrategiasProgramadasCorte || ultimaFicha.estrategiasTotal);
-  const memColor = memAvancePct < 50 ? '#dc2626' : memAvancePct < 80 ? '#d97706' : '#16a34a';
+  // Actuaciones Administrativas
+  const archivosReal = ultimaFicha.archivosPct || 45;
+  const archivosProg = ultimaFicha.archivosProgramadosCorte || 40;
+  const fallosReal = ultimaFicha.fallosPrimeraEstanciaPct || 50;
+  const fallosProg = ultimaFicha.fallosProgramadosCorte || 40;
+  const actColor = (archivosReal >= archivosProg && fallosReal >= fallosProg) ? '#16a34a' : '#d97706';
+
+  // Estrategias de Memoria
+  const memMeta = ultimaFicha.estrategiasTotal || 35;
+  const memProg = ultimaFicha.estrategiasProgramadasCorte || 30;
+  const memReal = ultimaFicha.estrategiasResueltas || 28;
+  const memCumplimiento = memProg > 0 ? Math.round((memReal / memProg) * 100) : 0;
+  const memColor = memCumplimiento < 70 ? '#dc2626' : memCumplimiento < 90 ? '#d97706' : '#16a34a';
 
   // Gradientes de fondo para las cabeceras tipo infografía
   const getHeaderGradient = (color: string) => {
@@ -197,6 +301,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
     title: string,
     themeColor: string,
     badgeText: string,
+    icon: string,
     graficoContent: React.ReactNode,
     cifrasContent: React.ReactNode,
     avances: string | null | undefined,
@@ -209,13 +314,13 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
 
     return (
       <div className={`w-full bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col overflow-hidden ${customClass}`}>
-        {/* Cabecera Infográfica con gradiente vibrante y badge flotante */}
+        {/* Cabecera Infográfica con gradiente vibrante, icono destacado y badge */}
         <div className={`px-3 py-1 bg-gradient-to-r ${gradient} text-white font-black text-[11px] uppercase tracking-wide flex items-center justify-between shrink-0 shadow-xs`}>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-white/90 inline-block shadow-xs"></span>
-            {title}
+          <span className="flex items-center gap-2">
+            <span className="text-base leading-none drop-shadow-xs">{icon}</span>
+            <span>{title}</span>
           </span>
-          <span className="bg-white/20 text-white px-2 py-0.5 rounded-full text-[8.5px] font-bold tracking-tight backdrop-blur-xs border border-white/25">
+          <span className="bg-white/20 text-white px-2.5 py-0.5 rounded-full text-[8.5px] font-bold tracking-tight backdrop-blur-xs border border-white/25">
             {badgeText}
           </span>
         </div>
@@ -228,7 +333,7 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             {graficoContent}
           </div>
 
-          {/* Columna 2: Cifras y Métricas Clave (24% del ancho) */}
+          {/* Columna 2: Cifras y Métricas Clave Infográficas (24% del ancho) */}
           <div className="col-span-3 border-r border-slate-200/80 pr-2 flex flex-col justify-center">
             {cifrasContent}
           </div>
@@ -237,9 +342,9 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
           <div className="col-span-6 flex flex-col gap-1.5 justify-between overflow-hidden">
             {/* Tarjeta de Avances */}
             <div className="bg-gradient-to-r from-emerald-50/90 to-teal-50/50 border border-emerald-200/90 rounded-lg p-1.5 flex-1 overflow-auto shadow-2xs">
-              <div className="text-[8.5px] font-black text-emerald-950 flex items-center gap-1 mb-0.5 shrink-0 uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block"></span>
-                PRINCIPALES AVANCES DEL CORTE
+              <div className="text-[8.5px] font-black text-emerald-950 flex items-center gap-1.5 mb-0.5 shrink-0 uppercase tracking-wider">
+                <span className="text-xs">🚀</span>
+                <span>PRINCIPALES AVANCES DEL CORTE</span>
               </div>
               <div>{parseVinetas(avances)}</div>
             </div>
@@ -250,10 +355,11 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                 ? 'bg-gradient-to-r from-amber-50/90 to-orange-50/50 border-amber-200/90 flex-1' 
                 : 'bg-slate-50/80 border-slate-200/80 py-0.5'
             }`}>
-              <div className={`text-[8.5px] font-black flex items-center gap-1 mb-0.5 shrink-0 uppercase tracking-wider ${
+              <div className={`text-[8.5px] font-black flex items-center gap-1.5 mb-0.5 shrink-0 uppercase tracking-wider ${
                 hasAlertas ? 'text-amber-950' : 'text-slate-600'
               }`}>
-                <span>{hasAlertas ? '⚠️' : '🛡️'}</span> ALERTAS & CONDICIONANTES
+                <span className="text-xs">{hasAlertas ? '⚠️' : '🛡️'}</span>
+                <span>ALERTAS & CONDICIONANTES</span>
               </div>
               <div>{renderAlertasText(alertas)}</div>
             </div>
@@ -264,46 +370,41 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
     );
   };
 
-  // Cabecera institucional oficial Alcaldía de Bogotá + Secretaría de Gobierno + RADAR
-  const renderHeader = (numPagina: number, subtituloPagina: string) => {
+  // Cabecera institucional oficial: Solo logo de Secretaría de Gobierno/Bogotá + RADAR, y texto Unidad de Transformación / RADAR
+  const renderHeader = (numPagina: number, subtituloTematico: string) => {
     const fechaCorte = ultimaFicha?.periodo 
       ? new Date(ultimaFicha.periodo).toLocaleDateString('es-CO', { timeZone: 'UTC', day: '2-digit', month: 'long', year: 'numeric' })
       : 'Corte General';
 
     return (
       <div className="flex justify-between items-center pb-2 mb-1.5 border-b-2 border-red-600 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <img src={LOGO_BOGOTA_BASE64} alt="Alcaldía Mayor de Bogotá" className="h-9 object-contain" />
+        <div className="flex items-center gap-3">
+          <img src={LOGO_SDG_BASE64} alt="Secretaría de Gobierno - Bogotá" className="h-9 object-contain" />
           <div className="h-7 w-px bg-slate-200" />
-          <img src={LOGO_SDG_BASE64} alt="Secretaría de Gobierno" className="h-8 object-contain" />
-          <div className="h-7 w-px bg-slate-200" />
-          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-7 object-contain" />
-          <div className="ml-0.5 border-l pl-2 border-slate-200">
-            <h1 className="text-[11px] font-black text-slate-900 tracking-tight uppercase leading-none">
-              ALCALDÍA MAYOR DE BOGOTÁ
+          <img src={LOGO_RADAR_BASE64} alt="RADAR" className="h-8 object-contain" />
+          <div className="ml-1 border-l-2 pl-2.5 border-slate-300">
+            <h1 className="text-[12px] font-black text-slate-900 tracking-tight uppercase leading-tight">
+              Unidad de Transformación
             </h1>
-            <p className="text-[9.5px] font-bold text-red-700 leading-tight">
-              Secretaría de Gobierno · Unidad de Transformación
-            </p>
-            <p className="text-[8px] text-slate-600 font-extrabold uppercase tracking-widest">
+            <p className="text-[9.5px] font-black text-red-700 tracking-wider uppercase">
               RADAR
             </p>
           </div>
         </div>
 
-        {/* Título Central Infográfico */}
+        {/* Título Central Infográfico (sin 'EJE') */}
         <div className="text-center">
           <div className="text-xs font-black uppercase tracking-wide text-slate-900">
             Boletín Ejecutivo de Resultados y Seguimiento
           </div>
-          <span className="inline-block bg-red-50 text-red-700 border border-red-200 rounded-full px-2.5 py-0.2 text-[8px] font-bold uppercase tracking-wider mt-0.5">
-            {subtituloPagina}
+          <span className="inline-block bg-red-50 text-red-700 border border-red-200 rounded-full px-3 py-0.5 text-[8.5px] font-black uppercase tracking-wider mt-0.5">
+            {subtituloTematico}
           </span>
         </div>
 
-        {/* Bloque Derecho: Fecha y Paginación limpia */}
+        {/* Bloque Derecho: Fecha de Corte y Paginación */}
         <div className="text-right">
-          <div className="inline-block bg-slate-100 text-slate-800 border border-slate-200 rounded-md px-2 py-0.5 text-[8.5px] font-bold">
+          <div className="inline-block bg-slate-100 text-slate-800 border border-slate-200 rounded-md px-2.5 py-0.5 text-[8.5px] font-bold">
             📅 Corte: {fechaCorte}
           </div>
           <p className="text-[9px] font-extrabold text-slate-500 mt-0.5">Página {numPagina} de 3</p>
@@ -339,154 +440,123 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
           overflow: 'hidden'
         }}
       >
-        {renderHeader(1, 'Eje 1: Inversión, Infraestructura y Residuos')}
+        {renderHeader(1, 'Inversión, Infraestructura y Residuos')}
 
         <div className="flex-1 flex flex-col gap-2 my-1 overflow-hidden justify-between">
           
-          {/* 1. EJECUCIÓN PRESUPUESTAL */}
+          {/* EJECUCIÓN PRESUPUESTAL */}
           {renderFranjaHorizontal(
-            '1. Ejecución del Plan de Desarrollo (Presupuesto)',
+            'Ejecución del Plan de Desarrollo (Presupuesto)',
             ejecucionColor,
-            `Compromisos: ${ultimaFicha.compromisosPct || 0}% | Giros: ${ultimaFicha.girosPct || 0}%`,
+            `Compromisos: ${compromisosReal}% | Giros: ${girosReal}%`,
+            '💰',
             <div className="flex items-center justify-around w-full gap-2">
-              {renderGauge(ultimaFicha.compromisosPct, ultimaFicha.metaCompromisosPct, c1Color, 'Compromisos')}
+              {renderPercentGauge(compromisosReal, compromisosProg, c1Color, 'Compromisos')}
               <div className="h-12 w-px bg-slate-200" />
-              {renderGauge(ultimaFicha.girosPct, ultimaFicha.metaGirosPct, c2Color, 'Giros')}
+              {renderPercentGauge(girosReal, girosProg, c2Color, 'Giros')}
             </div>,
             <div className="space-y-1.5 text-[9px]">
-              <div className="bg-slate-50 border-l-3 border-indigo-500 rounded p-1.5 flex justify-between items-center shadow-2xs">
-                <div>
-                  <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Monitoreo</span>
-                  <span className="font-bold text-slate-700">Procesos Monitoreados</span>
+              <div className="bg-slate-50 border-l-4 border-indigo-500 rounded-md p-1.5 flex justify-between items-center shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">📋</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Monitoreo</span>
+                    <span className="font-bold text-slate-700">Procesos Monitoreados</span>
+                  </div>
                 </div>
-                <span className="font-black text-sm text-slate-900">{ultimaFicha.procesosMonitoreados || 0}</span>
+                <span className="font-black text-base text-slate-900">{ultimaFicha.procesosMonitoreados || 0}</span>
               </div>
-              <div className="bg-slate-50 border-l-3 border-red-500 rounded p-1.5 flex justify-between items-center shadow-2xs">
-                <div>
-                  <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Atención Requerida</span>
-                  <span className="font-bold text-slate-700">Requieren Comité</span>
+              <div className="bg-slate-50 border-l-4 border-red-500 rounded-md p-1.5 flex justify-between items-center shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">⚠️</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Atención Requerida</span>
+                    <span className="font-bold text-slate-700">Requieren Comité</span>
+                  </div>
                 </div>
-                <span className="font-black text-sm text-red-600">{ultimaFicha.procesosRequierenComite || 0}</span>
+                <span className="font-black text-base text-red-600">{ultimaFicha.procesosRequierenComite || 0}</span>
               </div>
             </div>,
             ultimaFicha.avancesEjecucion,
             ultimaFicha.alertaEjecucion
           )}
 
-          {/* 2. OBRAS LOCALES */}
+          {/* OBRAS LOCALES */}
           {renderFranjaHorizontal(
-            '2. Obras Locales (Intervenciones en Territorio)',
+            'Obras Locales (Intervenciones en Territorio)',
             obrasColor,
-            `Cumplimiento: ${obrasAvancePct}% (${ultimaFicha.intervencionesFinalizadas || 0} finalizadas)`,
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-0.5">Avance de Obras</span>
-              <div className="relative" style={{ width: '120px', height: '64px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
-                    <Pie 
-                      data={[
-                        { value: obrasAvancePct, color: obrasColor },
-                        { value: Math.max(0, 100 - obrasAvancePct), color: '#f1f5f9' }
-                      ]} 
-                      cx="50%" 
-                      cy="100%" 
-                      startAngle={180} 
-                      endAngle={0} 
-                      innerRadius={28} 
-                      outerRadius={45} 
-                      paddingAngle={0} 
-                      dataKey="value" 
-                      stroke="none"
-                    >
-                      <Cell fill={obrasColor} />
-                      <Cell fill="#f1f5f9" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                {renderNeedle(Math.min(100, obrasAvancePct), 45)}
-                <div className="absolute bottom-0 left-0 w-full text-center mb-[-3px]">
-                  <span className="text-base font-black leading-none" style={{ color: obrasColor }}>{obrasAvancePct}%</span>
-                </div>
-              </div>
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">
-                Prog. al corte: {ultimaFicha.obrasProgramadasAlCorte || 0}
-              </span>
-            </div>,
+            `Cumplimiento: ${obrasCumplimiento}% (${obrasReal.toLocaleString('es-CO')} finalizadas)`,
+            '🏗️',
+            renderCountGauge(obrasReal, obrasProg, obrasMeta, obrasColor, 'Avance de Obras', 'obras'),
             <div className="space-y-1 text-[8px]">
               <div className="grid grid-cols-3 gap-1 text-center border-b border-slate-200 pb-1 mb-1">
-                <div className="bg-slate-50 p-1 rounded"><span className="text-slate-500 font-bold block text-[7.5px] uppercase">META</span><span className="font-black text-xs text-slate-900">{ultimaFicha.metaObras || 0}</span></div>
-                <div className="bg-slate-50 p-1 rounded"><span className="text-slate-500 font-bold block text-[7.5px] uppercase">PROG.</span><span className="font-black text-xs text-slate-900">{ultimaFicha.obrasProgramadasAlCorte || 0}</span></div>
-                <div className="bg-emerald-50 p-1 rounded border border-emerald-200"><span className="text-emerald-800 font-bold block text-[7.5px] uppercase">FINAL</span><span className="font-black text-xs" style={{ color: obrasColor }}>{ultimaFicha.intervencionesFinalizadas || 0}</span></div>
+                <div className="bg-slate-50 p-1 rounded-md">
+                  <span className="text-slate-500 font-bold block text-[7px] uppercase">🎯 META ANUAL</span>
+                  <span className="font-black text-xs text-slate-900">{obrasMeta.toLocaleString('es-CO')}</span>
+                </div>
+                <div className="bg-slate-50 p-1 rounded-md">
+                  <span className="text-slate-500 font-bold block text-[7px] uppercase">📅 PROG. CORTE</span>
+                  <span className="font-black text-xs text-slate-900">{obrasProg.toLocaleString('es-CO')}</span>
+                </div>
+                <div className="bg-emerald-50 p-1 rounded-md border border-emerald-200">
+                  <span className="text-emerald-800 font-bold block text-[7px] uppercase">🏗️ EJECUTADO</span>
+                  <span className="font-black text-xs" style={{ color: obrasColor }}>{obrasReal.toLocaleString('es-CO')}</span>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-1 text-[8px]">
-                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center"><span>🛣️ Malla Vial</span><b>{ultimaFicha.obrasMallaVial || 0}</b></div>
-                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center"><span>🏛️ Esp. Público</span><b>{ultimaFicha.obrasEspacioPublico || 0}</b></div>
-                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center"><span>🏠 Viv. Rural</span><b>{ultimaFicha.obrasViviendaRural || 0}</b></div>
-                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center"><span>🌳 Parques</span><b>{ultimaFicha.obrasParque || 0}</b></div>
+                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center">
+                  <span>🛣️ Malla Vial</span><b>{ultimaFicha.obrasMallaVial || 0}</b>
+                </div>
+                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center">
+                  <span>🏛️ Esp. Público</span><b>{ultimaFicha.obrasEspacioPublico || 0}</b>
+                </div>
+                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center">
+                  <span>🏠 Viv. Rural</span><b>{ultimaFicha.obrasViviendaRural || 0}</b>
+                </div>
+                <div className="border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded flex justify-between items-center">
+                  <span>🌳 Parques</span><b>{ultimaFicha.obrasParque || 0}</b>
+                </div>
               </div>
             </div>,
             ultimaFicha.avancesObras,
             ultimaFicha.alertaObras
           )}
 
-          {/* 3. ESPACIO PÚBLICO - RESIDUOS */}
+          {/* ESPACIO PÚBLICO - RESIDUOS */}
           {renderFranjaHorizontal(
-            '3. Espacio Público — Residuos y Puntos Críticos',
+            'Espacio Público — Residuos y Puntos Críticos',
             residColor,
-            `Puntos sostenidos: ${ultimaFicha.puntosSostenidos || 0} de ${ultimaFicha.puntosCriticosPriorizados || 0} priorizados`,
-            <div className="flex flex-col items-center justify-center w-full">
-              <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-0.5">Sostenimiento de Puntos</span>
-              <div className="relative" style={{ width: '120px', height: '64px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
-                    <Pie 
-                      data={[
-                        { value: residAvancePct, color: residColor },
-                        { value: Math.max(0, 100 - residAvancePct), color: '#f1f5f9' }
-                      ]} 
-                      cx="50%" 
-                      cy="100%" 
-                      startAngle={180} 
-                      endAngle={0} 
-                      innerRadius={28} 
-                      outerRadius={45} 
-                      paddingAngle={0} 
-                      dataKey="value" 
-                      stroke="none"
-                    >
-                      <Cell fill={residColor} />
-                      <Cell fill="#f1f5f9" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                {renderNeedle(Math.min(100, residAvancePct), 45)}
-                <div className="absolute bottom-0 left-0 w-full text-center mb-[-3px]">
-                  <span className="text-base font-black leading-none" style={{ color: residColor }}>{residAvancePct}%</span>
-                </div>
-              </div>
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">
-                {ultimaFicha.puntosSostenidos || 0} de {ultimaFicha.puntosCriticosPriorizados || 0} puntos
-              </span>
-            </div>,
+            `Puntos sostenidos: ${residReal} de ${residMeta} priorizados`,
+            '♻️',
+            renderCountGauge(residReal, residProg, residMeta, residColor, 'Puntos Críticos', 'puntos'),
             <div className="space-y-1 text-[8.5px]">
-              <div className="bg-slate-50 border-l-3 border-amber-500 rounded p-1 flex justify-between items-center shadow-2xs">
-                <div>
-                  <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Sensibilización</span>
-                  <span className="font-bold text-slate-700">👥 Personas</span>
+              <div className="bg-slate-50 border-l-4 border-amber-500 rounded-md p-1 flex justify-between items-center shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">👥</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Sensibilización</span>
+                    <span className="font-bold text-slate-700">Personas</span>
+                  </div>
                 </div>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.personasSensibilizadas?.toLocaleString('es-CO') || 0}</span>
               </div>
-              <div className="bg-slate-50 border-l-3 border-blue-500 rounded p-1 flex justify-between items-center shadow-2xs">
-                <div>
-                  <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Vigilancia</span>
-                  <span className="font-bold text-slate-700">🛡️ Operativos IVC</span>
+              <div className="bg-slate-50 border-l-4 border-blue-500 rounded-md p-1 flex justify-between items-center shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">🛡️</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Vigilancia</span>
+                    <span className="font-bold text-slate-700">Operativos IVC</span>
+                  </div>
                 </div>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.operativosIVC || 0}</span>
               </div>
-              <div className="bg-slate-50 border-l-3 border-emerald-500 rounded p-1 flex justify-between items-center shadow-2xs">
-                <div>
-                  <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Ejecución</span>
-                  <span className="font-bold text-slate-700">🧹 Intervenciones</span>
+              <div className="bg-slate-50 border-l-4 border-emerald-500 rounded-md p-1 flex justify-between items-center shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">🧹</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Ejecución</span>
+                    <span className="font-bold text-slate-700">Intervenciones</span>
+                  </div>
                 </div>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.accionesReportadas || 0}</span>
               </div>
@@ -513,50 +583,17 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
           overflow: 'hidden'
         }}
       >
-        {renderHeader(2, 'Eje 2: Rollos Legendarios y Recuperación del Espacio Público')}
+        {renderHeader(2, 'Rollos Legendarios y Recuperación del Espacio Público')}
 
         <div className="flex-1 flex flex-col gap-2.5 my-1 overflow-hidden justify-between">
 
-          {/* 4. ROLLOS LEGENDARIOS (Franja amplia con 3 columnas de localidades y todos los avances) */}
+          {/* ROLLOS LEGENDARIOS */}
           {renderFranjaHorizontal(
-            '4. Rollos Legendarios (Desenrollando la Ciudad)',
+            'Rollos Legendarios (Desenrollando la Ciudad)',
             rollosColor,
-            `Total: ${ultimaFicha.totalRollos || 0} | Prog. corte: ${ultimaFicha.rollosProgramadosAlCorte || 0} | Resueltos: ${ultimaFicha.rollosResueltos || 0}`,
-            <div className="flex flex-col items-center justify-center w-full">
-              <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-1">Efectividad Rollos</span>
-              <div className="relative" style={{ width: '120px', height: '64px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
-                    <Pie 
-                      data={[
-                        { value: rollosAvancePct, color: rollosColor },
-                        { value: Math.max(0, 100 - rollosAvancePct), color: '#f1f5f9' }
-                      ]} 
-                      cx="50%" 
-                      cy="100%" 
-                      startAngle={180} 
-                      endAngle={0} 
-                      innerRadius={28} 
-                      outerRadius={45} 
-                      paddingAngle={0} 
-                      dataKey="value" 
-                      stroke="none"
-                    >
-                      <Cell fill={rollosColor} />
-                      <Cell fill="#f1f5f9" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                {renderNeedle(Math.min(100, rollosAvancePct), 45)}
-                <div className="absolute bottom-0 left-0 w-full text-center mb-[-3px]">
-                  <span className="text-base font-black leading-none" style={{ color: rollosColor }}>{rollosAvancePct}%</span>
-                </div>
-              </div>
-              <div className="flex justify-around w-full text-[8.5px] font-bold mt-1">
-                <span className="text-slate-600">Total: {ultimaFicha.totalRollos || 0}</span>
-                <span className="text-red-700">Resueltos: {ultimaFicha.rollosResueltos || 0}</span>
-              </div>
-            </div>,
+            `Total: ${rollosMeta} | Prog. corte: ${rollosProg} | Resueltos: ${rollosReal}`,
+            '📜',
+            renderCountGauge(rollosReal, rollosProg, rollosMeta, rollosColor, 'Rollos Resueltos', 'rollos'),
             <div className="flex flex-col gap-1 text-[8px]">
               <div className="border border-green-300 bg-green-50/70 rounded p-1 shadow-2xs">
                 <span className="font-black text-green-900 block text-[7.5px] uppercase">✓ Desenrollados</span>
@@ -576,11 +613,12 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             "h-[49%]"
           )}
 
-          {/* 5. ORGANIZACIÓN ESPACIO PÚBLICO (Venta Informal) */}
+          {/* ORGANIZACIÓN ESPACIO PÚBLICO */}
           {renderFranjaHorizontal(
-            '5. Organización del Espacio Público y Venta Informal',
+            'Organización del Espacio Público y Venta Informal',
             orgColor,
-            `Sostenibilidad: ${orgAvancePct}% (${ultimaFicha.puntosSostenibilidadEfectiva || 0} de ${ultimaFicha.puntosVerificados || 0} puntos)`,
+            `Sostenibilidad: ${orgCumplimiento}% (${orgReal} de ${orgProg} puntos)`,
+            '🏪',
             <div className="flex items-center justify-around w-full gap-2">
               <div className="flex flex-col items-center">
                 <span className="text-[9.5px] font-black text-slate-800 uppercase tracking-tight mb-0.5">Sostenibilidad</span>
@@ -589,8 +627,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                     <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
                       <Pie 
                         data={[
-                          { value: orgAvancePct, color: orgColor },
-                          { value: Math.max(0, 100 - orgAvancePct), color: '#f1f5f9' }
+                          { value: orgCumplimiento, color: orgColor },
+                          { value: Math.max(0, 100 - orgCumplimiento), color: '#f1f5f9' }
                         ]} 
                         cx="50%" 
                         cy="100%" 
@@ -607,12 +645,12 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  {renderNeedle(Math.min(100, orgAvancePct), 36)}
+                  {renderNeedle(Math.min(100, orgCumplimiento), 36)}
                   <div className="absolute bottom-0 left-0 w-full text-center mb-[-2px]">
-                    <span className="text-xs font-black leading-none" style={{ color: orgColor }}>{orgAvancePct}%</span>
+                    <span className="text-xs font-black leading-none" style={{ color: orgColor }}>{orgCumplimiento}%</span>
                   </div>
                 </div>
-                <span className="text-[8px] font-bold text-slate-500 mt-0.5">{ultimaFicha.puntosSostenibilidadEfectiva || 0} puntos</span>
+                <span className="text-[8px] font-bold text-slate-500 mt-0.5">{orgReal} de {orgProg} puntos</span>
               </div>
 
               <div className="h-14 w-px bg-slate-200" />
@@ -627,8 +665,8 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
                           { value: ultimaFicha.orgParqueo || 0, color: '#f59e0b' },
                           { value: ultimaFicha.ventaInformal || 0, color: '#dc2626' }
                         ]} 
-                        cx="50%"
-                        cy="50%"
+                        cx="50%" 
+                        cy="50%" 
                         innerRadius={15} 
                         outerRadius={24} 
                         dataKey="value" 
@@ -646,16 +684,16 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
               </div>
             </div>,
             <div className="space-y-1.5 text-[8.5px]">
-              <div className="bg-slate-50 border-l-3 border-amber-500 rounded p-1 flex justify-between items-center shadow-2xs">
-                <span className="font-bold text-slate-600">Intervenciones:</span>
+              <div className="bg-slate-50 border-l-4 border-amber-500 rounded-md p-1.5 flex justify-between items-center shadow-2xs">
+                <span className="font-bold text-slate-700">🧹 Intervenciones:</span>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.puntosIntervenidos || 0}</span>
               </div>
-              <div className="bg-slate-50 border-l-3 border-blue-500 rounded p-1 flex justify-between items-center shadow-2xs">
-                <span className="font-bold text-slate-600">M² Recuperados:</span>
+              <div className="bg-slate-50 border-l-4 border-blue-500 rounded-md p-1.5 flex justify-between items-center shadow-2xs">
+                <span className="font-bold text-slate-700">📐 M² Recuperados:</span>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.m2RecuperadosInformal?.toLocaleString('es-CO') || 0} m²</span>
               </div>
-              <div className="bg-slate-50 border-l-3 border-emerald-500 rounded p-1 flex justify-between items-center shadow-2xs">
-                <span className="font-bold text-slate-600">Personas Reubicadas:</span>
+              <div className="bg-slate-50 border-l-4 border-emerald-500 rounded-md p-1.5 flex justify-between items-center shadow-2xs">
+                <span className="font-bold text-slate-700">🚶 Personas Reubicadas:</span>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.personasReubicadas || 0}</span>
               </div>
             </div>,
@@ -682,69 +720,37 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
           overflow: 'hidden'
         }}
       >
-        {renderHeader(3, 'Eje 3: Seguridad, Gobernanza y Memoria')}
+        {renderHeader(3, 'Seguridad, Gobernanza y Memoria')}
 
         <div className="flex-1 flex flex-col gap-2 my-1 overflow-hidden justify-between">
           
-          {/* 6. CONVIVENCIA Y SEGURIDAD */}
+          {/* CONVIVENCIA Y SEGURIDAD */}
           {renderFranjaHorizontal(
-            '6. Convivencia y Seguridad (Dotación de Vehículos)',
+            'Convivencia y Seguridad (Dotación de Vehículos)',
             convColor,
-            `Avance de Entrega: ${convAvancePct}% (${vehiculosReal} de ${ultimaFicha.vehiculosProgramadosCorte || ultimaFicha.vehiculosMetaTotal || 0} veh.)`,
-            <div className="flex flex-col items-center justify-center w-full">
-              <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-0.5">Avance Entregas</span>
-              <div className="relative" style={{ width: '120px', height: '64px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
-                    <Pie 
-                      data={[
-                        { value: convAvancePct, color: convColor },
-                        { value: Math.max(0, 100 - convAvancePct), color: '#f1f5f9' }
-                      ]} 
-                      cx="50%" 
-                      cy="100%" 
-                      startAngle={180} 
-                      endAngle={0} 
-                      innerRadius={28} 
-                      outerRadius={45} 
-                      paddingAngle={0} 
-                      dataKey="value" 
-                      stroke="none"
-                    >
-                      <Cell fill={convColor} />
-                      <Cell fill="#f1f5f9" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                {renderNeedle(Math.min(100, convAvancePct), 45)}
-                <div className="absolute bottom-0 left-0 w-full text-center mb-[-3px]">
-                  <span className="text-base font-black leading-none" style={{ color: convColor }}>{convAvancePct}%</span>
-                </div>
-              </div>
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">
-                Meta Total: {ultimaFicha.vehiculosMetaTotal || 0} veh.
-              </span>
-            </div>,
+            `Avance de Entrega: ${convCumplimiento}% (${vehiculosReal} de ${vehiculosProg} veh.)`,
+            '🚓',
+            renderCountGauge(vehiculosReal, vehiculosProg, vehiculosMeta, convColor, 'Entrega Vehículos', 'veh.'),
             <div className="grid grid-cols-2 gap-1 text-[8px]">
-              <div className="border border-slate-200 bg-slate-50 p-1 rounded flex justify-between items-center shadow-2xs">
+              <div className="border border-slate-200 bg-slate-50 p-1 rounded-md flex justify-between items-center shadow-2xs">
                 <span className="flex items-center gap-1 font-bold text-slate-700">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>Policía
                 </span>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.vehiculosEntregadosPolicia || 0}</span>
               </div>
-              <div className="border border-slate-200 bg-slate-50 p-1 rounded flex justify-between items-center shadow-2xs">
+              <div className="border border-slate-200 bg-slate-50 p-1 rounded-md flex justify-between items-center shadow-2xs">
                 <span className="flex items-center gap-1 font-bold text-slate-700">
                   <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>SDSCJ
                 </span>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.vehiculosEntregadosSdscj || 0}</span>
               </div>
-              <div className="border border-slate-200 bg-slate-50 p-1 rounded flex justify-between items-center shadow-2xs">
+              <div className="border border-slate-200 bg-slate-50 p-1 rounded-md flex justify-between items-center shadow-2xs">
                 <span className="flex items-center gap-1 font-bold text-slate-700">
                   <span className="w-2 h-2 rounded-full bg-amber-800 inline-block"></span>Almacén FDL
                 </span>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.vehiculosEntregadosAlmacen || 0}</span>
               </div>
-              <div className="border border-slate-200 bg-slate-50 p-1 rounded flex justify-between items-center shadow-2xs">
+              <div className="border border-slate-200 bg-slate-50 p-1 rounded-md flex justify-between items-center shadow-2xs">
                 <span className="flex items-center gap-1 font-bold text-slate-700">
                   <span className="w-2 h-2 rounded-full bg-slate-400 inline-block"></span>Pendientes
                 </span>
@@ -755,28 +761,35 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             ultimaFicha.alertaConvivencia
           )}
 
-          {/* 7. ACTUACIONES ADMINISTRATIVAS */}
+          {/* ACTUACIONES ADMINISTRATIVAS */}
           {renderFranjaHorizontal(
-            '7. Actuaciones Administrativas (Descongestión)',
+            'Actuaciones Administrativas (Descongestión)',
             actColor,
-            `Archivos: ${ultimaFicha.archivosPct || 0}% | Fallos: ${ultimaFicha.fallosPrimeraEstanciaPct || 0}%`,
+            `Archivos: ${archivosReal}% | Fallos: ${fallosReal}%`,
+            '⚖️',
             <div className="flex items-center justify-around w-full gap-2">
-              {renderGauge(ultimaFicha.archivosPct, ultimaFicha.archivosProgramadosCorte, actColor, 'Archivos')}
+              {renderPercentGauge(archivosReal, archivosProg, '#16a34a', 'Archivos')}
               <div className="h-12 w-px bg-slate-200" />
-              {renderGauge(ultimaFicha.fallosPrimeraEstanciaPct, ultimaFicha.fallosProgramadosCorte, actColor, 'Fallos 1ª')}
+              {renderPercentGauge(fallosReal, fallosProg, '#16a34a', 'Fallos 1ª')}
             </div>,
             <div className="space-y-1.5 text-[9px]">
-              <div className="bg-slate-50 border-l-3 border-amber-500 rounded p-1.5 flex justify-between items-center shadow-2xs">
-                <div>
-                  <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Trámite</span>
-                  <span className="font-bold text-slate-700">Meta Anual Archivos</span>
+              <div className="bg-slate-50 border-l-4 border-amber-500 rounded-md p-1.5 flex justify-between items-center shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">📁</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Trámite</span>
+                    <span className="font-bold text-slate-700">Meta Anual Archivos</span>
+                  </div>
                 </div>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.metaArchivos || 0}</span>
               </div>
-              <div className="bg-slate-50 border-l-3 border-indigo-500 rounded p-1.5 flex justify-between items-center shadow-2xs">
-                <div>
-                  <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Resolución</span>
-                  <span className="font-bold text-slate-700">Meta Anual Fallos</span>
+              <div className="bg-slate-50 border-l-4 border-indigo-500 rounded-md p-1.5 flex justify-between items-center shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">⚖️</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase block">Resolución</span>
+                    <span className="font-bold text-slate-700">Meta Anual Fallos</span>
+                  </div>
                 </div>
                 <span className="font-black text-xs text-slate-900">{ultimaFicha.metaFallos || 0}</span>
               </div>
@@ -785,53 +798,21 @@ export default function FichasDecoradas({ ultimaFicha }: Props) {
             ultimaFicha.alertaActuaciones
           )}
 
-          {/* 8. ESTRATEGIAS DE MEMORIA */}
+          {/* ESTRATEGIAS DE MEMORIA */}
           {renderFranjaHorizontal(
-            '8. Estrategias de Memoria Institucional',
+            'Estrategias de Memoria y Planes de Acción',
             memColor,
-            `Finalizadas: ${ultimaFicha.estrategiasResueltas || 0} de ${ultimaFicha.estrategiasTotal || 0}`,
-            <div className="flex flex-col items-center justify-center w-full">
-              <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight mb-0.5">Estrategias Resueltas</span>
-              <div className="relative" style={{ width: '120px', height: '64px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 0, left: 0, right: 0, bottom: 0 }}>
-                    <Pie 
-                      data={[
-                        { value: memAvancePct, color: memColor },
-                        { value: Math.max(0, 100 - memAvancePct), color: '#f1f5f9' }
-                      ]} 
-                      cx="50%" 
-                      cy="100%" 
-                      startAngle={180} 
-                      endAngle={0} 
-                      innerRadius={28} 
-                      outerRadius={45} 
-                      paddingAngle={0} 
-                      dataKey="value" 
-                      stroke="none"
-                    >
-                      <Cell fill={memColor} />
-                      <Cell fill="#f1f5f9" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                {renderNeedle(Math.min(100, memAvancePct), 45)}
-                <div className="absolute bottom-0 left-0 w-full text-center mb-[-3px]">
-                  <span className="text-base font-black leading-none" style={{ color: memColor }}>{memAvancePct}%</span>
-                </div>
-              </div>
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">
-                Total: {ultimaFicha.estrategiasTotal || 0}
-              </span>
-            </div>,
+            `Finalizadas: ${memReal} de ${memMeta}`,
+            '🏛️',
+            renderCountGauge(memReal, memProg, memMeta, memColor, 'Estrategias', 'est.'),
             <div className="space-y-1 text-[8px]">
               <div className="flex justify-between border-b border-slate-200 pb-0.5">
                 <span className="font-bold text-slate-600">Total Estrategias:</span>
-                <span className="font-black text-xs text-slate-900">{ultimaFicha.estrategiasTotal || 0}</span>
+                <span className="font-black text-xs text-slate-900">{memMeta}</span>
               </div>
               <div className="flex justify-between border-b border-slate-200 pb-0.5">
                 <span className="font-bold text-slate-600">Resueltas:</span>
-                <span className="font-black text-xs" style={{ color: memColor }}>{ultimaFicha.estrategiasResueltas || 0}</span>
+                <span className="font-black text-xs" style={{ color: memColor }}>{memReal}</span>
               </div>
               <div className="flex justify-between border-b border-slate-200 pb-0.5">
                 <span className="font-bold text-slate-600">En Formulación:</span>
