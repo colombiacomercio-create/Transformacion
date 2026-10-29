@@ -246,7 +246,7 @@ export default function ModalFichaResultados({ onClose }: Props) {
                             placeholder="Ingrese viñetas o texto conciso (máx. 450 caracteres)..."
                           />
                           <div className="flex justify-between items-center text-[10px] text-gray-400 mt-0.5">
-                            <span>📐 Límite para formato Carta</span>
+                            <span>Límite sugerido</span>
                             <span className={(form[campo.key]?.length || 0) > 400 ? 'text-amber-600 font-bold' : ''}>
                               {(form[campo.key]?.length || 0)} / 450 caracteres
                             </span>

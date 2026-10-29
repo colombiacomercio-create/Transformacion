@@ -430,9 +430,10 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
   const handleGenerateIA = async (objId: string) => {
     setGenerandoIA(objId);
+    setEditandoCualitativo(objId);
     try {
-      const targetLocalidadId = (localidadFiltro === 'TODAS' || !localidadFiltro) && localidades.length > 0 
-        ? localidades[0].id 
+      const targetLocalidadId = !localidadFiltro || localidadFiltro === 'TODAS'
+        ? 'TODAS'
         : localidadFiltro;
 
       const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/reportes/generar-borrador`, {
@@ -708,7 +709,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
                       Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno
                     </div>
                     <div style="font-size: 8px; font-weight: 700; color: #374151;">
-                      SDG Unidad de Transformación · Subsecretaría de Gestión Local Grupo de Espacio Público
+                      Secretaría de Gobierno · Unidad de Transformación · RADAR
                     </div>
                     <div style="font-size: 11px; font-weight: 800; color: #111827; margin-top: 1px; text-transform: uppercase;">
                       Reporte Territorial de Actividades · ${locData.nombre}
@@ -817,7 +818,7 @@ export default function Dashboard({ userData }: { userData?: any }) {
                   <img src="${LOGO_BOGOTA_BASE64}" alt="Alcaldía de Bogotá" style="height: 26px; width: auto; object-fit: contain;" />
                   <div style="border-left: 2px solid #E5E7EB; padding-left: 8px;">
                     <div style="font-size: 8px; font-weight: 900; text-transform: uppercase; color: #111827;">
-                      Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local
+                      Alcaldía Mayor de Bogotá D.C. · Secretaría de Gobierno · Unidad de Transformación · RADAR
                     </div>
                     <div style="font-size: 10.5px; font-weight: 800; color: #111827; text-transform: uppercase;">
                       Continuación: Detalle de Actividades · ${locData.nombre} (${startIdx} a ${endIdx} de ${actList.length})
@@ -925,8 +926,8 @@ export default function Dashboard({ userData }: { userData?: any }) {
 
           <!-- Pie Institucional Oficial de Página -->
           <div style="border-top: 1px solid #E2E8F0; padding-top: 3px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 7px; color: #64748B;">
-            <span>Alcaldía Mayor de Bogotá D.C. · Secretaría Distrital de Gobierno · Subsecretaría de Gestión Local Grupo de Espacio Público · RADAR</span>
-            <span>Página ${pageIdx + 1} de ${totalPages} · Formato Carta</span>
+            <span>Alcaldía Mayor de Bogotá D.C. · Secretaría de Gobierno · Unidad de Transformación · RADAR</span>
+            <span>Página ${pageIdx + 1} de ${totalPages}</span>
           </div>
         `;
 
@@ -1221,7 +1222,83 @@ export default function Dashboard({ userData }: { userData?: any }) {
             </table>
           </div>
         </div>
+
+        {renderSeccionCualitativa()}
       </div>
+    );
+  }
+
+  function renderSeccionCualitativa() {
+    const objetivosVisibles = objetivosAPI.filter(obj => objIdsConActividades.has(obj.id));
+    const listaRender = objetivosVisibles.length > 0 ? objetivosVisibles : objetivosAPI.slice(0, 1);
+
+    return (
+      <>
+        {listaRender.map(obj => {
+          const objReporte = corteActivo?.reportes?.find((r: any) => r.objetivoId === obj.id) || {};
+          const isEditing = editandoCualitativo === obj.id;
+          const alcanceLabel = localidadFiltro === 'TODAS' ? 'Consolidado General Distrital' : locData.nombre;
+
+          return (
+            <div key={obj.id} className="bg-white border rounded-xl shadow-lg overflow-hidden flex flex-col mb-4">
+              <div className="bg-black text-white px-6 py-4 flex flex-wrap justify-between items-center gap-3 border-b-4 border-bogota-primary">
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-[#FFCD00] font-extrabold block">
+                    Síntesis Ejecutiva del Tablero de Control · {alcanceLabel}
+                  </span>
+                  <h2 className="text-xl font-bold font-serif">
+                    Resumen de Todas las Actividades, Avances y Alertas ({obj.nombre})
+                  </h2>
+                </div>
+                {isAdmin ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={() => handleGenerateIA(obj.id)}
+                      disabled={generandoIA !== null}
+                      className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded font-bold shadow flex items-center gap-2 disabled:opacity-50 transition-colors text-xs sm:text-sm"
+                    >
+                      <Sparkles className="w-4 h-4 animate-pulse"/>
+                      {generandoIA === obj.id ? 'Resumiendo actividades, avances y alertas...' : 'Resumen con IA (Actividades, Avances y Alertas)'}
+                    </button>
+                    {isEditing ? (
+                      <>
+                        <button onClick={() => handleSave(obj.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold shadow flex items-center gap-2 text-xs sm:text-sm"><Save className="w-4 h-4"/> Guardar</button>
+                        <button onClick={() => setEditandoCualitativo(null)} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded font-bold text-xs sm:text-sm">Cancelar</button>
+                      </>
+                    ) : (
+                      <button onClick={() => handleEdit(obj.id)} className="bg-gray-800 hover:bg-gray-700 text-yellow-500 border border-yellow-600 px-4 py-2 rounded font-bold shadow flex items-center gap-2 text-xs sm:text-sm"><Edit2 className="w-4 h-4"/> Editar Reporte</button>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2">
+                <div className="p-6 border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4">
+                    <span className="p-1 bg-[#FFCD00] rounded-full text-black"><CheckCircle className="w-5 h-5"/></span>
+                    Resumen de Actividades y <span className="text-red-600">Principales Avances</span>
+                  </h3>
+                  {isEditing ? (
+                    <textarea className="w-full h-48 p-3 border border-gray-300 rounded font-sans text-sm focus:outline-none focus:ring-2 focus:ring-red-500" value={formCualitativo.principalesAvances} onChange={(e)=>setFormCualitativo({...formCualitativo, principalesAvances: e.target.value})}/>
+                  ) : (
+                    <div className="prose text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{objReporte.principalesAvances || objReporte.principalesAvancesDraft || <span className="italic text-gray-400">Sin avances reportados. Haz clic en "Resumen con IA" para consolidar todas las actividades y avances.</span>}</div>
+                  )}
+                </div>
+                <div className="p-6 bg-white">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4">
+                    <span className="p-1 bg-red-600 rounded-full text-white"><Info className="w-5 h-5"/></span>
+                    Resumen de <span className="text-red-600">Alertas y Recomendaciones</span>
+                  </h3>
+                  {isEditing ? (
+                    <textarea className="w-full h-48 p-3 border border-gray-300 rounded font-sans text-sm focus:outline-none focus:ring-2 focus:ring-red-500" value={formCualitativo.alertasRecomendaciones} onChange={(e)=>setFormCualitativo({...formCualitativo, alertasRecomendaciones: e.target.value})}/>
+                  ) : (
+                    <div className="prose text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{objReporte.alertasRecomendaciones || objReporte.alertasRecomendacionesDraft || <span className="italic text-gray-400">Sin alertas reportadas. Haz clic en "Resumen con IA" para sintetizar todas las alertas y actividades pendientes.</span>}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </>
     );
   }
 
@@ -1296,60 +1373,8 @@ export default function Dashboard({ userData }: { userData?: any }) {
          </div>
       </div>
 
-      {/* SECCIÓN ANALÍTICA CUALITATIVA POR OBJETIVO */}
-      {objetivosAPI.filter(obj => objIdsConActividades.has(obj.id)).map(obj => {
-         const objReporte = corteActivo?.reportes?.find((r:any) => r.objetivoId === obj.id) || {};
-         const isEditing = editandoCualitativo === obj.id;
-
-         return (
-            <div key={obj.id} className="bg-white border rounded shadow-lg overflow-hidden flex flex-col mb-4">
-              <div className="bg-black text-white px-6 py-4 flex justify-between items-center border-b-4 border-bogota-primary">
-                 <h2 className="text-xl font-bold font-serif">{obj.nombre}</h2>
-                 {isAdmin ? (
-                    isEditing ? (
-                       <div className="flex gap-2">
-                          <button 
-                            onClick={() => handleGenerateIA(obj.id)}
-                            disabled={generandoIA !== null}
-                            className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded font-bold shadow flex items-center gap-2 disabled:opacity-50 transition-colors"
-                          >
-                            <Sparkles className="w-4 h-4 animate-pulse"/>
-                            {generandoIA === obj.id ? 'Redactando borrador...' : 'Sugerir con IA'}
-                          </button>
-                          <button onClick={() => handleSave(obj.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold shadow flex items-center gap-2"><Save className="w-4 h-4"/> Guardar</button>
-                       </div>
-                    ) : (
-                       <button onClick={() => handleEdit(obj.id)} className="bg-gray-800 hover:bg-gray-700 text-yellow-500 border border-yellow-600 px-4 py-2 rounded font-bold shadow flex items-center gap-2"><Edit2 className="w-4 h-4"/> Editar Reporte</button>
-                    )
-                 ) : null}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2">
-                 <div className="p-6 border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50">
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4">
-                       <span className="p-1 bg-[#FFCD00] rounded-full text-black"><CheckCircle className="w-5 h-5"/></span>
-                       Principales <span className="text-red-600">Avances</span>
-                    </h3>
-                    {isEditing ? (
-                       <textarea className="w-full h-40 p-3 border border-gray-300 rounded font-sans text-sm focus:outline-none focus:ring-2 focus:ring-red-500" value={formCualitativo.principalesAvances} onChange={(e)=>setFormCualitativo({...formCualitativo, principalesAvances: e.target.value})}/>
-                    ) : (
-                       <div className="prose text-sm text-gray-700 whitespace-pre-wrap">{objReporte.principalesAvances || <span className="italic text-gray-400">Sin avances reportados.</span>}</div>
-                    )}
-                 </div>
-                 <div className="p-6 bg-white">
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4">
-                       <span className="p-1 bg-red-600 rounded-full text-white"><Info className="w-5 h-5"/></span>
-                       Alertas y <span className="text-red-600">recomendaciones</span>
-                    </h3>
-                    {isEditing ? (
-                       <textarea className="w-full h-40 p-3 border border-gray-300 rounded font-sans text-sm focus:outline-none focus:ring-2 focus:ring-red-500" value={formCualitativo.alertasRecomendaciones} onChange={(e)=>setFormCualitativo({...formCualitativo, alertasRecomendaciones: e.target.value})}/>
-                    ) : (
-                       <div className="prose text-sm text-gray-700 whitespace-pre-wrap">{objReporte.alertasRecomendaciones || <span className="italic text-gray-400">Sin alertas reportadas.</span>}</div>
-                    )}
-                 </div>
-              </div>
-            </div>
-         );
-      })}
+      {/* SECCIÓN ANALÍTICA CUALITATIVA DE RESUMEN DEL TABLERO */}
+      {renderSeccionCualitativa()}
     </div>
   );
 }

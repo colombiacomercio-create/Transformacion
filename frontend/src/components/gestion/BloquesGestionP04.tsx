@@ -771,8 +771,8 @@ export function BloquesGestionP04({ gestion, totalIntervencionesLive, onVerFocal
         </div>
 
         {/* Pie institucional de Gestión P04 */}
-        <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '16px', fontSize: '12px', color: '#6B7280', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-          <span style={{ fontWeight: 600 }}>SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público</span>
+        <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '16px', fontSize: '12px', color: '#6B7280', display: 'flex', borderBottom: 'none', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <span style={{ fontWeight: 600 }}>Alcaldía Mayor de Bogotá · Secretaría de Gobierno · Unidad de Transformación · RADAR</span>
           <span>Tablero de Gestión de Intervenciones · Residuos P04</span>
         </div>
       </div>
@@ -964,7 +964,7 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
                 Alcaldía Mayor de Bogotá · Secretaría Distrital de Gobierno
               </div>
               <div className="text-xs text-gray-600 font-semibold">
-                SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público
+                Secretaría de Gobierno · Unidad de Transformación · RADAR
               </div>
               <div className="text-[11px] text-gray-500">
                 Ficha Técnica de Acción Focalizada UAESP · Octubre 2026
@@ -1069,7 +1069,7 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
 
           {/* Pie institucional de página */}
           <div className="pt-3 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500">
-            <span>SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público</span>
+            <span>Alcaldía Mayor de Bogotá · Secretaría de Gobierno · Unidad de Transformación · RADAR</span>
             <span>Documento Oficial de Monitoreo · Bogotá D.C.</span>
           </div>
         </div>
@@ -1077,7 +1077,7 @@ export function ModalPuntoFocalizadoOct({ punto, onClose }: ModalFocalizadoProps
         {/* Pie del modal */}
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-wrap gap-3">
           <span className="text-xs text-gray-500">
-            SDG Unidad de Transformación - Subsecretaría de Gestión Local Grupo de Espacio Público · Base de Intervenciones Octubre 2026 ({punto.ld})
+            Alcaldía Mayor de Bogotá · Secretaría de Gobierno · Unidad de Transformación · RADAR · Base de Intervenciones Octubre 2026 ({punto.ld})
           </span>
           <div className="flex items-center gap-2">
             <button
