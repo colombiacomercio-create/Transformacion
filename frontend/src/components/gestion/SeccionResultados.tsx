@@ -58,12 +58,12 @@ export default function SeccionResultados({ userData }: Props) {
 
     setExporting(true);
     try {
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
       for (let i = 0; i < pages.length; i++) {
         const pageEl = pages[i] as HTMLElement;
         const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
-        if (i > 0) pdf.addPage('letter', 'p');
+        if (i > 0) pdf.addPage('letter', 'l');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
