@@ -1,4 +1,4 @@
-﻿import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Instancia de Gemini inicializada de forma perezosa (lazy)
 let genAI: GoogleGenerativeAI | null = null;
@@ -14,11 +14,10 @@ const obtenerClienteGemini = (): GoogleGenerativeAI | null => {
     return null;
 };
 
-// FunciÃ³n auxiliar para limpiar y parsear JSON retornado por LLMs (evitando markdown ticks)
+// Función auxiliar para limpiar y parsear JSON retornado por LLMs (evitando markdown ticks)
 const parseSafeJSON = (text: string): any => {
     let cleanText = text.trim();
     
-    // Remover bloques de cÃ³digo markdown si el LLM los incluye
     if (cleanText.startsWith('```json')) {
         cleanText = cleanText.substring(7);
     } else if (cleanText.startsWith('```')) {
@@ -31,7 +30,6 @@ const parseSafeJSON = (text: string): any => {
     
     cleanText = cleanText.trim();
     
-    // Intentar buscar el primer '{' y el Ãºltimo '}' por si hay texto extra
     const firstBrace = cleanText.indexOf('{');
     const lastBrace = cleanText.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -41,97 +39,123 @@ const parseSafeJSON = (text: string): any => {
     return JSON.parse(cleanText);
 };
 
-// Helper de reintentos automÃ¡ticos para mitigar errores 503 (Servicio temporalmente no disponible) o 429 (Cuotas)
-const ejecutarConReintentos = async <T>(fn: () => Promise<T>, reintentos = 3, retraso = 1000): Promise<T> => {
-    try {
-        return await fn();
-    } catch (error: any) {
-        const esErrorTemporal = 
-            error?.status === 503 || 
-            error?.status === 429 || 
-            String(error).includes('503') || 
-            String(error).includes('429') || 
-            String(error).includes('high demand') ||
-            String(error).includes('busy');
+// Ejecuta una llamada a Gemini intentando primero con gemini-flash-lite-latest y luego con gemini-flash-latest
+const generarConModeloResiliente = async (
+    client: GoogleGenerativeAI,
+    contents: any,
+    jsonMode = false
+): Promise<string> => {
+    const modelos = ['gemini-flash-lite-latest', 'gemini-flash-latest'];
+    let ultimoError: any = null;
 
-        if (reintentos > 0 && esErrorTemporal) {
-            console.warn(`[Gemini API] âš ï¸ Servidor con alta demanda o lÃ­mite excedido (503/429). Reintentando en ${retraso}ms... (Intentos restantes: ${reintentos})`);
-            await new Promise(resolve => setTimeout(resolve, retraso));
-            return ejecutarConReintentos(fn, reintentos - 1, retraso * 2);
+    for (const nombreModelo of modelos) {
+        try {
+            const model = client.getGenerativeModel({
+                model: nombreModelo,
+                ...(jsonMode ? { generationConfig: { responseMimeType: 'application/json' } } : {})
+            });
+            const response = await model.generateContent(contents);
+            const text = response.response.text();
+            if (text && text.trim()) {
+                return text;
+            }
+        } catch (error: any) {
+            ultimoError = error;
+            console.warn(`[Gemini API] Modelo ${nombreModelo} no disponible (${error?.status || 'error'}). Probando siguiente opción...`);
         }
-        throw error;
     }
+
+    throw ultimoError || new Error('Ningún modelo Gemini disponible');
 };
 
 /**
- * 1. GENERACIÃ“N ASISTIDA DE REPORTES NARRATIVOS
+ * 1. GENERACIÓN ASISTIDA DE REPORTES NARRATIVOS EN TABLERO DE CONTROL
+ * Resume todas las actividades, avances y alertas (Global Distrital o por Localidad / Objetivo)
  */
 export const generarBorradorReporte = async (
     localidadNombre: string,
     objetivoNombre: string,
-    cifrasActividades: Array<{ codigo: string; nombre: string; avance: number; estado: string }>,
-    alertasActivas: Array<{ tipo: string; descripcion: string; nivel: string }>,
+    cifrasActividades: Array<{ codigo: string; nombre: string; avance: number; estado: string; localidad?: string; producto?: string }>,
+    alertasActivas: Array<{ tipo: string; descripcion: string; nivel: string; responsable?: string; estado?: string }>,
     comentarios: string[],
-    actividadesRezagadas: Array<{ codigo: string; nombre: string; diasRetraso: number }>,
+    actividadesRezagadas: Array<{ codigo: string; nombre: string; diasRetraso: number; localidad?: string }>,
     alertasFichaResultados: string
 ): Promise<{ avancesDraft: string; alertasDraft: string }> => {
-    const totalAvance = cifrasActividades.reduce((sum, act) => sum + act.avance, 0) / (cifrasActividades.length || 1);
-    const fallbackAvances = `En la localidad de ${localidadNombre}, el objetivo "${objetivoNombre}" presenta un avance consolidado promedio del ${totalAvance.toFixed(1)}%. Se destaca la ejecución de ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} actividades completadas de un total de ${cifrasActividades.length} programadas.`;
-    const fallbackAlertas = `Se registran ${alertasActivas.length} cuellos de botella activos en el periodo. Se sugiere priorizar la revisión de evidencias pendientes y la articulación con los responsables asignados.`;
+    const totalActs = cifrasActividades.length;
+    const completadasCount = cifrasActividades.filter(a => a.estado.includes('COMPLETA') || a.avance >= 100).length;
+    const enCursoCount = cifrasActividades.filter(a => !a.estado.includes('COMPLETA') && a.avance < 100 && (a.estado.includes('CURSO') || a.estado.includes('PROGRESO') || a.avance > 0)).length;
+    const noIniciadasCount = Math.max(0, totalActs - completadasCount - enCursoCount);
+    const totalAvance = cifrasActividades.reduce((sum, act) => sum + (act.avance || 0), 0) / (totalActs || 1);
+
+    const esGlobal = localidadNombre.toUpperCase().includes('TODAS') || localidadNombre.toUpperCase().includes('GLOBAL') || localidadNombre.toUpperCase().includes('DISTRITAL');
+    const ambitoTexto = esGlobal ? 'el Balance General Distrital (todas las localidades)' : `la localidad de ${localidadNombre}`;
+
+    const listaDestacadas = cifrasActividades
+        .filter(a => a.estado.includes('COMPLETA') || a.avance >= 50)
+        .slice(0, 5)
+        .map(a => `${a.codigo} (${a.nombre}: ${Math.round(a.avance)}%)`)
+        .join(', ');
+
+    const fallbackAvances = [
+        `En ${ambitoTexto}, se registra un avance consolidado del ${totalAvance.toFixed(1)}% sobre ${totalActs} actividades evaluadas (${completadasCount} completadas, ${enCursoCount} en curso y ${noIniciadasCount} sin iniciar).`,
+        listaDestacadas ? `Avances principales en: ${listaDestacadas}.` : '',
+        comentarios.length > 0 ? `Novedades recientes: ${comentarios.slice(0, 3).join(' | ')}` : ''
+    ].filter(Boolean).join('\n\n');
+
+    const fallbackAlertas = [
+        `Se registran ${alertasActivas.length} alertas activas y ${actividadesRezagadas.length} actividades pendientes al corte en ${ambitoTexto}.`,
+        alertasActivas.length > 0
+            ? `Alertas prioritarias: ${alertasActivas.slice(0, 4).map(a => `[${a.tipo}] ${a.descripcion}`).join(' | ')}.`
+            : 'Sin bloqueos críticos abiertos en el Gestor de Alertas para este filtro.',
+        alertasFichaResultados ? `Alertas estratégicas Ficha de Resultados: ${alertasFichaResultados}` : ''
+    ].filter(Boolean).join('\n\n');
 
     const client = obtenerClienteGemini();
     if (!client) {
-        return { avancesDraft: `[Borrador local] ${fallbackAvances}`, alertasDraft: `[Borrador local] ${fallbackAlertas}` };
+        return { avancesDraft: fallbackAvances, alertasDraft: fallbackAlertas };
     }
 
     try {
-        const model = client.getGenerativeModel({ 
-            model: 'gemini-flash-latest',
-            generationConfig: { responseMimeType: 'application/json' }
-        });
-
         const prompt = `
-        Actúa como un analista experto en políticas públicas para el sistema RADAR.
-        Debes generar un borrador narrativo de los "Principales Avances" y "Alertas y Recomendaciones" del objetivo: "${objetivoNombre}" para la localidad de "${localidadNombre}".
+        Actúa como analista estratégico del sistema RADAR de la Secretaría Distrital de Gobierno de Bogotá.
+        Elabora un RESUMEN EJECUTIVO ESTRATÉGICO Y SUCINTO en el Tablero de Control que sintetice las actividades, avances y alertas de "${ambitoTexto}" para "${objetivoNombre}".
         
-        INSTRUCCIONES CLAVE:
-        1. Debes MENCIONAR EXPLÍCITAMENTE la localidad ("${localidadNombre}") en ambos textos (avances y alertas), indicando qué ocurre específicamente allí.
-        2. Si hay múltiples observaciones, divídelas en varios PÁRRAFOS utilizando saltos de línea dobles para facilitar la lectura. No entregues un solo bloque de texto.
-        3. Escribe de manera ejecutiva, clara y directa.
+        INSTRUCCIONES:
+        1. En "avances": Sintetiza de forma ejecutiva y concisa (máximo 2 párrafos cortos separados por \\n\\n) el avance global (${totalAvance.toFixed(1)}%), el estado de las ${totalActs} actividades (${completadasCount} completadas, ${enCursoCount} en curso, ${noIniciadasCount} sin iniciar) y los logros más relevantes.
+        2. En "alertas": Sintetiza de forma ejecutiva y concisa (máximo 2 párrafos cortos separados por \\n\\n) las alertas activas (${alertasActivas.length}), las actividades rezagadas (${actividadesRezagadas.length}) y las alertas estratégicas de la Ficha de Resultados, con la acción clave de desbloqueo.
 
-        DATOS DISPONIBLES:
-        - Avance promedio local: ${totalAvance.toFixed(1)}%
-        - Actividades completadas: ${cifrasActividades.filter(a => a.estado === 'COMPLETADA' || a.avance === 100).length} de ${cifrasActividades.length}
-        - Alertas activas: ${JSON.stringify(alertasActivas)}
-        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas)}
-        - Comentarios del equipo: ${comentarios.join(' | ')}
-        - Alerta Ficha Resultados (Global): ${alertasFichaResultados}
+        DATOS REALES:
+        - Ámbito: ${ambitoTexto} | Avance promedio: ${totalAvance.toFixed(1)}% (Total=${totalActs}, Completadas=${completadasCount}, En Curso=${enCursoCount}, No Iniciadas=${noIniciadasCount})
+        - Actividades: ${JSON.stringify(cifrasActividades.slice(0, 40))}
+        - Comentarios recientes: ${comentarios.slice(0, 12).join(' | ') || 'Sin comentarios'}
+        - Actividades rezagadas: ${JSON.stringify(actividadesRezagadas.slice(0, 20))}
+        - Alertas Gestor: ${JSON.stringify(alertasActivas.slice(0, 15))}
+        - Alertas Ficha de Resultados: ${alertasFichaResultados || 'Ninguna'}
 
-        Devuelve ÚNICAMENTE un JSON con este formato (asegúrate de escapar las comillas si es necesario):
+        Devuelve ÚNICAMENTE un JSON válido:
         {
-          "avances": "texto con los avances, mencionando la localidad, separado en párrafos cortos...",
-          "alertas": "texto con las alertas y recomendaciones, mencionando la localidad, separado en párrafos cortos..."
+          "avances": "Resumen estratégico sucinto de avances...",
+          "alertas": "Resumen estratégico sucinto de alertas..."
         }
         `;
 
-        const response = await ejecutarConReintentos(() => model.generateContent(prompt));
-        const result = parseSafeJSON(response.response.text() || '{}');
+        const text = await generarConModeloResiliente(client, prompt, true);
+        const result = parseSafeJSON(text || '{}');
         return {
             avancesDraft: result.avances || fallbackAvances,
             alertasDraft: result.alertas || fallbackAlertas
         };
     } catch (error) {
         console.error("[AIService] Error generando borradores cualitativos:", error);
-        // DegradaciÃ³n graciosa (graceful degradation) para no bloquear la experiencia del usuario
         return {
-            avancesDraft: `[Borrador - Fallback por alta demanda de IA] ${fallbackAvances}`,
-            alertasDraft: `[Borrador - Fallback por alta demanda de IA] ${fallbackAlertas}`
+            avancesDraft: fallbackAvances,
+            alertasDraft: fallbackAlertas
         };
     }
 };
 
 /**
- * 2. CLASIFICACIÃ“N Y ENRUTAMIENTO DE ALERTAS
+ * 2. CLASIFICACIÓN Y ENRUTAMIENTO DE ALERTAS
  */
 export const clasificarYEnrutarAlerta = async (
     descripcionAlerta: string,
@@ -151,24 +175,14 @@ export const clasificarYEnrutarAlerta = async (
     }
 
     try {
-        const model = client.getGenerativeModel({ 
-            model: 'gemini-flash-latest',
-            generationConfig: { responseMimeType: 'application/json' }
-        });
-
         const prompt = `
-        Analiza el siguiente cuello de botella reportado en la gestiÃ³n local de RADAR:
+        Analiza el siguiente cuello de botella reportado en RADAR:
         "${descripcionAlerta}"
 
-        Lista de Usuarios Disponibles para asignaciÃ³n (con rol e id):
+        Usuarios Disponibles:
         ${JSON.stringify(usuariosDisponibles, null, 2)}
 
-        Clasifica la alerta en base a las siguientes directrices:
-        1. Severidad: "CRITICA" (bloqueo total, riesgos legales/sociales), "MODERADA" (retraso manejable), o "INFORMATIVA".
-        2. Responsable: Sugiere el ID del usuario mÃ¡s idÃ³neo segÃºn la naturaleza del problema.
-        3. Tipo: "VENCIMIENTO", "SIN_EVIDENCIA", "BAJO_AVANCE", "RIESGO_EXTERNO".
-
-        Retorna un objeto JSON con la siguiente estructura exacta:
+        Retorna un JSON exacto:
         {
           "severidadSugerida": "CRITICA" | "MODERADA" | "INFORMATIVA",
           "responsableSugeridoId": "id_del_usuario_sugerido" | null,
@@ -176,8 +190,8 @@ export const clasificarYEnrutarAlerta = async (
         }
         `;
 
-        const response = await ejecutarConReintentos(() => model.generateContent(prompt));
-        return parseSafeJSON(response.response.text() || '{}');
+        const text = await generarConModeloResiliente(client, prompt, true);
+        return parseSafeJSON(text || '{}');
     } catch (error) {
         console.error("[AIService] Error clasificando alerta:", error);
         return fallbackResult;
@@ -198,7 +212,7 @@ export const prechequearEvidencia = async (
     const fallbackResult = {
         prechequeoEstado: coherente ? 'APTO' as const : 'DUDOSO' as const,
         prechequeoPuntaje: coherente ? 85.0 : 40.0,
-        prechequeoFeedback: '[AnÃ¡lisis local] La evidencia se evalÃºa de manera preliminar en base a comentarios del gestor. DiagnÃ³stico automatizado pendiente de validaciÃ³n visual de la IA.'
+        prechequeoFeedback: '[Análisis local] La evidencia se evalúa de manera preliminar con base en los soportes y comentarios del gestor.'
     };
 
     const client = obtenerClienteGemini();
@@ -207,12 +221,6 @@ export const prechequearEvidencia = async (
     }
 
     try {
-        const model = client.getGenerativeModel({ 
-            model: 'gemini-flash-latest',
-            generationConfig: { responseMimeType: 'application/json' }
-        });
-
-        // Preparar partes para el modelo multimodal de Gemini
         const filePart = {
             inlineData: {
                 data: archivoBase64,
@@ -221,228 +229,94 @@ export const prechequearEvidencia = async (
         };
 
         const prompt = `
-        ActÃºa como auditor tÃ©cnico de evidencias para RADAR.
-        Debes verificar si el documento/imagen adjunto corresponde a la evidencia requerida para la siguiente actividad:
+        Actúa como auditor técnico de evidencias para RADAR.
+        Verifica si el documento/imagen adjunto corresponde a la evidencia requerida:
+        - Actividad: "${actividadDescripcion}"
+        - Tipos de Evidencia Solicitados: ${tiposEvidenciaRequeridos.join(', ')}
+        - Comentario del Gestor: "${comentarioAdjunto}"
 
-        DescripciÃ³n de la Actividad: "${actividadDescripcion}"
-        Tipos de Evidencia Solicitados: ${tiposEvidenciaRequeridos.join(', ')}
-        Comentario del Gestor: "${comentarioAdjunto}"
-
-        EvalÃºa el archivo adjunto y determina:
-        1. Estado de Coherencia:
-           - "APTO" si el archivo adjunto es claramente una prueba vÃ¡lida de lo solicitado.
-           - "NO_APTO" si es un archivo vacÃ­o, corrupto, una hoja en blanco, un meme, o totalmente ajeno a la actividad.
-           - "DUDOSO" si el archivo guarda relaciÃ³n pero es incompleto, borroso o requiere criterio humano.
-        2. Puntaje numÃ©rico de compatibilidad (de 0.0 a 100.0).
-        3. ExplicaciÃ³n breve (Feedback) de por quÃ© se tomÃ³ la decisiÃ³n.
-
-        Retorna un objeto JSON con la siguiente estructura exacta:
+        Retorna un objeto JSON exacto:
         {
           "prechequeoEstado": "APTO" | "DUDOSO" | "NO_APTO",
           "prechequeoPuntaje": 85.5,
-          "prechequeoFeedback": "Texto explicativo detallado en espaÃ±ol."
+          "prechequeoFeedback": "Explicación ejecutiva breve en español."
         }
         `;
 
-        const response = await ejecutarConReintentos(() => model.generateContent([filePart, prompt]));
-        return parseSafeJSON(response.response.text() || '{}');
+        const text = await generarConModeloResiliente(client, [filePart, prompt], true);
+        return parseSafeJSON(text || '{}');
     } catch (error) {
         console.error("[AIService] Error pre-chequeando evidencia:", error);
-        return {
-            prechequeoEstado: 'DUDOSO',
-            prechequeoPuntaje: 50.0,
-            prechequeoFeedback: `Servicio de IA saturado temporalmente. El pre-chequeo visual se reprogramarÃ¡ de forma automÃ¡tica. Detalle tÃ©cnico: ${error instanceof Error ? error.message : String(error)}`
-        };
+        return fallbackResult;
     }
 };
 
 /**
- * 4. CONSULTA EN LENGUAJE NATURAL (ASISTENTE RADAR)
+ * 4. ASISTENTE CONVERSACIONAL ESTRATÉGICO RADAR
+ * Responde de forma sucinta y focalizada en el producto/módulo consultado (extrayendo datos de la Ficha de Resultados),
+ * a menos que el usuario solicite explícitamente un reporte detallado.
  */
-export const responderConsultaChat = async (
+export const responderConsultaOmnicanalRadar = async (
     pregunta: string,
-    usuarioRol: string,
-    contextoData: string
-): Promise<{ respuesta: string; parametrosFiltro: any }> => {
-    const client = obtenerClienteGemini();
-    if (!client) {
-        return {
-            respuesta: `Hola. Tu sesiÃ³n se encuentra en modo sin login. No tengo conexiÃ³n a la clave API de Gemini.`,
-            parametrosFiltro: {}
-        };
-    }
-
-    try {
-        const model = client.getGenerativeModel({ 
-            model: 'gemini-flash-latest',
-            generationConfig: { responseMimeType: 'application/json' }
-        });
-
-        const prompt = `
-        Eres el Asistente Inteligente de RADAR. Tu labor es responder consultas operativas en lenguaje natural.
-        Para evitar inyecciones SQL u operaciones daÃ±inas, tu tarea inicial es traducir la pregunta del usuario en un filtro JSON estructurado de consulta, y proveer una respuesta preliminar.
-
-        Pregunta del usuario: "${pregunta}"
-        Rol del usuario: "${usuarioRol}"
-        
-        Datos consolidados en BD (Esquema conceptual y entidades del contexto):
-        ${contextoData}
-
-        Genera una respuesta estructurada en JSON con:
-        1. "respuesta": ExplicaciÃ³n ejecutiva y clara de la respuesta utilizando el contexto disponible.
-        2. "parametrosFiltro": Un objeto JSON que represente los filtros de bÃºsqueda que el backend deberÃ­a aplicar en Prisma para verificar los datos (ej: { "localidad": "Suba", "estadoActividad": "VENCIDA" }).
-
-        Retorna un objeto JSON con la estructura exacta:
-        {
-          "respuesta": "Texto de la respuesta en espaÃ±ol.",
-          "parametrosFiltro": {}
-        }
-        `;
-
-        const response = await ejecutarConReintentos(() => model.generateContent(prompt));
-        return parseSafeJSON(response.response.text() || '{}');
-    } catch (error) {
-        console.error("[AIService] Error en asistente conversacional:", error);
-        return {
-            respuesta: `El asistente de inteligencia artificial estÃ¡ experimentando una alta demanda temporal y no pudo completar la respuesta. Por favor reintenta la consulta en unos momentos.`,
-            parametrosFiltro: {}
-        };
-    }
-};
-
-/**
- * 4b. SINTETIZAR RESPUESTA FINAL DE CHAT CON DATOS REALES
- */
-export const generarRespuestaFinalChat = async (
-    pregunta: string,
-    stats: {
-      liderNombre: string;
-      liderPorcentaje: number;
-      completas: number;
-      enCurso: number;
-      noIniciadas: number;
-      totalAsignaciones: number;
-      totalAlertas: number;
-      ejemplosCompletas: string[];
-      alertasTexto: string;
-      objetivoEspecifico?: {
-        nombre: string;
-        total: number;
-        completas: number;
-        enCurso: number;
-        noIniciadas: number;
-        alertasCount: number;
-        ejemplosCompletas: string[];
-        alertasTexto: string;
-      }
-    }
+    contextoFocalizado: string,
+    modoRespuesta: 'SUCINTO_ESTRATEGICO' | 'DETALLADO' | 'TABLERO_CONTROL',
+    resumenFallback: string
 ): Promise<string> => {
     const client = obtenerClienteGemini();
     if (!client) {
-        return "Modo local activo. No se pudo sintetizar con Gemini.";
+        return resumenFallback;
     }
 
     try {
-        const model = client.getGenerativeModel({ 
-            model: 'gemini-flash-latest'
-        });
-
-        let prompt = "";
-        
-        if (stats.objetivoEspecifico) {
-          const obj = stats.objetivoEspecifico;
-          prompt = `
-          Eres el Asistente Inteligente de RADAR. El usuario preguntÃ³: "${pregunta}"
-          Estamos respondiendo especÃ­ficamente sobre la aspiraciÃ³n/objetivo: "${obj.nombre}"
-          
-          Datos reales de la base de datos para esta aspiraciÃ³n:
-          - Total de actividades programadas: ${obj.total}
-          - Actividades logradas (completadas): ${obj.completas}
-          - Actividades en curso: ${obj.enCurso}
-          - Actividades no iniciadas: ${obj.noIniciadas}
-          - Alertas activas asociadas: ${obj.alertasCount}
-          - Ejemplos de actividades logradas: ${obj.ejemplosCompletas.join(', ')}
-          - Alertas asociadas en detalle: ${obj.alertasTexto}
-          
-          Por favor genera la respuesta final en espaÃ±ol enfocÃ¡ndote ÃšNICAMENTE en esta aspiraciÃ³n. Utiliza el siguiente formato ejecutivo EXACTO (viÃ±etas cortas, negritas y cursivas):
-          
-          Resumen Cuantitativo:
-          * **AspiraciÃ³n**: ${obj.nombre} (con ${obj.total} actividades programadas, de las cuales se han logrado **${obj.completas}**).
-          * **Estado de Actividades**: ${obj.completas} en **COMPLETA_SIN_VALIDAR**, ${obj.enCurso} en **EN_CURSO_SIN_VALIDAR** y ${obj.noIniciadas} en **NO_INICIADA**.
-          * **Alertas Activas**: **${obj.alertasCount}** alertas directamente vinculadas a esta aspiraciÃ³n.
-          
-          Aspecto Cualitativo:
-          * **Impulsores**: Cumplimiento total en acciones clave de esta aspiraciÃ³n como ${obj.ejemplosCompletas.map(e => `*${e}*`).join(', ')}.
-          * **ObstÃ¡culo Principal**: [Describir muy brevemente en una sola frase el obstÃ¡culo principal basÃ¡ndose Ãºnicamente en las alertas activas asociadas. Si no hay alertas asociadas, indicar textualmente que la aspiraciÃ³n avanza sin novedades de bloqueo].
-          
-          No agregues introducciones ni conclusiones innecesarias, ve directo a los dos bloques.
-          `;
+        let directrizLongitud = '';
+        if (modoRespuesta === 'SUCINTO_ESTRATEGICO') {
+            directrizLongitud = `
+            REGLA ESTRICTA DE BREVEDAD Y ENFOQUE ESTRATÉGICO (MUY IMPORTANTE):
+            - El usuario requiere un **REPORTE ESTRATÉGICO SUCINTO Y DIRECTO** (NO pidió detalle).
+            - Tu respuesta DEBE tener **máximo 3 a 4 viñetas cortas (entre 45 y 85 palabras en total)**.
+            - Responde **ÚNICAMENTE** sobre el producto o tema preguntado, usando los datos de la **Ficha de Resultados / Tablero de Resultados** incluidos en el contexto.
+            - **PROHIBIDO** mencionar otros productos (como Rollos Legendarios, Actividades P08, etc.) si el usuario no preguntó por ellos.
+            - Estructura obligatoria en 3 viñetas:
+              * **📊 Avance al Corte**: Cifra oficial de la Ficha de Resultados (ejecutado vs programado al corte, % de cumplimiento y meta anual).
+              * **✅ Avance Principal**: Resumen ejecutivo en 1 sola frase de los logros o distribución principal del producto.
+              * **⚠️ Alerta Principal**: Resumen ejecutivo en 1 o 2 frases del condicionante o alerta principal reportada en la Ficha de Resultados para ese producto.
+            `;
+        } else if (modoRespuesta === 'TABLERO_CONTROL') {
+            directrizLongitud = `
+            REGLA DE RESUMEN EJECUTIVO DEL TABLERO DE CONTROL:
+            - Presenta un resumen estratégico y conciso (máximo 140 palabras) que sintetice:
+              1. **Indicadores Clave por Producto (Ficha de Resultados)**: 1 línea por producto estratégico (Presupuesto, Obras Locales, Residuos P04, Espacio Público P05, Convivencia/Vehículos, Rollos Legendarios).
+              2. **Panel de Actividades**: Avance global promedio (%), completadas, en curso y sin iniciar.
+              3. **Alertas Prioritarias**: Principales alertas estratégicas activas.
+            `;
         } else {
-          prompt = `
-          Eres el Asistente Inteligente de RADAR. El usuario preguntÃ³: "${pregunta}"
-          Hemos calculado las estadÃ­sticas reales globales de la base de datos para la localidad de Suba:
-          - Total de asignaciones: ${stats.totalAsignaciones}
-          - Estado de Actividades: ${stats.completas} en COMPLETA_SIN_VALIDAR, ${stats.enCurso} en EN_CURSO_SIN_VALIDAR y ${stats.noIniciadas} en NO_INICIADA.
-          - AspiraciÃ³n lÃ­der: "${stats.liderNombre}" con ${stats.liderPorcentaje}% de ejecuciÃ³n.
-          - Alertas activas totales: ${stats.totalAlertas}.
-          - Ejemplos de actividades completadas: ${stats.ejemplosCompletas.join(', ')}.
-          - Detalle de alertas: ${stats.alertasTexto}.
-          
-          Por favor genera la respuesta final en espaÃ±ol con el siguiente formato ejecutivo EXACTO (viÃ±etas cortas, negritas y cursivas):
-          
-          Resumen Cuantitativo:
-          * **AspiraciÃ³n LÃ­der**: ${stats.liderNombre} (${stats.liderPorcentaje}% de ejecuciÃ³n).
-          * **Estado de Actividades (Suba)**: ${stats.completas} en **COMPLETA_SIN_VALIDAR**, ${stats.enCurso} en **EN_CURSO_SIN_VALIDAR** y ${stats.noIniciadas} en **NO_INICIADA**.
-          * **Alertas Activas**: **${stats.totalAlertas}** registradas en el sistema.
-          
-          Aspecto Cualitativo:
-          * **Impulsores**: Cumplimiento total en acciones clave como ${stats.ejemplosCompletas.map(e => `*${e}*`).join(', ')}.
-          * **ObstÃ¡culo Principal**: [Describir muy brevemente en una sola frase el obstÃ¡culo principal basÃ¡ndose en las alertas activas, por ejemplo: dificultades con PONAL para comparendos de residuos o falta de IDs actualizadas].
-          
-          No agregues introducciones ni conclusiones innecesarias, ve directo a los dos bloques (Resumen Cuantitativo y Aspecto Cualitativo).
-          `;
+            directrizLongitud = `
+            REGLA DE REPORTE DETALLADO:
+            - El usuario solicitó nivel de detalle explícito. Presenta el desglose completo de cifras, localidades, frentes o actividades disponibles en el contexto para el tema consultado, estructurado con viñetas claras.
+            - No mezcles productos distintos al consultado por el usuario.
+            `;
         }
 
-        const response = await ejecutarConReintentos(() => model.generateContent(prompt));
-        return response.response.text() || "Sin respuesta generada por el asistente.";
-    } catch (error) {
-        console.error("[AIService] Error sintetizando respuesta final de chat:", error);
-        return `Resumen Cuantitativo:\nAspiraciÃ³n LÃ­der: ${stats.liderNombre} (${stats.liderPorcentaje}%).\nEstado: ${stats.completas} completas, ${stats.enCurso} en curso, ${stats.noIniciadas} no iniciadas.\nAlertas: ${stats.totalAlertas}.`;
-    }
-};
-
-/**
- * 4c. GENERAR RESPUESTA DIRECTA Y CONCISA PARA CONSULTAS ESPECÃFICAS
- */
-export const generarRespuestaDirectaChat = async (
-    pregunta: string,
-    datosReales: string
-): Promise<string> => {
-    const client = obtenerClienteGemini();
-    if (!client) {
-        return "Modo local activo. No se pudo sintetizar con Gemini.";
-    }
-
-    try {
-        const model = client.getGenerativeModel({ 
-            model: 'gemini-flash-latest'
-        });
-
         const prompt = `
-        Eres el Asistente Inteligente de RADAR. El usuario hizo una pregunta especÃ­fica: "${pregunta}"
-        Hemos consultado la base de datos de RADAR y obtuvimos los siguientes registros reales vinculados a su pregunta:
-        
-        ${datosReales}
-        
-        Por favor genera una respuesta directa, concisa y ejecutiva en espaÃ±ol (mÃ¡ximo 80-100 palabras) respondiendo puntualmente a la pregunta del usuario utilizando los datos provistos.
-        No uses plantillas de tablero general (no menciones "AspiraciÃ³n LÃ­der" ni estadÃ­sticas globales de la localidad a menos que el usuario lo haya solicitado).
-        Usa negritas y viÃ±etas cortas para mayor claridad.
+        Eres el **Asistente Estratégico Oficial de RADAR** de la Secretaría Distrital de Gobierno de Bogotá (uso exclusivo para Administradores).
+
+        Pregunta del Administrador:
+        "${pregunta}"
+
+        ${directrizLongitud}
+
+        DATOS OFICIALES DEL PRODUCTO / MÓDULO CONSULTADO:
+        ${contextoFocalizado}
+
+        Reglas de formato:
+        - Español ejecutivo, directo y sin introducciones ni saludos largos.
+        - Usa negritas (**texto**) para cifras, porcentajes y localidades clave.
         `;
 
-        const response = await ejecutarConReintentos(() => model.generateContent(prompt));
-        return response.response.text() || "Sin respuesta generada por el asistente.";
+        const text = await generarConModeloResiliente(client, prompt, false);
+        return text || resumenFallback;
     } catch (error) {
-        console.error("[AIService] Error en respuesta directa de chat:", error);
-        return `Detalle de datos obtenidos para su consulta:\n${datosReales}`;
+        console.error("[AIService] Error en asistente estratégico RADAR, usando reporte determinístico:", error);
+        return resumenFallback;
     }
 };

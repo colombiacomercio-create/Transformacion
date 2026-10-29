@@ -1120,44 +1120,46 @@ export default function ModalDetalleActividad({ actividad, onClose, onRefresh, u
                               </a>
                             </div>
 
-                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusColor}`}>
-                                Pre-chequeo IA: {ev.prechequeoEstado || 'PENDIENTE'}
-                              </span>
-                              {!ev.prechequeoEstado && (
-                                <button 
-                                  onClick={async () => {
-                                    try {
-                                      const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/evidencias/prechequear`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ evidenciaId: ev.id })
-                                      });
-                                      if (res.ok) {
-                                        alert("Análisis de evidencia completado. Por favor recarga el detalle para ver los resultados.");
-                                        onRefresh();
-                                      } else {
-                                        alert("No se pudo iniciar el pre-chequeo. Asegúrate de configurar la clave de API.");
+                            {esAdmin && (
+                              <>
+                                <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusColor}`}>
+                                    Pre-chequeo IA: {ev.prechequeoEstado || 'PENDIENTE'}
+                                  </span>
+                                  <button 
+                                    onClick={async () => {
+                                      try {
+                                        const res = await fetchApi(`${import.meta.env.VITE_API_URL || 'https://transformacion-backend.vercel.app'}/api/ia/evidencias/prechequear`, {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ evidenciaId: ev.id })
+                                        });
+                                        if (res.ok) {
+                                          alert("Análisis de evidencia completado. Por favor recarga el detalle para ver los resultados.");
+                                          onRefresh();
+                                        } else {
+                                          alert("No se pudo iniciar el pre-chequeo. Asegúrate de configurar la clave de API.");
+                                        }
+                                      } catch(e) {
+                                        console.error(e);
                                       }
-                                    } catch(e) {
-                                      console.error(e);
-                                    }
-                                  }}
-                                  className="text-[10px] bg-purple-700 hover:bg-purple-800 text-white font-bold py-0.5 px-2 rounded transition-colors flex items-center gap-1 shadow-sm"
-                                >
-                                  <Sparkles className="w-3 h-3"/>
-                                  Analizar IA
-                                </button>
-                              )}
-                            </div>
+                                    }}
+                                    className="text-[10px] bg-purple-700 hover:bg-purple-800 text-white font-bold py-0.5 px-2 rounded transition-colors flex items-center gap-1 shadow-sm"
+                                  >
+                                    <Sparkles className="w-3 h-3"/>
+                                    Analizar IA
+                                  </button>
+                                </div>
 
-                            {ev.prechequeoFeedback && (
-                              <div className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded border border-gray-200 flex flex-col gap-0.5">
-                                <p className="font-bold flex items-center gap-1 text-gray-800">
-                                  <Sparkles className="w-3 h-3 text-purple-700"/> Diagnóstico IA ({ev.prechequeoPuntaje || 0}% coherencia):
-                                </p>
-                                <p className="text-gray-600">{ev.prechequeoFeedback}</p>
-                              </div>
+                                {ev.prechequeoFeedback && (
+                                  <div className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded border border-gray-200 flex flex-col gap-0.5">
+                                    <p className="font-bold flex items-center gap-1 text-gray-800">
+                                      <Sparkles className="w-3 h-3 text-purple-700"/> Diagnóstico IA ({ev.prechequeoPuntaje || 0}% coherencia):
+                                    </p>
+                                    <p className="text-gray-600">{ev.prechequeoFeedback}</p>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         );

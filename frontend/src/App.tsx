@@ -52,19 +52,19 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   
-  // Asistente de IA Chat State
+  // Asistente de IA Chat State (Exclusivo ADMIN)
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string }>>([
-    { sender: 'bot', text: '¡Hola! Soy tu Asistente RADAR. ¿En qué te puedo ayudar hoy? Puedes preguntarme por el avance de obras, alertas activas o tareas vencidas.' }
+    {
+      sender: 'bot',
+      text: '¡Hola Administrador! Soy tu **Asistente Inteligente RADAR**. Puedo responder consultas sobre **cualquier módulo del sistema**:\n* **Tablero de Control** (resumen de todas las actividades, avances y alertas)\n* **Panel de Actividades** y validación de evidencias\n* **Gestor de Alertas**\n* **Sostenibilidad Espacio Público (P04 y P05)**\n* **Gestión de Resultados, Obras, Sesiones, Informes, Eventos y Normativo**'
+    }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  const handleSendChat = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    
-    const userMsg = chatInput;
+  const enviarConsultaChat = async (userMsg: string) => {
+    if (!userMsg.trim() || chatLoading) return;
     setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
     setChatInput('');
     setChatLoading(true);
@@ -79,7 +79,7 @@ function App() {
         const data = await res.json();
         setChatMessages(prev => [...prev, { sender: 'bot', text: data.respuesta }]);
       } else {
-        setChatMessages(prev => [...prev, { sender: 'bot', text: 'Lo siento, no pude procesar tu consulta en este momento. Verifica tu conexión.' }]);
+        setChatMessages(prev => [...prev, { sender: 'bot', text: 'Lo siento, no pude procesar tu consulta en este momento. Verifica tu sesión de Administrador o conexión.' }]);
       }
     } catch(err) {
       console.error(err);
@@ -87,6 +87,11 @@ function App() {
     } finally {
       setChatLoading(false);
     }
+  };
+
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await enviarConsultaChat(chatInput);
   };
 
   const getInitialUser = (account?: any) => {
@@ -376,8 +381,8 @@ function App() {
         )}
       </main>
 
-      {/* Botón flotante del Asistente */}
-      {userData && (
+      {/* Botón flotante del Asistente IA (Exclusivo Administradores) */}
+      {userData?.rol === 'ADMIN' && (
         <>
           <button 
               onClick={() => setChatOpen(!chatOpen)}
@@ -389,21 +394,50 @@ function App() {
 
             {/* Panel del Chat (Drawer) */}
           {chatOpen && (
-            <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
+            <div className="fixed bottom-24 right-6 w-[420px] max-w-[92vw] h-[560px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
               <div className="bg-purple-700 p-4 flex justify-between items-center text-white border-b border-purple-800">
                  <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-yellow-300"/>
                     <div>
-                       <h3 className="font-bold text-sm leading-tight">Asistente RADAR</h3>
-                       <p className="text-[10px] text-purple-200">Impulsado por Gemini 3.5</p>
+                       <div className="flex items-center gap-1.5">
+                          <h3 className="font-bold text-sm leading-tight">Asistente RADAR</h3>
+                          <span className="text-[9px] font-extrabold uppercase bg-yellow-400 text-purple-950 px-1.5 py-0.5 rounded">Solo Admin</span>
+                       </div>
+                       <p className="text-[10px] text-purple-200">Omnicanal · Todos los módulos de RADAR</p>
                     </div>
                  </div>
                  <button onClick={() => setChatOpen(false)} className="hover:bg-purple-800 p-1 rounded"><X className="w-4 h-4"/></button>
               </div>
+
+              {/* Accesos rápidos a consultas clave */}
+              <div className="px-3 py-2 bg-purple-50 border-b border-purple-100 flex gap-1.5 overflow-x-auto whitespace-nowrap">
+                 <button
+                   type="button"
+                   onClick={() => enviarConsultaChat('Hazme un resumen del Tablero de Control con todas las actividades, avances y alertas')}
+                   className="text-[10.5px] font-bold bg-white hover:bg-purple-100 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-full transition-colors shadow-2xs"
+                 >
+                   📊 Resumen Tablero de Control
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => enviarConsultaChat('¿Cuál es el balance de Sostenibilidad de Espacio Público P04 y P05?')}
+                   className="text-[10.5px] font-bold bg-white hover:bg-purple-100 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-full transition-colors shadow-2xs"
+                 >
+                   🌱 Sostenibilidad P04/P05
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => enviarConsultaChat('¿Cuáles son los resultados en Ficha de Resultados, Obras, Sesiones y Normativo?')}
+                   className="text-[10.5px] font-bold bg-white hover:bg-purple-100 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-full transition-colors shadow-2xs"
+                 >
+                   📈 Gestión de Resultados
+                 </button>
+              </div>
+
               <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
                  {chatMessages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                       <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs ${msg.sender === 'user' ? 'bg-purple-700 text-white rounded-br-none shadow' : 'bg-white text-gray-800 border rounded-bl-none shadow-sm'}`}>
+                       <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs ${msg.sender === 'user' ? 'bg-purple-700 text-white rounded-br-none shadow' : 'bg-white text-gray-800 border rounded-bl-none shadow-sm'}`}>
                           {renderMarkdown(msg.text)}
                        </div>
                     </div>
@@ -423,7 +457,7 @@ function App() {
                    type="text" 
                    value={chatInput}
                    onChange={e => setChatInput(e.target.value)}
-                   placeholder="Pregunta por tareas, avances, alertas..."
+                   placeholder="Pregunta sobre cualquier módulo de RADAR..."
                    className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
                  />
                  <button type="submit" className="bg-purple-700 hover:bg-purple-800 text-white p-2 rounded-full flex items-center justify-center shadow transition-colors"><Send className="w-3.5 h-3.5"/></button>

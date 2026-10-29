@@ -409,20 +409,22 @@ export default function PanelAlertas({ userData }: { userData?: any }) {
                <div>
                   <div className="flex justify-between items-center mb-1">
                      <label className="block text-sm font-bold text-gray-700">Descripción del Bloqueo / Causa Estructural</label>
-                     <button
-                       type="button"
-                       onClick={handleAnalizarIA}
-                       disabled={analizandoAlerta}
-                       className="text-xs bg-purple-700 hover:bg-purple-800 text-white font-bold px-2 py-1 rounded flex items-center gap-1 disabled:opacity-50 transition-colors shadow-sm"
-                     >
-                       <Sparkles className="w-3.5 h-3.5"/>
-                       {analizandoAlerta ? 'Analizando...' : 'Clasificar con IA'}
-                     </button>
+                     {userData?.rol === 'ADMIN' && (
+                       <button
+                         type="button"
+                         onClick={handleAnalizarIA}
+                         disabled={analizandoAlerta}
+                         className="text-xs bg-purple-700 hover:bg-purple-800 text-white font-bold px-2 py-1 rounded flex items-center gap-1 disabled:opacity-50 transition-colors shadow-sm"
+                       >
+                         <Sparkles className="w-3.5 h-3.5"/>
+                         {analizandoAlerta ? 'Analizando...' : 'Clasificar con IA'}
+                       </button>
+                     )}
                   </div>
                   <textarea required className="w-full p-2 border rounded h-24" value={form.desc} onChange={e => setForm({...form, desc: e.target.value})} placeholder="Describe el obstáculo concreto que detiene el avance..."/>
                 </div>
 
-                {sugerenciasIA && (
+                {userData?.rol === 'ADMIN' && sugerenciasIA && (
                   <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-950 space-y-1">
                     <p className="font-bold flex items-center gap-1 text-purple-900"><Sparkles className="w-3.5 h-3.5 text-purple-700"/> Clasificación de Asistencia de IA:</p>
                     <p>• <strong>Severidad Sugerida:</strong> <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${sugerenciasIA.severidadSugerida === 'CRITICA' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{sugerenciasIA.severidadSugerida || 'MODERADA'}</span></p>
