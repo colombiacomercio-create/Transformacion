@@ -58,16 +58,18 @@ export default function SeccionResultados({ userData }: Props) {
 
     setExporting(true);
     try {
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
       for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i] as HTMLElement, { scale: 2, useCORS: true });
+        const pageEl = pages[i] as HTMLElement;
+        const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
-        if (i > 0) pdf.addPage();
+        if (i > 0) pdf.addPage('letter', 'p');
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        const pdfHeight = pdf.internal.pageSize.getHeight();
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       }
-      pdf.save(`Ficha_Resultados_${new Date().toISOString().slice(0, 10)}.pdf`);
+      const fechaCorte = fichaMostrar?.periodo ? fichaMostrar.periodo.slice(0, 10) : new Date().toISOString().slice(0, 10);
+      pdf.save(`Ficha_Resultados_Unidad_${fechaCorte}.pdf`);
     } catch (error) {
       console.error("Error exporting PDF:", error);
     } finally {

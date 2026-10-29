@@ -236,8 +236,22 @@ export default function ModalFichaResultados({ onClose }: Props) {
                     <div key={campo.key} className={campo.type === 'textarea' ? 'sm:col-span-2' : ''}>
                       <label className="block text-xs font-medium text-gray-600 mb-1">{campo.label}</label>
                       {campo.type === 'textarea' ? (
-                        <textarea value={form[campo.key] || ''} onChange={e => set(campo.key, e.target.value)}
-                          rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent resize-none" />
+                        <div>
+                          <textarea 
+                            value={form[campo.key] || ''} 
+                            onChange={e => set(campo.key, e.target.value)}
+                            maxLength={450}
+                            rows={3} 
+                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-bogota-primary focus:border-transparent resize-none leading-relaxed" 
+                            placeholder="Ingrese viñetas o texto conciso (máx. 450 caracteres)..."
+                          />
+                          <div className="flex justify-between items-center text-[10px] text-gray-400 mt-0.5">
+                            <span>📐 Límite para formato Carta</span>
+                            <span className={(form[campo.key]?.length || 0) > 400 ? 'text-amber-600 font-bold' : ''}>
+                              {(form[campo.key]?.length || 0)} / 450 caracteres
+                            </span>
+                          </div>
+                        </div>
                       ) : campo.type === 'date' ? (
                         <input type="date" value={form[campo.key] || ''} 
                           onChange={e => set(campo.key, e.target.value)}
@@ -256,8 +270,20 @@ export default function ModalFichaResultados({ onClose }: Props) {
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Observaciones generales</label>
-            <textarea value={form.observaciones || ''} onChange={e => set('observaciones', e.target.value)}
-              rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent resize-none" />
+            <textarea 
+              value={form.observaciones || ''} 
+              onChange={e => set('observaciones', e.target.value)}
+              maxLength={600}
+              rows={3} 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-bogota-primary focus:border-transparent resize-none leading-relaxed" 
+              placeholder="Notas generales o contexto adicional del corte..."
+            />
+            <div className="flex justify-between items-center text-[10px] text-gray-400 mt-0.5">
+              <span>Máximo recomendado</span>
+              <span className={(form.observaciones?.length || 0) > 550 ? 'text-amber-600 font-bold' : ''}>
+                {(form.observaciones?.length || 0)} / 600 caracteres
+              </span>
+            </div>
           </div>
 
           {error && <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
